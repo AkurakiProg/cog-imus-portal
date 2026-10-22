@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --navy: #0E2A4F;
+    --navy-light: #1A3A6B;
+    --navy-dark: #061730;
+    --gold: #C9A961;
+    --gold-light: #E0BC6F;
+    --gold-dark: #A88845;
+    --cream: #FAF6EF;
+    --bg-color: #F1F5F9;
+    --text-dark: #1e293b;
+    --text-light: #64748b;
+    --white: #ffffff;
+    --danger-color: #ef4444;
+    --success-color: #10b981;
+    --border-color: #e2e8f0;
+    --transition-speed: 0.3s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { background: var(--bg-color); display: flex; min-height: 100vh; color: var(--text-dark); }
+h1, h2, h3, h4, h5 { font-family: 'Cormorant Garamond', serif; letter-spacing: -0.5px; font-weight: 600; }
+
+/* Shared Scrollbar & Animations */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.view { display: none; }
+.view.active { display: block; animation: fadeIn 0.3s ease; }
+
+/* Shared Buttons */
+.btn-primary { background: var(--navy); color: var(--white); border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all var(--transition-speed) ease; display: flex; align-items: center; gap: 0.5rem; }
+.btn-primary:hover { background: var(--navy-light); }
+.btn-gold { background: var(--gold); color: var(--navy-dark); border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all var(--transition-speed) ease; }
+.btn-gold:hover { background: var(--gold-dark); color: var(--white); }
+.btn-secondary { background: var(--white); color: var(--text-dark); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all var(--transition-speed) ease; }
+.btn-secondary:hover { background: #f1f5f9; }
+.btn-logout { margin-left: auto; background: none; border: none; color: #94a3b8; cursor: pointer; transition: color var(--transition-speed); }
+.btn-logout:hover { color: var(--danger-color); }
+
+/* Shared Badges */
+.badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: capitalize; }
+.badge-active { background: #dcfce7; color: #16a34a; }
+.badge-inactive { background: #fee2e2; color: #ef4444; }
+.badge-income { background: #dcfce7; color: #16a34a; }
+.badge-expense { background: #fee2e2; color: #ef4444; }

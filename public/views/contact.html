@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact & Prayer | COGWM Imus</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/public.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <style>
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.25fr;
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            align-items: start;
+        }
+        .contact-info-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 2.75rem 2.25rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            transition: all 0.3s ease;
+        }
+        .contact-info-card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        .contact-info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .contact-info-item:last-child { margin-bottom: 0; }
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: var(--cream);
+            color: var(--navy);
+            border: 1px solid rgba(201, 169, 97, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+        .contact-info-item:hover .contact-icon {
+            background: var(--gold);
+            color: var(--navy-dark);
+            transform: scale(1.05);
+        }
+        .contact-form-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 2.75rem 2.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            transition: all 0.3s ease;
+        }
+        .contact-form-card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        .contact-form-group {
+            margin-bottom: 1.35rem;
+        }
+        .contact-form-group label {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--navy);
+            margin-bottom: 0.45rem;
+            letter-spacing: 0.01em;
+        }
+        .contact-form-group input,
+        .contact-form-group textarea {
+            width: 100%;
+            padding: 0.85rem 1.15rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            background: #fafbfc;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+        }
+        .contact-form-group input:focus,
+        .contact-form-group textarea:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.2);
+        }
+        .btn-contact-submit {
+            width: 100%;
+            padding: 1.05rem;
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+            color: #ffffff;
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            letter-spacing: 0.02em;
+        }
+        .btn-contact-submit:hover {
+            background: var(--gold);
+            color: var(--navy-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        @media (max-width: 900px) {
+            .contact-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .contact-info-card, .contact-form-card { padding: 2rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar scrolled" id="navbar" data-always-scrolled="true">
+        <a href="/" class="logo">
+            <div class="logo-icon"><i class="fa-solid fa-cross"></i></div>
+            <div>
+                <h2>COGWM Imus</h2>
+                <p>World Missions PH</p>
+            </div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/views/sermons.html">Sermons</a></li>
+            <li><a href="/views/events.html">Events</a></li>
+            <li><a href="/views/gallery.html">Gallery</a></li>
+            <li><a href="/views/history.html">About Us</a></li>
+            <li><a href="/views/contact.html" class="active">Contact</a></li>
+            <li><a href="/views/login.html" class="btn-login-nav"><i class="fa-solid fa-arrow-right-to-bracket"></i> Portal Login</a></li>
+        </ul>
+        <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="Toggle Navigation"><i class="fa-solid fa-bars"></i></button>
+    </nav>
+
+    <!-- Page Header Banner -->
+    <header class="page-header-banner">
+        <div class="page-header-inner reveal">
+            <span class="hero-badge"><i class="fa-solid fa-envelope-open-text"></i> Connect & Pray</span>
+            <h1>Contact Us</h1>
+            <p>
+                We would love to hear from you! Send us your prayer requests, inquiries, or come visit us in person.
+            </p>
+        </div>
+    </header>
+
+    <!-- Contact & Prayer Request Section -->
+    <section class="section section-subtle">
+        <div class="contact-grid">
+            <!-- Left: Church Information -->
+            <div class="contact-info-card reveal">
+                <h3 style="font-size: 1.6rem; color: var(--navy); margin-bottom: 0.5rem;">Church Information</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Visit us for our weekly worship or reach out to our team.</p>
+
+                <div class="contact-info-item">
+                    <div class="contact-icon"><i class="fa-solid fa-location-dot"></i></div>
+                    <div>
+                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Location</h4>
+                        <p style="color: var(--text-dark); margin: 0; font-size: 0.92rem; line-height: 1.5;">Church of God World Missions<br>Imus, Cavite, Philippines</p>
+                    </div>
+                </div>
+
+                <div class="contact-info-item">
+                    <div class="contact-icon"><i class="fa-solid fa-phone"></i></div>
+                    <div>
+                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Phone / Mobile</h4>
+                        <p style="color: var(--text-dark); margin: 0; font-size: 0.92rem;">+63 900 000 0000</p>
+                    </div>
+                </div>
+
+                <div class="contact-info-item">
+                    <div class="contact-icon"><i class="fa-solid fa-envelope"></i></div>
+                    <div>
+                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Email Address</h4>
+                        <p style="color: var(--text-dark); margin: 0; font-size: 0.92rem;">info@cogwmphimus.org</p>
+                    </div>
+                </div>
+
+                <div class="contact-info-item">
+                    <div class="contact-icon"><i class="fa-solid fa-clock"></i></div>
+                    <div>
+                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Weekly Worship Services</h4>
+                        <p style="color: var(--text-dark); margin: 0; font-size: 0.92rem; line-height: 1.6;">
+                            <strong>Sunday:</strong> 9:00 AM &bull; 3:00 PM<br>
+                            <strong>Wednesday:</strong> 7:00 PM (Midweek Prayer)<br>
+                            <strong>Saturday:</strong> 4:00 PM (Youth Alive)
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Contact & Prayer Request Form -->
+            <div class="contact-form-card reveal">
+                <h3 style="font-size: 1.6rem; color: var(--navy); margin-bottom: 0.5rem;">Send a Message or Prayer Request</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.75rem;">Our ministry and pastoral team reads and prays over every message.</p>
+
+                <div id="contactAlert" style="display: none; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; font-weight: 500;"></div>
+
+                <form id="contactForm">
+                    <div class="contact-form-group">
+                        <label for="contactName">Full Name *</label>
+                        <input type="text" id="contactName" placeholder="Juan Dela Cruz" required>
+                    </div>
+
+                    <div class="contact-form-group">
+                        <label for="contactEmail">Email Address *</label>
+                        <input type="email" id="contactEmail" placeholder="juan@example.com" required>
+                    </div>
+
+                    <div class="contact-form-group">
+                        <label for="contactPhone">Contact Number (Optional)</label>
+                        <input type="tel" id="contactPhone" placeholder="0912 345 6789">
+                    </div>
+
+                    <div class="contact-form-group">
+                        <label for="contactSubject">Subject / Category *</label>
+                        <input type="text" id="contactSubject" placeholder="General Inquiry / Prayer Request / Pastoral Counseling" required>
+                    </div>
+
+                    <div class="contact-form-group">
+                        <label for="contactMessage">Your Message or Prayer Request *</label>
+                        <textarea id="contactMessage" rows="5" placeholder="Share your message, questions, or how we can pray for you..." required></textarea>
+                    </div>
+
+                    <button type="submit" id="btnContactSubmit" class="btn-contact-submit">
+                        <i class="fa-solid fa-paper-plane"></i> Send Message
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rich 4-Column Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <a href="/" class="logo" style="margin-bottom: 1rem; color: #ffffff; text-decoration: none;">
+                    <div class="logo-icon"><i class="fa-solid fa-cross"></i></div>
+                    <div>
+                        <h2 style="font-size: 1.4rem; color: #ffffff; margin: 0;">COGWM Imus</h2>
+                        <p style="font-size: 0.75rem; color: var(--gold-light); margin: 0;">World Missions Philippines</p>
+                    </div>
+                </a>
+                <p style="font-size: 0.9rem; line-height: 1.7; color: rgba(255,255,255,0.8);">
+                    A vibrant Christ-centered church family committed to knowing Christ, making Him known, nurturing disciples, and impacting our community with unconditional love.
+                </p>
+                <div class="footer-socials">
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="mailto:info@cogwmphimus.org" class="footer-social-btn" aria-label="Email"><i class="fa-solid fa-envelope"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-col">
+                <h3>Quick Navigation</h3>
+                <ul class="footer-links">
+                    <li><a href="/"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Home</a></li>
+                    <li><a href="/views/sermons.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Sermons & Media</a></li>
+                    <li><a href="/views/events.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Church Events</a></li>
+                    <li><a href="/views/gallery.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Photo Gallery</a></li>
+                    <li><a href="/views/history.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> About & History</a></li>
+                    <li><a href="/views/contact.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Contact & Prayer</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h3>Service Schedule</h3>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Sunday Services:</strong><br>9:00 AM &bull; Morning Celebration<br>3:00 PM &bull; Afternoon Fellowship</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Midweek Service:</strong><br>Wednesday 7:00 PM &bull; Prayer & Life</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Youth Alive:</strong><br>Saturday 4:00 PM &bull; NextGen Worship</p>
+            </div>
+
+            <div class="footer-col">
+                <h3>Church Info & Access</h3>
+                <p><i class="fa-solid fa-location-dot" style="color: var(--gold); margin-right: 0.5rem;"></i> Imus, Cavite, Philippines</p>
+                <p><i class="fa-solid fa-phone" style="color: var(--gold); margin-right: 0.5rem;"></i> +63 900 000 0000</p>
+                <p><i class="fa-solid fa-envelope" style="color: var(--gold); margin-right: 0.5rem;"></i> info@cogwmphimus.org</p>
+                <div style="margin-top: 1.5rem;">
+                    <a href="/views/login.html" class="btn-hero-outline" style="padding: 0.65rem 1.4rem; font-size: 0.85rem; border-color: var(--gold); color: var(--gold-light); display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-lock"></i> Member & Leader Portal
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Church of God World Missions Philippines - Imus. All rights reserved.</p>
+            <p style="color: var(--gold-light); font-weight: 500;">To God Be All the Glory</p>
+        </div>
+    </footer>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/public.js"></script>
+</body>
+</html>

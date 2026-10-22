@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>Sermons & Media | COGWM Imus</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/public.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+    <!-- Facebook JavaScript SDK for Comments Social Plugin -->
+    <div id="fb-root"></div>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0"></script>
+
+    <nav class="navbar scrolled" id="navbar" data-always-scrolled="true">
+        <a href="/" class="logo">
+            <div class="logo-icon"><i class="fa-solid fa-cross"></i></div>
+            <div>
+                <h2>COGWM Imus</h2>
+                <p>World Missions PH</p>
+            </div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/views/sermons.html" class="active">Sermons</a></li>
+            <li><a href="/views/events.html">Events</a></li>
+            <li><a href="/views/gallery.html">Gallery</a></li>
+            <li><a href="/views/history.html">About Us</a></li>
+            <li><a href="/views/contact.html">Contact</a></li>
+            <li><a href="/views/login.html" class="btn-login-nav"><i class="fa-solid fa-arrow-right-to-bracket"></i> Portal Login</a></li>
+        </ul>
+        <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="Toggle Navigation"><i class="fa-solid fa-bars"></i></button>
+    </nav>
+
+    <!-- Page Header Banner -->
+    <header class="page-header-banner">
+        <div class="page-header-inner reveal">
+            <span class="hero-badge"><i class="fa-solid fa-book-bible"></i> Preaching & Teaching</span>
+            <h1>Sermons & Livestreams</h1>
+            <p>
+                Listen to inspiring, life-changing messages grounded in God's Word from our pastoral ministry team.
+            </p>
+        </div>
+    </header>
+
+    <!-- Facebook Live Stream Section -->
+    <section class="section reveal" id="livestream" style="background: #061124; color: #ffffff; padding: 4.5rem 1.5rem; position: relative;">
+        <div style="max-width: 1050px; margin: 0 auto;" id="liveStreamSectionContent">
+            <!-- Populated dynamically by loadLiveStream() -->
+            <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.7);">
+                <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-gold block"></i>
+                Checking live stream broadcast...
+            </div>
+        </div>
+    </section>
+
+    <!-- Past Sermons Content & Filter Section -->
+    <section class="section section-subtle" id="past-sermons">
+        <div class="reveal" style="max-width: 1200px; margin: 0 auto 2.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span class="hero-badge" style="background: rgba(220, 38, 38, 0.1); color: #dc2626; border-color: rgba(220, 38, 38, 0.2);"><i class="fa-brands fa-youtube"></i> Recorded Messages</span>
+                <h3 style="font-size: 1.8rem; color: var(--navy); margin-top: 0.5rem; margin-bottom: 0.25rem;">Past Sermons Archive</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Watch video recordings of previous worship services and biblical teachings on YouTube.</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                <div style="position: relative;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                    <input type="text" id="sermonSearch" placeholder="Search sermons or preacher..." oninput="filterSermons()" style="padding: 0.65rem 1rem 0.65rem 2.4rem; border: 1px solid var(--border-color); border-radius: 50px; font-family: 'Inter', sans-serif; font-size: 0.9rem; width: 280px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2" id="sermonsGrid">
+            <div style="text-align: center; grid-column: 1/-1; padding: 4rem; color: var(--text-muted);">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.5rem; color: var(--gold); margin-bottom: 1rem; display: block;"></i>
+                Loading past sermons archive...
+            </div>
+        </div>
+    </section>
+
+
+    
+    <!-- Rich 4-Column Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <a href="/" class="logo" style="margin-bottom: 1rem; color: #ffffff; text-decoration: none;">
+                    <div class="logo-icon"><i class="fa-solid fa-cross"></i></div>
+                    <div>
+                        <h2 style="font-size: 1.4rem; color: #ffffff; margin: 0;">COGWM Imus</h2>
+                        <p style="font-size: 0.75rem; color: var(--gold-light); margin: 0;">World Missions Philippines</p>
+                    </div>
+                </a>
+                <p style="font-size: 0.9rem; line-height: 1.7; color: rgba(255,255,255,0.8);">
+                    A vibrant Christ-centered church family committed to knowing Christ, making Him known, nurturing disciples, and impacting our community with unconditional love.
+                </p>
+                <div class="footer-socials">
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="mailto:info@cogwmphimus.org" class="footer-social-btn" aria-label="Email"><i class="fa-solid fa-envelope"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-col">
+                <h3>Quick Navigation</h3>
+                <ul class="footer-links">
+                    <li><a href="/"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Home</a></li>
+                    <li><a href="/views/sermons.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Sermons & Media</a></li>
+                    <li><a href="/views/events.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Church Events</a></li>
+                    <li><a href="/views/gallery.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Photo Gallery</a></li>
+                    <li><a href="/views/history.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> About & History</a></li>
+                    <li><a href="/views/contact.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Contact & Prayer</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h3>Service Schedule</h3>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Sunday Services:</strong><br>9:00 AM &bull; Morning Celebration<br>3:00 PM &bull; Afternoon Fellowship</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Midweek Service:</strong><br>Wednesday 7:00 PM &bull; Prayer & Life</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Youth Alive:</strong><br>Saturday 4:00 PM &bull; NextGen Worship</p>
+            </div>
+
+            <div class="footer-col">
+                <h3>Church Info & Access</h3>
+                <p><i class="fa-solid fa-location-dot" style="color: var(--gold); margin-right: 0.5rem;"></i> Imus, Cavite, Philippines</p>
+                <p><i class="fa-solid fa-phone" style="color: var(--gold); margin-right: 0.5rem;"></i> +63 900 000 0000</p>
+                <p><i class="fa-solid fa-envelope" style="color: var(--gold); margin-right: 0.5rem;"></i> info@cogwmphimus.org</p>
+                <div style="margin-top: 1.5rem;">
+                    <a href="/views/login.html" class="btn-hero-outline" style="padding: 0.65rem 1.4rem; font-size: 0.85rem; border-color: var(--gold); color: var(--gold-light); display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-lock"></i> Member & Leader Portal
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Church of God World Missions Philippines - Imus. All rights reserved.</p>
+            <p style="color: var(--gold-light); font-weight: 500;">To God Be All the Glory</p>
+        </div>
+    </footer>
+
+
+    <script src="/js/api.js"></script>
+    <script src="/js/public.js"></script>
+    <script>
+        let allSermons = [];
+        let currentLiveStream = null;
+
+        // Helper: Extract Facebook Video ID from URL, iframe, RTMP, or Stream Key
+        function extractFacebookVideoId(input) {
+            if (!input) return null;
+            let str = String(input).trim();
+            if (str.startsWith('<iframe')) {
+                const srcMatch = str.match(/src=["'](.*?)["']/);
+                if (srcMatch && srcMatch[1]) str = srcMatch[1].replace(/&amp;/g, '&');
+            }
+            if (str.includes('facebook.com/plugins/video.php')) {
+                try {
+                    const urlObj = new URL(str);
+                    const hrefParam = urlObj.searchParams.get('href');
+                    if (hrefParam) str = hrefParam;
+                } catch (e) {}
+            }
+            const mFbKey = str.match(/FB-(\d+)/i);
+            if (mFbKey) return mFbKey[1];
+            const mPrefixKey = str.match(/^(\d{8,25})/);
+            if (mPrefixKey) return mPrefixKey[1];
+            const mRtmp = str.match(/rtmps?:\/\/.*?(?:FB-|\/)?(\d{8,25})/i);
+            if (mRtmp) return mRtmp[1];
+            const mUrl = str.match(/(?:videos\/|watch\/(?:live\/)?\?v=|v=|\/v\/)(\d{8,25})/i);
+            if (mUrl) return mUrl[1];
+            const mNum = str.match(/^(\d{8,25})$/);
+            if (mNum) return mNum[1];
+            const mAny = str.match(/(\d{8,25})/);
+            if (mAny) return mAny[1];
+            return null;
+        }
+
+        // Helper: Extract clean direct link to Facebook post or video
+        function extractFacebookDirectLink(urlOrKey) {
+            if (!urlOrKey) return 'https://facebook.com';
+            let str = String(urlOrKey).trim();
+
+            if (str.startsWith('<iframe')) {
+                const srcMatch = str.match(/src=["'](.*?)["']/i);
+                if (srcMatch && srcMatch[1]) str = srcMatch[1].replace(/&amp;/g, '&');
+            }
+            if (str.includes('facebook.com/plugins/video.php')) {
+                try {
+                    const urlObj = new URL(str);
+                    const hrefParam = urlObj.searchParams.get('href');
+                    if (hrefParam) return hrefParam;
+                } catch (e) {}
+            }
+            if (str.startsWith('http://') || str.startsWith('https://')) {
+                try {
+                    const urlObj = new URL(str);
+                    ['mibextid', 'rdid', 'ref', 'source', 'tracking', 'notif_id', 'notif_t', 'fbclid'].forEach(k => urlObj.searchParams.delete(k));
+                    return urlObj.toString();
+                } catch (e) {
+                    return str;
+                }
+            }
+            const videoId = extractFacebookVideoId(str);
+            if (videoId) {
+                return `https://www.facebook.com/watch/?v=${videoId}`;
+            }
+            return 'https://facebook.com';
+        }
+
+        // Helper: Build Facebook Embedded Video Plugin URL
+        function getFacebookEmbedUrl(urlOrKey) {
+            if (!urlOrKey) return '';
+            let str = String(urlOrKey).trim();
+
+            if (str.startsWith('<iframe')) {
+                const srcMatch = str.match(/src=["'](.*?)["']/i);
+                if (srcMatch && srcMatch[1]) {
+                    str = srcMatch[1].replace(/&amp;/g, '&');
+                }
+            }
+            if (str.includes('facebook.com/plugins/video.php')) {
+                let cleanEmbed = str.replace(/&amp;/g, '&');
+                if (!cleanEmbed.includes('autoplay=')) cleanEmbed += '&autoplay=true';
+                if (!cleanEmbed.includes('show_text=')) cleanEmbed += '&show_text=false';
+                return cleanEmbed;
+            }
+            if (str.startsWith('http://') || str.startsWith('https://')) {
+                try {
+                    const urlObj = new URL(str);
+                    ['mibextid', 'rdid', 'ref', 'source', 'tracking', 'notif_id', 'notif_t', 'fbclid'].forEach(k => urlObj.searchParams.delete(k));
+                    const cleanUrl = urlObj.toString();
+                    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=734&autoplay=true`;
+                } catch (e) {
+                    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(str)}&show_text=false&width=734&autoplay=true`;
+                }
+            }
+            const videoId = extractFacebookVideoId(str);
+            if (videoId) {
+                const canonicalUrl = `https://www.facebook.com/watch/?v=${videoId}`;
+                return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(canonicalUrl)}&show_text=false&width=734&autoplay=true`;
+            }
+            return '';
+        }
+
+        async function loadLiveStream() {
+            const container = document.getElementById('liveStreamSectionContent');
+            if (!container) return;
+
+            try {
+                const res = await api.public.getLiveStream();
+                currentLiveStream = res.data;
+
+                const effectiveStream = currentLiveStream ? (currentLiveStream.stream_url || currentLiveStream.stream_key) : '';
+                if (currentLiveStream && currentLiveStream.is_live == 1) {
+                    // LIVE BROADCAST ON AIR
+                    const embedUrl = getFacebookEmbedUrl(effectiveStream);
+                    const fbUrl = extractFacebookDirectLink(effectiveStream);
+                    
+                    container.innerHTML = `
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <span class="livestream-live-badge"><i class="fa-solid fa-circle"></i> Broadcasting Live on Facebook</span>
+                            <h2 style="font-size: 2.25rem; font-weight: 800; color: #ffffff; margin: 0.75rem 0 0.5rem; line-height: 1.25;">${escapeHtml(currentLiveStream.title)}</h2>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; color: rgba(255,255,255,0.75); font-size: 0.95rem; flex-wrap: wrap;">
+                                <span><i class="fa-solid fa-user-tie" style="color: var(--gold); margin-right: 0.4rem;"></i> ${escapeHtml(currentLiveStream.preacher || 'Pastor')}</span>
+                                <span><i class="fa-brands fa-facebook" style="color: #1877f2; margin-right: 0.4rem;"></i> Facebook Live Stream</span>
+                            </div>
+                        </div>
+
+                        <!-- Embedded Facebook Live Media Player -->
+                        ${embedUrl ? `
+                        <div class="livestream-player-frame">
+                            <iframe 
+                                src="${embedUrl}" 
+                                title="${escapeHtml(currentLiveStream.title)}" 
+                                scrolling="no" 
+                                frameborder="0" 
+                                allowfullscreen="true" 
+                                referrerpolicy="no-referrer-when-downgrade"
+                                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
+                            </iframe>
+                        </div>` : `
+                        <div class="livestream-player-frame" style="position:relative; background:#070b14; display:flex; align-items:center; justify-content:center; min-height:420px; overflow:hidden; border-radius:14px; border:1px solid rgba(255,255,255,0.12); box-shadow:0 12px 36px rgba(0,0,0,0.4);">
+                            <div style="position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(37,99,235,0.18) 0%, rgba(3,7,18,0.96) 100%);"></div>
+                            <div style="position:relative; z-index:2; text-align:center; padding:2rem; max-width:620px;">
+                                <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(220,38,38,0.2); border:1px solid #ef4444; color:#f87171; padding:6px 16px; border-radius:9999px; font-weight:700; font-size:0.85rem; margin-bottom:1rem; letter-spacing:0.04em;">
+                                    <i class="fa-solid fa-tower-broadcast"></i> BROADCASTING LIVE ON AIR
+                                </div>
+                                <h3 style="color:#ffffff; font-size:1.85rem; font-weight:800; margin:0 0 0.5rem; line-height:1.25;">${escapeHtml(currentLiveStream.title)}</h3>
+                                <p style="color:#94a3b8; font-size:1rem; margin:0 0 1.5rem;">Ministered by ${escapeHtml(currentLiveStream.preacher || 'Pastor Juan Dela Cruz')}</p>
+                                <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
+                                    <a href="${encodeURI(fbUrl || 'https://www.facebook.com')}" target="_blank" rel="noopener noreferrer" class="btn-facebook-live" style="padding:0.75rem 1.4rem; font-size:0.9rem;">
+                                        <i class="fa-brands fa-facebook-f"></i> Open Facebook Live
+                                    </a>
+                                    <button type="button" onclick="switchCommentTab('web')" class="btn-hero-outline" style="border-color:rgba(255,255,255,0.3); color:#fff; padding:0.75rem 1.4rem; font-size:0.9rem;">
+                                        <i class="fa-solid fa-comments"></i> Live Chat & Fellowship
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`}
+
+                        <!-- Stream Action Controls -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                <a href="${encodeURI(fbUrl)}" target="_blank" rel="noopener noreferrer" class="btn-facebook-live">
+                                    <i class="fa-brands fa-facebook-f"></i> Open & Comment on Facebook
+                                </a>
+                                <button type="button" onclick="copyStreamShareLink()" class="btn-hero-outline" style="border-color: rgba(255,255,255,0.3); color: #ffffff; padding: 0.7rem 1.25rem; font-size: 0.85rem;">
+                                    <i class="fa-solid fa-share-nodes"></i> Share Live Stream
+                                </button>
+                            </div>
+                            <div>
+                                <a href="#past-sermons" class="btn-hero-outline" style="border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.85); font-size: 0.85rem; padding: 0.7rem 1.25rem;">
+                                    <i class="fa-solid fa-arrow-down"></i> Browse Past Sermons
+                                </a>
+                            </div>
+                        </div>
+
+                        ${currentLiveStream.description ? `
+                            <div style="margin-top: 1.5rem; padding: 1.25rem 1.5rem; background: rgba(255,255,255,0.06); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); font-size: 0.95rem; line-height: 1.6;">
+                                <strong style="color: #ffffff; display: block; margin-bottom: 0.35rem;"><i class="fa-solid fa-quote-left text-gold mr-1"></i> Today's Sermon Notes & Theme:</strong>
+                                ${escapeHtml(currentLiveStream.description)}
+                            </div>
+                        ` : ''}
+
+                        <!-- Livestream Live Comments & Fellowship Section -->
+                        <div class="livestream-comments-section" style="margin-top: 2rem; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.75rem; box-shadow: 0 8px 32px rgba(0,0,0,0.25);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(24, 119, 242, 0.2); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                        <i class="fa-solid fa-comments"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #ffffff;">Livestream Comments & Fellowship</h3>
+                                        <p style="margin: 2px 0 0; font-size: 0.8rem; color: rgba(255,255,255,0.65);">Share your prayers, greetings, and amen. Comments sync with Facebook Live!</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Comment Mode Toggle Tabs -->
+                                <div style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                    <button type="button" id="tabFbComments" onclick="switchCommentTab('fb')" class="btn-comment-tab" style="padding: 6px 14px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; background: #1877f2; color: #ffffff; display: inline-flex; align-items: center; gap: 6px;">
+                                        <i class="fa-brands fa-facebook"></i> Facebook Live Comments
+                                    </button>
+                                    <button type="button" id="tabWebComments" onclick="switchCommentTab('web')" class="btn-comment-tab" style="padding: 6px 14px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: rgba(255,255,255,0.7); display: inline-flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-message"></i> Website Live Chat
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Facebook Comments Plugin Container -->
+                            <div id="fbCommentsContainer" style="background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 1.25rem; border: 1px solid rgba(255,255,255,0.06); min-height: 250px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.82rem; color: rgba(255,255,255,0.75);">
+                                    <span><i class="fa-brands fa-facebook text-blue-400 mr-1"></i> Comments posted below will appear directly on our Facebook Live broadcast:</span>
+                                    <a href="${encodeURI(fbUrl)}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: none; font-weight: 600;">Open on Facebook <i class="fa-solid fa-arrow-up-right-from-square text-xs ml-0.5"></i></a>
+                                </div>
+                                <!-- Official Meta Facebook Comments Social Plugin -->
+                                <div class="fb-comments" data-href="${encodeURI(fbUrl)}" data-width="100%" data-numposts="15" data-order-by="reverse_time" data-colorscheme="dark"></div>
+                            </div>
+
+                            <!-- Synchronized Website Live Chat Container -->
+                            <div id="webCommentsContainer" style="display: none;">
+                                <div id="publicWebCommentsList" style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                                    <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.85rem; padding: 1.5rem;">Loading live comments...</div>
+                                </div>
+                                
+                                <!-- Add Comment Form -->
+                                <form id="publicCommentForm" onsubmit="event.preventDefault(); submitPublicLiveComment();" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto; gap: 0.75rem; align-items: center;">
+                                    <input type="text" id="publicCommentName" placeholder="Your Name / City" required style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; font-size: 0.88rem;">
+                                    <input type="text" id="publicCommentText" placeholder="Share a prayer, greeting, or message..." required style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; font-size: 0.88rem;">
+                                    <button type="submit" class="btn-hero-primary" style="padding: 0.75rem 1.4rem; white-space: nowrap; font-size: 0.88rem;">
+                                        <i class="fa-solid fa-paper-plane mr-1"></i> Send Comment
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+
+                    // Track real-time viewer engagement for today's livestream
+                    if (api.public.recordLiveStreamView) {
+                        // Persistent device/browser viewer ID
+                        let viewerId = localStorage.getItem('cog_unique_viewer_id');
+                        if (!viewerId) {
+                            viewerId = 'v_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+                            localStorage.setItem('cog_unique_viewer_id', viewerId);
+                        }
+
+                        // Check if churchgoer already watched today's livestream session
+                        const todayDateStr = new Date().toISOString().split('T')[0];
+                        const streamId = (currentLiveStream && currentLiveStream.id) ? currentLiveStream.id : 1;
+                        const watchedSessionKey = `cog_stream_watched_${streamId}_${todayDateStr}`;
+                        const hasAlreadyWatched = localStorage.getItem(watchedSessionKey) === '1';
+
+                        if (!hasAlreadyWatched) {
+                            // First time watching: mark session as watched and record the initial view
+                            localStorage.setItem(watchedSessionKey, '1');
+                            api.public.recordLiveStreamView({ viewer_id: viewerId }).catch(() => {});
+                        } else {
+                            // Already watched or returned: send heartbeat only to register active presence without adding views
+                            if (api.public.sendLiveStreamHeartbeat) {
+                                api.public.sendLiveStreamHeartbeat({ viewer_id: viewerId }).catch(() => {});
+                            }
+                        }
+
+                        // Active concurrent heartbeat every 10 seconds while tab is active
+                        if (!window.liveViewerHeartbeatTimer) {
+                            window.liveViewerHeartbeatTimer = setInterval(() => {
+                                if (!document.hidden && api.public.sendLiveStreamHeartbeat) {
+                                    api.public.sendLiveStreamHeartbeat({ viewer_id: viewerId }).catch(() => {});
+                                }
+                            }, 10000);
+                        }
+
+                        // Immediate tab-switching synchronization (watching turns to 0 when switched away, 1 when returned)
+                        if (!window.hasRegisteredVisibilityListener) {
+                            window.hasRegisteredVisibilityListener = true;
+                            document.addEventListener('visibilitychange', () => {
+                                if (!currentLiveStream || currentLiveStream.is_live != 1) return;
+                                const vId = localStorage.getItem('cog_unique_viewer_id');
+                                if (!vId) return;
+
+                                if (document.hidden) {
+                                    // User switched to another tab: notify server so active watching drops to 0
+                                    if (api.public.leaveLiveStream) {
+                                        api.public.leaveLiveStream({ viewer_id: vId }).catch(() => {});
+                                    }
+                                } else {
+                                    // User returned to livestream tab: notify server so active watching turns to 1
+                                    // (Sends heartbeat only, NEVER adds a view)
+                                    if (api.public.sendLiveStreamHeartbeat) {
+                                        api.public.sendLiveStreamHeartbeat({ viewer_id: vId }).catch(() => {});
+                                    }
+                                }
+                            });
+                        }
+
+                        // Broadcast departure on page exit / unload
+                        if (!window.hasRegisteredLeaveBeacon) {
+                            window.hasRegisteredLeaveBeacon = true;
+                            window.addEventListener('beforeunload', () => {
+                                if (navigator.sendBeacon) {
+                                    const vId = localStorage.getItem('cog_unique_viewer_id');
+                                    if (vId) {
+                                        const payload = new Blob([JSON.stringify({ viewer_id: vId })], { type: 'application/json' });
+                                        navigator.sendBeacon('/api/public/livestream/leave', payload);
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    // Parse Facebook comments plugin
+                    setTimeout(() => {
+                        if (window.FB && window.FB.XFBML) {
+                            window.FB.XFBML.parse();
+                        }
+                    }, 500);
+
+                    // Load website comments
+                    loadPublicLiveComments();
+                } else {
+                    // Clean up active viewer heartbeat and flags when broadcast is in standby/offline
+                    if (window.liveViewerHeartbeatTimer) {
+                        clearInterval(window.liveViewerHeartbeatTimer);
+                        window.liveViewerHeartbeatTimer = null;
+                    }
+                    window.hasRecordedLiveStreamView = false;
+
+                    // STANDBY / OFFLINE SCHEDULE VIEW
+                    const fbUrl = (currentLiveStream && currentLiveStream.stream_url && currentLiveStream.stream_url.startsWith('http')) 
+                        ? currentLiveStream.stream_url 
+                        : 'https://facebook.com';
+
+                    container.innerHTML = `
+                        <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 3rem 2rem; text-align: center; max-width: 850px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                            <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(24, 119, 242, 0.15); color: #60a5fa; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 1.75rem;">
+                                <i class="fa-brands fa-facebook"></i>
+                            </div>
+                            <span class="badge" style="background: rgba(255,255,255,0.1); color: #94a3b8; border: 1px solid rgba(255,255,255,0.15); padding: 0.25rem 0.75rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                                <i class="fa-solid fa-tower-broadcast mr-1"></i> Livestream Standby
+                            </span>
+                            <h2 style="font-size: 2.1rem; font-weight: 800; color: #ffffff; margin: 1rem 0 0.5rem;">Join Our Live Broadcasts on Facebook</h2>
+                            <p style="font-size: 1rem; color: rgba(255,255,255,0.75); max-width: 640px; margin: 0 auto 1.75rem; line-height: 1.6;">
+                                We broadcast our Sunday and midweek worship services live on Facebook. When a service goes live, the video stream will play right here in this media player.
+                            </p>
+
+                            <!-- Weekly Broadcast Schedule -->
+                            <div class="livestream-schedule-strip" style="justify-content: center; margin-bottom: 2rem;">
+                                <div class="livestream-schedule-pill">
+                                    <i class="fa-solid fa-calendar-day"></i>
+                                    <div><strong>Sunday 9:00 AM</strong> &bull; Morning Celebration</div>
+                                </div>
+                                <div class="livestream-schedule-pill">
+                                    <i class="fa-solid fa-calendar-day"></i>
+                                    <div><strong>Sunday 3:00 PM</strong> &bull; Afternoon Fellowship</div>
+                                </div>
+                                <div class="livestream-schedule-pill">
+                                    <i class="fa-solid fa-calendar-day"></i>
+                                    <div><strong>Wednesday 7:00 PM</strong> &bull; Midweek Prayer</div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                                <a href="#past-sermons" class="btn-hero-primary" style="padding: 0.75rem 1.6rem;">
+                                    <i class="fa-solid fa-play"></i> Watch Past Recorded Sermons
+                                </a>
+                                <a href="${encodeURI(fbUrl)}" target="_blank" rel="noopener noreferrer" class="btn-facebook-live">
+                                    <i class="fa-brands fa-facebook-f"></i> Follow Our Facebook Page
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error loading livestream:', err);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.6);">
+                        <i class="fa-brands fa-facebook" style="font-size: 2.25rem; color: #60a5fa; margin-bottom: 0.5rem; display: block;"></i>
+                        <p>Join our Facebook Live broadcast during regular service hours.</p>
+                        <a href="#past-sermons" class="btn-hero-primary mt-3 inline-block" style="padding: 0.6rem 1.25rem; font-size: 0.85rem;">Watch Past Sermons Below</a>
+                    </div>
+                `;
+            }
+        }
+
+        function copyStreamShareLink() {
+            const url = window.location.origin + '/views/sermons.html#livestream';
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Live stream link copied to clipboard!\n' + url);
+                });
+            } else {
+                prompt('Copy this live stream link:', url);
+            }
+        }
+
+        async function loadSermons() {
+            try {
+                const res = await api.public.getSermons();
+                const grid = document.getElementById('sermonsGrid');
+                if (!res.data || res.data.length === 0) { 
+                    grid.innerHTML = '<div style="text-align: center; grid-column: 1/-1; padding: 4rem; background: var(--white); border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted);"><i class="fa-solid fa-video" style="font-size: 3rem; color: var(--gold); margin-bottom: 1rem; display: block;"></i>No past sermons available right now.</div>'; 
+                    return; 
+                }
+                
+                allSermons = res.data;
+                renderSermons(allSermons);
+            } catch (err) {
+                console.error('Error loading sermons:', err);
+                document.getElementById('sermonsGrid').innerHTML = '<p style="text-align: center; grid-column: 1/-1; color: var(--text-muted);">Failed to load past sermons.</p>';
+            }
+        }
+
+        function renderSermons(sermons) {
+            const grid = document.getElementById('sermonsGrid');
+            if (sermons.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; grid-column: 1/-1; padding: 3rem; color: var(--text-muted);">No matching sermons found in the archive.</div>';
+                return;
+            }
+
+            grid.classList.add('active');
+            window._publicSermonsList = sermons;
+
+            grid.innerHTML = sermons.map((s, idx) => {
+                const videoId = extractYouTubeId(s.youtube_video_id || s.video_url || '');
+                const dateStr = s.sermon_date ? new Date(s.sermon_date).toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'}) : 'Date not set';
+                const thumbUrl = videoId ? `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=600&auto=format&fit=crop';
+                const ytWatchUrl = videoId ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}` : '#';
+
+                return `
+                <div class="card-public" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <!-- Past Sermon Video Card: Clicking opens Pop-up Video Player -->
+                        <div class="card-public-img-wrapper" onclick="openPublicSermonByIndex(${idx})" style="cursor: pointer;" title="Click to play sermon in pop-up video player">
+                            <img src="${thumbUrl}" alt="${escapeHtml(s.title)}" onerror="this.src='https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=600&auto=format&fit=crop'">
+                            <div class="play-overlay-glow">
+                                <div class="play-btn-circle">
+                                    <i class="fa-solid fa-play" style="font-size: 1.6rem; color: #ffffff; margin-left: 3px;"></i>
+                                </div>
+                            </div>
+                            <span class="card-badge-pill badge-youtube"><i class="fa-brands fa-youtube"></i> Past Sermon</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-meta" style="border-top: none; padding-top: 0; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem 1rem;">
+                                <span><i class="fa-solid fa-calendar-day" style="color: var(--gold);"></i> ${dateStr}</span>
+                                <span><i class="fa-solid fa-user-tie" style="color: var(--gold);"></i> ${escapeHtml(s.preacher || 'Pastor')}</span>
+                                ${s.scripture_reference ? `<span style="background: var(--surface-bg); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;"><i class="fa-solid fa-book-bible"></i> ${escapeHtml(s.scripture_reference)}</span>` : ''}
+                                ${s.series_name ? `<span style="background: rgba(14, 42, 79, 0.08); color: var(--navy); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">${escapeHtml(s.series_name)}</span>` : ''}
+                            </div>
+                            <h3 style="font-size: 1.35rem; margin-bottom: 0.5rem; color: var(--navy); cursor: pointer;" onclick="openPublicSermonByIndex(${idx})">${escapeHtml(s.title)}</h3>
+                            <p style="font-size: 0.92rem; line-height: 1.6; color: var(--text-muted);">${escapeHtml(s.description) || 'Be encouraged and challenged by this timely message from God\'s Word.'}</p>
+                        </div>
+                    </div>
+                    <div style="padding: 0 1.5rem 1.5rem; display: flex; align-items: center; justify-content: flex-end;">
+                        <a href="${ytWatchUrl}" target="_blank" rel="noopener noreferrer" class="btn-youtube-watch" style="margin-top: 0;">
+                            <i class="fa-brands fa-youtube"></i> Watch on YouTube
+                        </a>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            if (window.initScrollAnimations) {
+                window.initScrollAnimations();
+            }
+        }
+
+        function filterSermons() {
+            const query = (document.getElementById('sermonSearch')?.value || '').toLowerCase().trim();
+            if (!query) {
+                renderSermons(allSermons);
+                return;
+            }
+            const filtered = allSermons.filter(s => 
+                (s.title && s.title.toLowerCase().includes(query)) ||
+                (s.preacher && s.preacher.toLowerCase().includes(query)) ||
+                (s.scripture_reference && s.scripture_reference.toLowerCase().includes(query)) ||
+                (s.series_name && s.series_name.toLowerCase().includes(query)) ||
+                (s.description && s.description.toLowerCase().includes(query))
+            );
+            renderSermons(filtered);
+        }
+
+        function switchCommentTab(tab) {
+            const fbTab = document.getElementById('tabFbComments');
+            const webTab = document.getElementById('tabWebComments');
+            const fbBox = document.getElementById('fbCommentsContainer');
+            const webBox = document.getElementById('webCommentsContainer');
+
+            if (tab === 'fb') {
+                if (fbTab) { fbTab.style.background = '#1877f2'; fbTab.style.color = '#ffffff'; }
+                if (webTab) { webTab.style.background = 'transparent'; webTab.style.color = 'rgba(255,255,255,0.7)'; }
+                if (fbBox) fbBox.style.display = 'block';
+                if (webBox) webBox.style.display = 'none';
+                if (window.FB && window.FB.XFBML) window.FB.XFBML.parse();
+            } else {
+                if (webTab) { webTab.style.background = '#1877f2'; webTab.style.color = '#ffffff'; }
+                if (fbTab) { fbTab.style.background = 'transparent'; fbTab.style.color = 'rgba(255,255,255,0.7)'; }
+                if (fbBox) fbBox.style.display = 'none';
+                if (webBox) webBox.style.display = 'block';
+                loadPublicLiveComments();
+            }
+        }
+
+        async function loadPublicLiveComments() {
+            const list = document.getElementById('publicWebCommentsList');
+            if (!list) return;
+
+            try {
+                const res = await api.public.getLiveStreamComments();
+                const comments = res.data || [];
+
+                if (comments.length === 0) {
+                    list.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.85rem; padding: 1.5rem;">Be the first to share a comment or prayer greeting!</div>';
+                    return;
+                }
+
+                list.innerHTML = comments.map(c => {
+                    const isAdmin = c.is_admin == 1;
+                    return `
+                        <div style="background: ${isAdmin ? 'rgba(37, 99, 235, 0.15)' : 'rgba(255,255,255,0.06)'}; border: 1px solid ${isAdmin ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255,255,255,0.08)'}; border-radius: 10px; padding: 0.75rem 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <strong style="color: ${isAdmin ? '#93c5fd' : '#ffffff'}; font-size: 0.88rem;">${escapeHtml(c.author_name)}</strong>
+                                    <span style="background: ${isAdmin ? '#2563eb' : 'rgba(255,255,255,0.1)'}; color: ${isAdmin ? '#fff' : '#cbd5e1'}; font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; font-weight: 600;">
+                                        ${isAdmin ? '<i class="fa-solid fa-shield-halved"></i> Admin' : escapeHtml(c.author_badge || 'Viewer')}
+                                    </span>
+                                </div>
+                                <span style="color: rgba(255,255,255,0.45); font-size: 0.75rem;">${c.created_at || ''}</span>
+                            </div>
+                            <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 0.9rem; line-height: 1.5; word-break: break-word;">${escapeHtml(c.comment_text)}</p>
+                        </div>
+                    `;
+                }).join('');
+
+                list.scrollTop = list.scrollHeight;
+            } catch (e) {
+                console.error('Error loading comments:', e);
+            }
+        }
+
+        async function submitPublicLiveComment() {
+            const nameInput = document.getElementById('publicCommentName');
+            const textInput = document.getElementById('publicCommentText');
+            const name = nameInput ? nameInput.value.trim() : '';
+            const text = textInput ? textInput.value.trim() : '';
+
+            if (!text) return;
+
+            try {
+                await api.public.postLiveStreamComment({
+                    author_name: name || 'Online Churchgoer',
+                    comment_text: text
+                });
+                if (textInput) textInput.value = '';
+                loadPublicLiveComments();
+            } catch (err) {
+                alert('Failed to post comment: ' + err.message);
+            }
+        }
+
+        // Initialize page content
+        window.loadLiveStream = loadLiveStream;
+        window.loadSermons = loadSermons;
+        loadLiveStream();
+        loadSermons();
+
+        // Check livestream status every 45 seconds so viewers automatically receive live broadcasts
+        setInterval(loadLiveStream, 45000);
+    </script>
+</body>
+</html>

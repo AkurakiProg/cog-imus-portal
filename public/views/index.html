@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>COGWM Imus | Church of God World Missions Philippines</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/public.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <i class="fa-solid fa-cross"></i>
+            </div>
+            <div>
+                <h2>COGWM Imus</h2>
+                <p>World Missions PH</p>
+            </div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/views/sermons.html">Sermons</a></li>
+            <li><a href="/views/events.html">Events</a></li>
+            <li><a href="/views/gallery.html">Gallery</a></li>
+            <li><a href="/views/history.html">About Us</a></li>
+            <li><a href="/views/contact.html">Contact</a></li>
+            <li><a href="/views/login.html" class="btn-login-nav"><i class="fa-solid fa-arrow-right-to-bracket"></i> Portal Login</a></li>
+        </ul>
+        <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="Toggle Navigation"><i class="fa-solid fa-bars"></i></button>
+    </nav>
+
+    <!-- Hero Section with Cinematic Video Background -->
+    <header class="hero" id="heroSection">
+        <div class="hero-video-container" id="heroVideoContainer">
+            <video class="hero-video" id="heroVideo" autoplay muted loop playsinline poster="/images/church-hero-poster.jpg" preload="auto">
+                <source src="/videos/church-hero.mp4" type="video/mp4">
+                <source src="https://cdn.coverr.co/videos/coverr-looking-up-at-a-grey-and-white-church-9260/1080p.mp4" type="video/mp4">
+            </video>
+            <div class="hero-video-overlay"></div>
+            <!-- Dynamic Fallback slider if video is disabled or fails -->
+            <div class="hero-slider" id="heroSlider" aria-hidden="true"></div>
+        </div>
+
+        <!-- Ambient Video Motion Pause/Play Toggle Button -->
+        <button type="button" class="hero-video-control" id="heroVideoControl" aria-label="Pause background video" title="Pause or play background video motion">
+            <i class="fa-solid fa-pause"></i>
+            <span class="video-control-text">Motion</span>
+        </button>
+
+        <!-- Hero Content with Staggered Entrance Animations -->
+        <div class="hero-content">
+            <div class="hero-badge reveal-hero">
+                <i class="fa-solid fa-cross"></i> Church of God World Missions Philippines
+            </div>
+            <h1 class="reveal-hero">A Place to Belong, <em>A Faith to Believe.</em></h1>
+            <p class="reveal-hero">Welcome to COGWM Imus. Knowing Christ and making Him known through passionate worship, deep fellowship, and community transformation.</p>
+            <div class="hero-actions reveal-hero">
+                <a href="/views/events.html" class="btn-hero-primary">
+                    <i class="fa-solid fa-calendar-check"></i> Join Us This Sunday
+                </a>
+                <a href="/views/sermons.html" class="btn-hero-outline">
+                    <i class="fa-solid fa-circle-play"></i> Watch Sermons
+                </a>
+            </div>
+        </div>
+
+        <!-- Smooth Mouse Scroll Pill to Service Times -->
+        <a href="#serviceTimes" class="hero-scroll-pill reveal-hero" aria-label="Scroll to Service Times">
+            <span class="scroll-mouse"><span class="scroll-wheel"></span></span>
+            <span>Service Times <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i></span>
+        </a>
+    </header>
+
+    <!-- Pastoral Welcome & Worship Schedule Section -->
+    <section class="section section-cream" id="welcome" style="padding-top: 4.5rem;">
+        <!-- Weekly Worship Schedule Bar -->
+        <div class="service-times-strip" id="serviceTimes">
+            <div class="service-times-card reveal">
+                <div class="service-time-item">
+                    <div class="service-time-icon"><i class="fa-solid fa-sun"></i></div>
+                    <div>
+                        <h4>Sunday Morning</h4>
+                        <p>9:00 AM &bull; Worship & Celebration</p>
+                    </div>
+                </div>
+                <div class="service-time-item">
+                    <div class="service-time-icon"><i class="fa-solid fa-cloud-sun"></i></div>
+                    <div>
+                        <h4>Sunday Afternoon</h4>
+                        <p>3:00 PM &bull; Afternoon Praise</p>
+                    </div>
+                </div>
+                <div class="service-time-item">
+                    <div class="service-time-icon"><i class="fa-solid fa-hands-praying"></i></div>
+                    <div>
+                        <h4>Midweek Service</h4>
+                        <p>Wednesday 7:00 PM &bull; Prayer & Life</p>
+                    </div>
+                </div>
+                <div class="service-time-item">
+                    <div class="service-time-icon"><i class="fa-solid fa-fire"></i></div>
+                    <div>
+                        <h4>Youth Alive</h4>
+                        <p>Saturday 4:00 PM &bull; NextGen Worship</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="welcome-grid">
+            <div class="welcome-image-card reveal">
+                <img src="https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=800&auto=format&fit=crop" alt="COGWM Imus Church Family Gathering">
+                <div class="welcome-scripture-pill">
+                    <p>&ldquo;Come to Me, all you who labor and are heavy laden, and I will give you rest.&rdquo;</p>
+                    <span>&mdash; Matthew 11:28 &bull; Christ's Invitation</span>
+                </div>
+            </div>
+            <div class="welcome-content reveal">
+                <div class="section-header" style="text-align: left; margin-bottom: 1.5rem;">
+                    <p>Heartfelt Greeting & Community</p>
+                    <h2>Welcome to Our Church Family</h2>
+                    <div class="section-line" style="margin: 1rem 0 0 0;"></div>
+                </div>
+                <p style="font-size: 1.12rem; color: var(--text-dark); line-height: 1.85; margin-bottom: 1.5rem;">
+                    Whether you are seeking God for the first time, desiring a loving spiritual family, or looking to deepen your discipleship walk, you have a home here. At Church of God World Missions Imus, our hearts and doors are wide open. Come as you are, and experience God's transforming grace.
+                </p>
+                
+                <div class="welcome-features">
+                    <div class="welcome-feature-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Christ-Centered Biblical Teaching & Discipleship</span>
+                    </div>
+                    <div class="welcome-feature-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Vibrant, Passionate Multi-Generational Worship</span>
+                    </div>
+                    <div class="welcome-feature-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Caring Community, Cell Groups & Local Missions</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <a href="/views/history.html" class="btn-hero-primary" style="padding: 0.85rem 2.2rem; font-size: 0.95rem;">
+                        <i class="fa-solid fa-book-open"></i> Learn Our Story
+                    </a>
+                    <a href="/views/contact.html" class="btn-hero-outline" style="color: var(--navy); border-color: rgba(14, 42, 79, 0.4); padding: 0.85rem 2.2rem; font-size: 0.95rem; background: transparent;">
+                        <i class="fa-solid fa-location-dot" style="color: var(--gold-dark);"></i> Plan a Visit
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- WORDA 5-Pillar Showcase -->
+    <section class="section">
+        <div class="section-header reveal">
+            <p>Our Ministry Framework</p>
+            <h2>The W.O.R.D.A. Pillars</h2>
+            <div class="section-line"></div>
+            <p style="max-width: 650px; margin: 1.15rem auto 0; font-size: 0.98rem; color: var(--text-muted); text-transform: none; letter-spacing: normal; font-weight: normal; line-height: 1.6;">
+                Rooted in Scripture, our church life and ministry departments are thoughtfully structured across five foundational pillars of faith.
+            </p>
+        </div>
+        <div class="worda-grid reveal-stagger">
+            <div class="worda-card">
+                <span class="worda-number">01 Worship</span>
+                <div class="worda-icon"><i class="fa-solid fa-hands-holding-child"></i></div>
+                <h3>Worship</h3>
+                <p>Exalting God in spirit and truth through vibrant praise, adoration, and music ministry.</p>
+            </div>
+            <div class="worda-card">
+                <span class="worda-number">02 Outreach</span>
+                <div class="worda-icon"><i class="fa-solid fa-globe"></i></div>
+                <h3>Outreach</h3>
+                <p>Sharing the love and gospel of Christ with Imus and beyond through compassionate mission.</p>
+            </div>
+            <div class="worda-card">
+                <span class="worda-number">03 Relationship</span>
+                <div class="worda-icon"><i class="fa-solid fa-people-group"></i></div>
+                <h3>Relationship</h3>
+                <p>Cultivating genuine family bonds, fellowship, and mutual encouragement across all ages.</p>
+            </div>
+            <div class="worda-card">
+                <span class="worda-number">04 Discipleship</span>
+                <div class="worda-icon"><i class="fa-solid fa-seedling"></i></div>
+                <h3>Discipleship</h3>
+                <p>Equipping believers to grow into Christ-like maturity through sound biblical teaching and mentorship.</p>
+            </div>
+            <div class="worda-card">
+                <span class="worda-number">05 Action</span>
+                <div class="worda-icon"><i class="fa-solid fa-hand-holding-heart"></i></div>
+                <h3>Action</h3>
+                <p>Translating faith into selfless service, faithful stewardship, and servant leadership in action.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scripture Spotlight -->
+    <section class="scripture-section">
+        <div class="scripture-card reveal">
+            <i class="fa-solid fa-quote-left quote-icon"></i>
+            <p class="scripture-text">
+                &ldquo;And He said to them, &lsquo;Go into all the world and preach the gospel to all creation.&rsquo;&rdquo;
+            </p>
+            <p class="scripture-ref">&mdash; Mark 16:15 &bull; The Great Commission</p>
+        </div>
+    </section>
+
+    <!-- Sermons Preview -->
+    <section class="section">
+        <div class="section-header reveal">
+            <p>Spiritual Nourishment</p>
+            <h2>Recent Sermons</h2>
+            <div class="section-line"></div>
+        </div>
+        <div class="grid-3 reveal-stagger" id="sermonsGrid">
+            <div style="text-align: center; grid-column: 1/-1; padding: 3rem; color: var(--text-muted);">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--gold); margin-bottom: 1rem; display: block;"></i>
+                Loading sermons...
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 3.5rem;" class="reveal">
+            <a href="/views/sermons.html" class="btn-hero-primary" style="padding: 0.95rem 2.4rem;">
+                <i class="fa-solid fa-video"></i> View All Sermons
+            </a>
+        </div>
+    </section>
+
+    <!-- Events Preview -->
+    <section class="section section-subtle">
+        <div class="section-header reveal">
+            <p>Fellowship & Gatherings</p>
+            <h2>Upcoming Events</h2>
+            <div class="section-line"></div>
+        </div>
+        <div class="grid-3 reveal-stagger" id="eventsGrid">
+            <div style="text-align: center; grid-column: 1/-1; padding: 3rem; color: var(--text-muted);">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--gold); margin-bottom: 1rem; display: block;"></i>
+                Loading church calendar...
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 3.5rem;" class="reveal">
+            <a href="/views/events.html" class="btn-hero-primary" style="padding: 0.95rem 2.4rem;">
+                <i class="fa-solid fa-calendar-days"></i> View Full Calendar
+            </a>
+        </div>
+    </section>
+    
+    <!-- Rich 4-Column Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="logo" style="margin-bottom: 1.25rem; color: #ffffff;">
+                    <div class="logo-icon">
+                        <i class="fa-solid fa-cross"></i>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 1.45rem; color: #ffffff; margin: 0;">COGWM Imus</h2>
+                        <p style="font-size: 0.75rem; color: var(--gold-light); margin: 0;">World Missions Philippines</p>
+                    </div>
+                </div>
+                <p style="font-size: 0.92rem; line-height: 1.75; color: rgba(255,255,255,0.85); margin-bottom: 1.5rem;">
+                    A vibrant Christ-centered church family committed to knowing Christ, making Him known, nurturing disciples, and impacting our community with unconditional love.
+                </p>
+                <div class="footer-socials">
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="mailto:info@cogwmphimus.org" class="footer-social-btn" aria-label="Email"><i class="fa-solid fa-envelope"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-col">
+                <h3>Quick Navigation</h3>
+                <ul class="footer-links">
+                    <li><a href="/"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Home</a></li>
+                    <li><a href="/views/sermons.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Sermons & Media</a></li>
+                    <li><a href="/views/events.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Church Events</a></li>
+                    <li><a href="/views/gallery.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Photo Gallery</a></li>
+                    <li><a href="/views/history.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> About & History</a></li>
+                    <li><a href="/views/contact.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Contact & Visit</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h3>Service Schedule</h3>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check" style="margin-right: 0.35rem;"></i> Sunday Services:</strong><br>9:00 AM &bull; Morning Celebration<br>3:00 PM &bull; Afternoon Fellowship</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check" style="margin-right: 0.35rem;"></i> Midweek Service:</strong><br>Wednesday 7:00 PM &bull; Prayer & Life</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check" style="margin-right: 0.35rem;"></i> Youth Alive:</strong><br>Saturday 4:00 PM &bull; NextGen Worship</p>
+            </div>
+
+            <div class="footer-col">
+                <h3>Church Info & Access</h3>
+                <p><i class="fa-solid fa-location-dot" style="color: var(--gold); margin-right: 0.5rem;"></i> Imus, Cavite, Philippines</p>
+                <p><i class="fa-solid fa-phone" style="color: var(--gold); margin-right: 0.5rem;"></i> +63 900 000 0000</p>
+                <p><i class="fa-solid fa-envelope" style="color: var(--gold); margin-right: 0.5rem;"></i> info@cogwmphimus.org</p>
+                <div style="margin-top: 1.5rem;">
+                    <a href="/views/login.html" class="btn-hero-outline" style="padding: 0.65rem 1.4rem; font-size: 0.85rem; border-color: var(--gold); color: var(--gold-light); display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(6, 23, 48, 0.4);">
+                        <i class="fa-solid fa-lock"></i> Member & Leader Portal
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Church of God World Missions Philippines - Imus. All rights reserved.</p>
+            <p style="color: var(--gold-light); font-weight: 600; letter-spacing: 0.5px;">To God Be All the Glory</p>
+        </div>
+    </footer>
+
+    <!-- Event Details Popup Modal -->
+    <div id="eventDetailsModal" style="display: none; position: fixed; inset: 0; background: rgba(6, 23, 48, 0.65); backdrop-filter: blur(5px); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;" onclick="closeHomeEventModal(event)">
+        <div style="background: var(--white, #ffffff); border-radius: 18px; max-width: 600px; width: 100%; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.35); position: relative; animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);" onclick="event.stopPropagation()">
+            <!-- Banner Header -->
+            <div id="evtModalHeaderBanner" style="height: 180px; position: relative; display: flex; align-items: flex-end; padding: 1.25rem 1.5rem; color: #ffffff;">
+                <button type="button" class="btn-close-modal" onclick="closeHomeEventModal()" style="position: absolute; top: 1rem; right: 1rem; width: 34px; height: 34px; border-radius: 50%; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.25); color: #ffffff; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Close Details">&times;</button>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <span id="evtModalType" style="background: var(--gold, #c9a961); color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">Gathering</span>
+                    <span id="evtModalEnrollBadge" style="display: none; background: #10b981; color: #ffffff; font-size: 0.75rem; font-weight: 600; padding: 0.3rem 0.75rem; border-radius: 9999px;">Registration Open</span>
+                </div>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div style="padding: 1.75rem; max-height: calc(85vh - 180px); overflow-y: auto;">
+                <h2 id="evtModalTitle" style="margin: 0 0 1rem 0; font-size: 1.55rem; color: var(--navy, #0c2340); font-weight: 800; line-height: 1.3;">Event Title</h2>
+
+                <!-- Key Meta Details Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.65rem;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(201, 169, 97, 0.15); display: flex; align-items: center; justify-content: center; color: var(--gold-dark, #b45309); font-size: 0.95rem; flex-shrink: 0; margin-top: 2px;">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block;">Date</span>
+                            <strong id="evtModalDate" style="font-size: 0.88rem; color: #1e293b;">-</strong>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: flex-start; gap: 0.65rem;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(37, 99, 235, 0.12); display: flex; align-items: center; justify-content: center; color: #2563eb; font-size: 0.95rem; flex-shrink: 0; margin-top: 2px;">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block;">Time Schedule</span>
+                            <strong id="evtModalTime" style="font-size: 0.88rem; color: #1e293b;">-</strong>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: flex-start; gap: 0.65rem;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; color: #059669; font-size: 0.95rem; flex-shrink: 0; margin-top: 2px;">
+                            <i class="fa-solid fa-location-dot"></i>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block;">Venue / Location</span>
+                            <strong id="evtModalVenue" style="font-size: 0.88rem; color: #1e293b;">-</strong>
+                        </div>
+                    </div>
+
+                    <div id="evtModalDeptBox" style="display: inline-flex; align-items: flex-start; gap: 0.65rem;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(147, 51, 234, 0.12); display: flex; align-items: center; justify-content: center; color: #7c3aed; font-size: 0.95rem; flex-shrink: 0; margin-top: 2px;">
+                            <i class="fa-solid fa-sitemap"></i>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block;">Department / Ministry</span>
+                            <strong id="evtModalDept" style="font-size: 0.88rem; color: #1e293b;">-</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Full Description Section -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 0.45rem 0; font-size: 0.9rem; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">About This Event</h4>
+                    <p id="evtModalDesc" style="margin: 0; font-size: 0.95rem; line-height: 1.7; color: #334155; white-space: pre-line;"></p>
+                </div>
+
+                <!-- Footer Actions -->
+                <div style="display: flex; justify-content: flex-end; gap: 0.65rem; border-top: 1px solid #e2e8f0; padding-top: 1.25rem;">
+                    <a href="/views/events.html" class="btn-hero-primary" style="padding: 0.55rem 1.15rem; font-size: 0.85rem; text-decoration: none; border-radius: 8px;">
+                        <i class="fa-solid fa-calendar-days mr-1"></i> View Full Calendar
+                    </a>
+                    <button type="button" class="btn-hero-outline" onclick="closeHomeEventModal()" style="padding: 0.55rem 1.25rem; font-size: 0.85rem; color: #475569; border-color: #cbd5e1; border-radius: 8px;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/public.js"></script>
+</body>
+</html>

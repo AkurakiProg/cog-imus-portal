@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us | COGWM Imus</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/public.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+    <nav class="navbar scrolled" id="navbar" data-always-scrolled="true">
+        <a href="/" class="logo">
+            <div class="logo-icon"><i class="fa-solid fa-cross"></i></div>
+            <div>
+                <h2>COGWM Imus</h2>
+                <p>World Missions PH</p>
+            </div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/views/sermons.html">Sermons</a></li>
+            <li><a href="/views/events.html">Events</a></li>
+            <li><a href="/views/gallery.html">Gallery</a></li>
+            <li><a href="/views/history.html" class="active">About Us</a></li>
+            <li><a href="/views/contact.html">Contact</a></li>
+            <li><a href="/views/login.html" class="btn-login-nav"><i class="fa-solid fa-arrow-right-to-bracket"></i> Portal Login</a></li>
+        </ul>
+        <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="Toggle Navigation"><i class="fa-solid fa-bars"></i></button>
+    </nav>
+
+    <!-- Page Header Banner -->
+    <header class="page-header-banner">
+        <div class="page-header-inner reveal">
+            <span class="hero-badge"><i class="fa-solid fa-cross"></i> Our Heritage & Calling</span>
+            <h1>About COGWM Imus</h1>
+            <p>
+                Discover the story, mission, and core values that inspire our community to know Christ and make Him known.
+            </p>
+        </div>
+    </header>
+
+    <!-- Church History Story Section -->
+    <section class="section history-section reveal">
+        <div class="section-header">
+            <p>Our Legacy</p>
+            <h2>Church History</h2>
+            <div class="section-line"></div>
+        </div>
+        <div class="history-grid">
+            <div class="history-text reveal">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+                    <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--cream); border: 1px solid rgba(201, 169, 97, 0.4); display: flex; align-items: center; justify-content: center; color: var(--navy); font-size: 1.25rem;">
+                        <i class="fa-solid fa-cross"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.4rem; color: var(--navy); margin: 0; font-family: 'Cormorant Garamond', serif; font-weight: 700;">Our Heritage & Calling</h3>
+                        <p style="font-size: 0.75rem; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 1px; margin: 0; font-weight: 600;">Church of God World Missions &bull; Imus</p>
+                    </div>
+                </div>
+                <div id="historyText" class="history-body">
+                    <p><i class="fa-solid fa-spinner fa-spin"></i> Loading church history...</p>
+                </div>
+            </div>
+            <div class="history-img-wrapper reveal">
+                <img src="https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=800&auto=format&fit=crop" alt="Church Gathering">
+                <div class="history-img-overlay">
+                    <p>&ldquo;Built upon the foundation of the apostles and prophets, Christ Jesus Himself being the cornerstone.&rdquo;</p>
+                    <span>&mdash; Ephesians 2:20</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mission & Vision Cards Section -->
+    <section class="section section-cream reveal">
+        <div class="section-header">
+            <p>Our Divine Purpose</p>
+            <h2>Mission & Vision</h2>
+            <div class="section-line"></div>
+        </div>
+        <div class="grid-2 reveal-stagger" id="mvGrid">
+            <div class="card-public" style="padding: 3rem 2.5rem; text-align: center; border-radius: 16px;">
+                <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--cream); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="fa-solid fa-bullseye" style="font-size: 2rem; color: var(--navy);"></i>
+                </div>
+                <h3 style="color: var(--navy); font-size: 1.8rem; margin-bottom: 1rem;">Our Mission</h3>
+                <p id="missionText" style="font-size: 1.05rem; line-height: 1.8; color: var(--text-dark);">
+                    Loading mission statement...
+                </p>
+            </div>
+            <div class="card-public" style="padding: 3rem 2.5rem; text-align: center; border-radius: 16px;">
+                <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--cream); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="fa-solid fa-eye" style="font-size: 2rem; color: var(--navy);"></i>
+                </div>
+                <h3 style="color: var(--navy); font-size: 1.8rem; margin-bottom: 1rem;">Our Vision</h3>
+                <p id="visionText" style="font-size: 1.05rem; line-height: 1.8; color: var(--text-dark);">
+                    Loading vision statement...
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Values Section -->
+    <section class="section reveal">
+        <div class="section-header">
+            <p>Guiding Convictions</p>
+            <h2>Core Values</h2>
+            <div class="section-line"></div>
+        </div>
+        <div class="grid-3 reveal-stagger" style="max-width: 1200px; margin: 0 auto;">
+            <div class="card-public" style="padding: 2.25rem 2rem; text-align: center;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--cream); border: 1.5px solid var(--gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+                    <i class="fa-solid fa-book-bible" style="font-size: 1.6rem; color: var(--gold-dark);"></i>
+                </div>
+                <h3 style="font-size: 1.35rem; margin-bottom: 0.6rem; color: var(--navy);">Biblical Authority</h3>
+                <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.65;">The inspired Word of God is our ultimate guide for faith, conduct, doctrine, and church life.</p>
+            </div>
+            <div class="card-public" style="padding: 2.25rem 2rem; text-align: center;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--cream); border: 1.5px solid var(--gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+                    <i class="fa-solid fa-heart-pulse" style="font-size: 1.6rem; color: var(--gold-dark);"></i>
+                </div>
+                <h3 style="font-size: 1.35rem; margin-bottom: 0.6rem; color: var(--navy);">Passionate Worship</h3>
+                <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.65;">Wholehearted praise and adoration of the Lord in spirit and truth in every circumstance.</p>
+            </div>
+            <div class="card-public" style="padding: 2.25rem 2rem; text-align: center;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--cream); border: 1.5px solid var(--gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+                    <i class="fa-solid fa-handshake-angle" style="font-size: 1.6rem; color: var(--gold-dark);"></i>
+                </div>
+                <h3 style="font-size: 1.35rem; margin-bottom: 0.6rem; color: var(--navy);">Servant Leadership</h3>
+                <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.65;">Leading as Christ led &mdash; with humility, integrity, selflessness, and love for others.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rich 4-Column Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <a href="/" class="logo" style="margin-bottom: 1rem; color: #ffffff; text-decoration: none;">
+                    <div class="logo-icon"><i class="fa-solid fa-cross"></i></div>
+                    <div>
+                        <h2 style="font-size: 1.4rem; color: #ffffff; margin: 0;">COGWM Imus</h2>
+                        <p style="font-size: 0.75rem; color: var(--gold-light); margin: 0;">World Missions Philippines</p>
+                    </div>
+                </a>
+                <p style="font-size: 0.9rem; line-height: 1.7; color: rgba(255,255,255,0.8);">
+                    A vibrant Christ-centered church family committed to knowing Christ, making Him known, nurturing disciples, and impacting our community with unconditional love.
+                </p>
+                <div class="footer-socials">
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="mailto:info@cogwmphimus.org" class="footer-social-btn" aria-label="Email"><i class="fa-solid fa-envelope"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-col">
+                <h3>Quick Navigation</h3>
+                <ul class="footer-links">
+                    <li><a href="/"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Home</a></li>
+                    <li><a href="/views/sermons.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Sermons & Media</a></li>
+                    <li><a href="/views/events.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Church Events</a></li>
+                    <li><a href="/views/gallery.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Photo Gallery</a></li>
+                    <li><a href="/views/history.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> About & History</a></li>
+                    <li><a href="/views/contact.html"><i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; color: var(--gold);"></i> Contact & Prayer</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h3>Service Schedule</h3>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Sunday Services:</strong><br>9:00 AM &bull; Morning Celebration<br>3:00 PM &bull; Afternoon Fellowship</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Midweek Service:</strong><br>Wednesday 7:00 PM &bull; Prayer & Life</p>
+                <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check"></i> Youth Alive:</strong><br>Saturday 4:00 PM &bull; NextGen Worship</p>
+            </div>
+
+            <div class="footer-col">
+                <h3>Church Info & Access</h3>
+                <p><i class="fa-solid fa-location-dot" style="color: var(--gold); margin-right: 0.5rem;"></i> Imus, Cavite, Philippines</p>
+                <p><i class="fa-solid fa-phone" style="color: var(--gold); margin-right: 0.5rem;"></i> +63 900 000 0000</p>
+                <p><i class="fa-solid fa-envelope" style="color: var(--gold); margin-right: 0.5rem;"></i> info@cogwmphimus.org</p>
+                <div style="margin-top: 1.5rem;">
+                    <a href="/views/login.html" class="btn-hero-outline" style="padding: 0.65rem 1.4rem; font-size: 0.85rem; border-color: var(--gold); color: var(--gold-light); display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-lock"></i> Member & Leader Portal
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Church of God World Missions Philippines - Imus. All rights reserved.</p>
+            <p style="color: var(--gold-light); font-weight: 500;">To God Be All the Glory</p>
+        </div>
+    </footer>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/public.js"></script>
+    <script>
+        async function loadHistory() {
+            try {
+                const [histRes, mvRes] = await Promise.all([
+                    api.public.getPage('church_history'),
+                    api.public.getPage('mission_vision')
+                ]);
+
+                if (histRes.data && histRes.data.body) {
+                    document.getElementById('historyText').innerHTML = `<p>${escapeHtml(histRes.data.body).replace(/\n/g, '<br><br>')}</p>`;
+                } else {
+                    document.getElementById('historyText').innerHTML = `
+                        <p>Church of God World Missions Philippines - Imus Chapter was founded with an unshakeable vision: to be a beacon of hope, salvation, and spiritual restoration in the heart of Cavite.</p>
+                        <p>Through years of dedicated ministry, faithful prayer, and God's abundant provision, our congregation has grown into a vibrant, multi-generational family of believers actively touching lives across our city and worldwide.</p>
+                    `;
+                }
+                
+                if (mvRes.data && mvRes.data.body) {
+                    const text = mvRes.data.body;
+                    if (text.includes('Vision:')) {
+                        const parts = text.split('Vision:');
+                        document.getElementById('missionText').innerText = parts[0].replace('Mission:', '').trim();
+                        document.getElementById('visionText').innerText = parts[1] ? parts[1].trim() : 'To be updated.';
+                    } else {
+                        document.getElementById('missionText').innerText = text;
+                        document.getElementById('visionText').innerText = 'To be a transformed Christ-centered church transforming the world for Jesus Christ.';
+                    }
+                } else {
+                    document.getElementById('missionText').innerText = 'To know Christ and make Him known through passionate worship, intentional discipleship, and evangelistic missions.';
+                    document.getElementById('visionText').innerText = 'A spirit-empowered, biblically grounded church of passionate followers of Jesus Christ impacting our community and nations.';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('historyText').innerHTML = '<p>Information will be updated shortly.</p>';
+            } finally {
+                if (window.initScrollAnimations) window.initScrollAnimations();
+            }
+        }
+        loadHistory();
+    </script>
+</body>
+</html>

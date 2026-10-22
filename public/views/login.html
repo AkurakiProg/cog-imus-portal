@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>Portal Sign In | COGWM Imus</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/auth.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script>
+        document.documentElement.classList.remove('dark-mode');
+        document.documentElement.setAttribute('data-theme', 'light');
+        if (document.body) document.body.classList.remove('dark-mode');
+    </script>
+</head>
+<body>
+    <!-- Cinematic Fullscreen Church Video Background -->
+    <div class="auth-video-container" id="authVideoContainer">
+        <video class="auth-video" id="authVideo" autoplay muted loop playsinline poster="/images/church-hero-poster.jpg" preload="auto">
+            <source src="/videos/church-hero.mp4" type="video/mp4">
+            <source src="https://cdn.coverr.co/videos/coverr-looking-up-at-a-grey-and-white-church-9260/1080p.mp4" type="video/mp4">
+        </video>
+        <div class="auth-video-overlay"></div>
+    </div>
+
+    <!-- Ambient Motion Toggle Pill (Pause/Play) -->
+    <button type="button" class="auth-motion-btn" id="authMotionBtn" aria-label="Pause background video motion" title="Toggle background video motion">
+        <i class="fa-solid fa-pause"></i>
+        <span>Motion</span>
+    </button>
+
+    <!-- Top Navigation Bar -->
+    <header class="auth-topbar">
+        <a href="/" class="auth-brand" aria-label="Go to Church Homepage">
+            <div class="auth-brand-icon">
+                <i class="fa-solid fa-cross"></i>
+            </div>
+            <div class="auth-brand-text">
+                <h2>COGWM Imus</h2>
+                <p>World Missions PH</p>
+            </div>
+        </a>
+        <a href="/" class="btn-nav-return">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Return to Church Website</span>
+        </a>
+    </header>
+
+    <!-- Main Authentication Viewport Wrapper -->
+    <main class="auth-wrapper">
+        <div class="auth-card-split">
+            <!-- Left Side: Community Inspiration & Identity Panel -->
+            <section class="auth-inspiration-panel" aria-label="Church Greeting and Information">
+                <div>
+                    <div class="auth-kicker auth-reveal auth-reveal-1">
+                        <i class="fa-solid fa-cross"></i> Church of God World Missions
+                    </div>
+                    <h2 class="inspiration-title auth-reveal auth-reveal-2">
+                        A Place to Belong, <em>A Faith to Believe.</em>
+                    </h2>
+                    <p class="inspiration-desc auth-reveal auth-reveal-3">
+                        Welcome to the COGWM Imus Ministry Portal. Secure, unified access for our church administrators, ministry leaders, and faithful congregation.
+                    </p>
+                </div>
+
+                <div class="inspiration-scripture auth-reveal auth-reveal-3">
+                    <p>&ldquo;For where two or three gather in My name, there am I with them.&rdquo;</p>
+                    <span>&mdash; Matthew 18:20 &bull; Fellowship in Christ</span>
+                </div>
+
+                <div class="trust-pillars auth-reveal auth-reveal-4">
+                    <div class="trust-pillar">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>End-to-End Secure SSL Session</span>
+                    </div>
+                    <div class="trust-pillar">
+                        <i class="fa-solid fa-users-viewfinder"></i>
+                        <span>Dedicated Admin, Leader & Member Portals</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Refined Authentication Form Panel -->
+            <section class="auth-form-panel" aria-label="Sign In Form">
+                <div class="auth-form-header auth-reveal auth-reveal-1">
+                    <span class="auth-badge-pill">
+                        <i class="fa-solid fa-lock"></i> Portal Authentication
+                    </span>
+                    <h1 class="auth-form-title">Member & Leader Sign In</h1>
+                    <p class="auth-form-subtitle">Enter your church credentials below to continue to your dashboard.</p>
+                </div>
+
+                <!-- Alert Message (Dynamic error/success notification) -->
+                <div id="alertMessage" class="alert" role="alert" aria-live="polite"></div>
+
+                <!-- Primary Login Form -->
+                <form id="loginForm" class="auth-reveal auth-reveal-2" novalidate>
+                    <div class="form-group">
+                        <label for="identifier">
+                            <i class="fa-regular fa-user"></i> Username or Email
+                        </label>
+                        <div class="input-container">
+                            <input type="text" id="identifier" name="identifier" placeholder="e.g. pastor.jairo or member@domain.com" required autocomplete="username" spellcheck="false" autofocus>
+                        </div>
+                        <small class="input-hint">
+                            <i class="fa-solid fa-circle-info"></i> Note: Username is case-sensitive
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="fa-solid fa-lock"></i> Password
+                        </label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" placeholder="Enter your portal password" required autocomplete="current-password">
+                            <button type="button" class="btn-password-toggle" id="togglePassword" aria-label="Show password" title="Toggle password visibility">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 0.4rem;">
+                            <a href="javascript:void(0)" onclick="openForgotPasswordModal()" style="font-size: 0.8rem; color: var(--gold-light, #c9a961); text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; transition: color 0.2s ease;">
+                                <i class="fa-solid fa-circle-question" style="font-size: 0.75rem;"></i> Forgot Password?
+                            </a>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-login" id="btnLogin">
+                        <span>Sign In to Portal</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </button>
+                </form>
+
+                <!-- Two-Factor Authentication (MFA) Form Container -->
+                <div id="mfaContainer" style="display: none;" aria-label="Two-Factor Authentication Step">
+                    <div class="mfa-header">
+                        <div class="mfa-icon-badge">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h2 class="mfa-title">Two-Factor Authentication</h2>
+                        <p id="mfaInstructions" class="mfa-desc">
+                            Open your authenticator app (Google Authenticator, Microsoft Authenticator) and enter your current 6-digit verification code.
+                        </p>
+                    </div>
+
+                    <form id="mfaForm" novalidate>
+                        <!-- Standard 6-digit TOTP input -->
+                        <div id="mfaCodeGroup" class="form-group">
+                            <label for="mfaCode" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fa-solid fa-mobile-screen mr-1"></i> 6-Digit Authenticator Code</span>
+                                <span style="font-size: 0.72rem; color: #64748b; font-weight: normal; text-transform: none;"><i class="fa-regular fa-clock"></i> 30s code</span>
+                            </label>
+                            <input type="text" id="mfaCode" name="mfaCode" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="000000" autocomplete="one-time-code" class="mfa-input-totp">
+                        </div>
+
+                        <!-- Backup Recovery Code input -->
+                        <div id="mfaRecoveryGroup" class="form-group" style="display: none;">
+                            <label for="mfaRecoveryCode">
+                                <span><i class="fa-solid fa-key mr-1"></i> Backup Recovery Code</span>
+                            </label>
+                            <input type="text" id="mfaRecoveryCode" name="mfaRecoveryCode" maxlength="12" placeholder="e.g. A1B2-C3D4" autocomplete="off" class="mfa-input-recovery">
+                            <small class="input-hint">
+                                <i class="fa-solid fa-circle-info"></i> Each recovery code can be used once to regain access.
+                            </small>
+                        </div>
+
+                        <button type="submit" class="btn-login" id="btnVerifyMfa">
+                            <span id="btnVerifyText">Verify & Sign In</span>
+                            <i class="fa-solid fa-check-double"></i>
+                        </button>
+                    </form>
+
+                    <div class="mfa-actions-footer">
+                        <a href="javascript:void(0)" id="toggleRecoveryLink" class="mfa-link-toggle">
+                            <i class="fa-solid fa-key"></i> Use a backup recovery code instead
+                        </a>
+                        <a href="javascript:void(0)" id="cancelMfaLink" class="mfa-link-cancel">
+                            &larr; Cancel and return to Login
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer Navigation & Trust Footnote -->
+                <div class="auth-panel-footer auth-reveal auth-reveal-4">
+                    <div class="back-home">
+                        <a href="/">
+                            <i class="fa-solid fa-house"></i> Back to Church Website
+                        </a>
+                    </div>
+                    <p class="auth-security-footnote">
+                        <i class="fa-solid fa-shield-check"></i> 256-bit SSL encrypted connection &bull; COGWM Imus
+                    </p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" style="display: none; position: fixed; inset: 0; background: rgba(6, 23, 48, 0.65); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;" onclick="closeForgotPasswordModal(event)">
+        <div style="background: var(--navy, #0c2340); border: 1px solid rgba(201, 169, 97, 0.35); border-radius: 16px; max-width: 480px; width: 100%; padding: 1.75rem; color: #ffffff; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative;" onclick="event.stopPropagation()">
+            <button type="button" onclick="closeForgotPasswordModal()" style="position: absolute; top: 1rem; right: 1.2rem; background: transparent; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; line-height: 1;" title="Close">&times;</button>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.15rem;">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(201, 169, 97, 0.15); border: 1px solid rgba(201, 169, 97, 0.3); display: flex; align-items: center; justify-content: center; color: var(--gold-light, #e0bc6f); font-size: 1.25rem; flex-shrink: 0;">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #ffffff;">Forgot Your Password?</h3>
+                    <p style="margin: 0.2rem 0 0; font-size: 0.78rem; color: #94a3b8;">COGWM Imus Church Portal Assistance</p>
+                </div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; line-height: 1.6; color: #cbd5e1;">
+                <p style="margin: 0 0 0.5rem 0;">To protect confidential church records and sensitive member information, password resets are processed securely by the <strong>Church Administration Office</strong>.</p>
+                <p style="margin: 0;">Please contact the church administrator with your <strong>full name</strong> and <strong>registered email or phone number</strong> to verify your identity and receive password reset assistance.</p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; font-size: 0.85rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; color: #e2e8f0;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(201, 169, 97, 0.12); display: flex; align-items: center; justify-content: center; color: var(--gold-light, #e0bc6f); flex-shrink: 0;">
+                        <i class="fa-solid fa-envelope"></i>
+                    </div>
+                    <span>Email: <a href="mailto:info@cogwmphimus.org?subject=Church%20Portal%20Password%20Reset%20Request" style="color: var(--gold-light, #e0bc6f); font-weight: 600; text-decoration: underline;">info@cogwmphimus.org</a></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; color: #e2e8f0;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(201, 169, 97, 0.12); display: flex; align-items: center; justify-content: center; color: var(--gold-light, #e0bc6f); flex-shrink: 0;">
+                        <i class="fa-solid fa-phone"></i>
+                    </div>
+                    <span>Office Hotline: <strong style="color: #ffffff;">+63 900 000 0000</strong></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; color: #e2e8f0;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(201, 169, 97, 0.12); display: flex; align-items: center; justify-content: center; color: var(--gold-light, #e0bc6f); flex-shrink: 0;">
+                        <i class="fa-solid fa-church"></i>
+                    </div>
+                    <span>Sanctuary Desk: Church Administration Office, Imus, Cavite</span>
+                </div>
+            </div>
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 1.25rem;">
+                <a href="mailto:info@cogwmphimus.org?subject=Church%20Portal%20Password%20Reset%20Request" class="btn-login" style="padding: 0.75rem 1.25rem; font-size: 0.95rem; font-weight: 700; text-decoration: none; width: 100%; box-sizing: border-box; margin-top: 0; display: flex; justify-content: center; align-items: center; gap: 0.5rem; border-radius: 10px; box-shadow: 0 4px 14px rgba(201, 169, 97, 0.25);">
+                    <i class="fa-solid fa-paper-plane"></i> Contact Administrator
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        function openForgotPasswordModal() {
+            const m = document.getElementById('forgotPasswordModal');
+            if (m) {
+                m.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function closeForgotPasswordModal(e) {
+            if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('btn-close')) {
+                return;
+            }
+            const m = document.getElementById('forgotPasswordModal');
+            if (m) {
+                m.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeForgotPasswordModal();
+        });
+    </script>
+</body>
+</html>
