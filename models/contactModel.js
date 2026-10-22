@@ -12,11 +12,12 @@ const ContactModel = {
     },
 
     async getAll(limit = 50, offset = 0) {
-        const [rows] = await pool.execute(
+        const safeLimit = Math.max(1, parseInt(limit, 10) || 50);
+        const safeOffset = Math.max(0, parseInt(offset, 10) || 0);
+        const [rows] = await pool.query(
             `SELECT * FROM contact_messages 
              ORDER BY submitted_at DESC 
-             LIMIT ? OFFSET ?`,
-            [parseInt(limit), parseInt(offset)]
+             LIMIT ${safeLimit} OFFSET ${safeOffset}`
         );
         return rows;
     },
@@ -31,12 +32,19 @@ const ContactModel = {
         return rows[0].unread;
     },
 
+    async getById(id) {
+        const [rows] = await pool.execute(`SELECT * FROM contact_messages WHERE id = ?`, [id]);
+        return rows[0] || null;
+    },
+
     async markAsRead(id) {
-        await pool.execute(`UPDATE contact_messages SET is_read = 1 WHERE message_id = ?`, [id]);
+        const [result] = await pool.execute(`UPDATE contact_messages SET is_read = 1 WHERE id = ?`, [id]);
+        return result.affectedRows > 0;
     },
 
     async delete(id) {
-        await pool.execute(`DELETE FROM contact_messages WHERE message_id = ?`, [id]);
+        const [result] = await pool.execute(`DELETE FROM contact_messages WHERE id = ?`, [id]);
+        return result.affectedRows > 0;
     }
 };
 

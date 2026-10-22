@@ -41,17 +41,18 @@ function buildAuditWhere(filters = {}) {
 const AuditModel = {
     async getAll(limit = 50, offset = 0, filters = {}) {
         const { whereClause, params } = buildAuditWhere(filters);
+        const safeLimit = Math.max(1, parseInt(limit, 10) || 50);
+        const safeOffset = Math.max(0, parseInt(offset, 10) || 0);
+
         let query = `SELECT a.audit_id, a.action, a.module, a.record_id, a.old_values, a.new_values, 
                             a.ip_address, a.user_agent, a.performed_at, 
                             u.full_name AS user_name, u.username AS user_username
                      FROM audit_trail a
                      LEFT JOIN users u ON a.user_id = u.user_id
                      ${whereClause}
-                     ORDER BY a.performed_at DESC LIMIT ? OFFSET ?`;
-        
-        params.push(parseInt(limit), parseInt(offset));
+                     ORDER BY a.performed_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await pool.query(query, params);
         return rows;
     },
 
@@ -61,7 +62,7 @@ const AuditModel = {
                      FROM audit_trail a
                      LEFT JOIN users u ON a.user_id = u.user_id
                      ${whereClause}`;
-        const [rows] = await pool.execute(query, params);
+        const [rows] = await pool.query(query, params);
         return rows[0].total;
     }
 };
