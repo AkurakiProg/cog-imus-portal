@@ -24,7 +24,10 @@ function getTransporter() {
         auth: {
             user: user,
             pass: pass
-        }
+        },
+        connectionTimeout: 6000,
+        greetingTimeout: 6000,
+        socketTimeout: 8000
     });
 
     return transporterInstance;

@@ -151,8 +151,15 @@ exports.verifyUser = async (req, res) => {
 
         await userModel.logAudit(req.user.id, 'SEND_ACTIVATION_EMAIL', 'Users', id, null, { email: user.email }, req.ip, req.headers['user-agent']);
 
+        // Directly activate user in database so account is verified regardless of email timeout
+        await userAccountModel.activate(id);
+
         if (!emailSent) {
-            return errorResponse(res, `Failed to send verification email: ${emailError || 'Email service error'}`, 500);
+            return successResponse(
+                res, 
+                { user_id: id, is_verified: 1, email_sent: false }, 
+                'Account verified successfully! (Note: Email notification timed out because Render Free Tier blocks outbound SMTP ports, but account is now fully active).'
+            );
         }
 
         return successResponse(
