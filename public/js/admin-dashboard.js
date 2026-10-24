@@ -1133,16 +1133,14 @@ async function saveUser() {
             showToast(res && res.message ? res.message : 'User account updated successfully!');
             
             // Check if current logged-in user changed credentials
-            const currentUser = JSON.parse(sessionStorage.getItem('church_user'));
-            if (currentUser && currentUser.user_id == id && password) {
-                showToast('Password updated. Please log in with your new credentials.');
-                setTimeout(() => {
-                    sessionStorage.removeItem('church_token');
-                    sessionStorage.removeItem('church_user');
-                    localStorage.removeItem('church_token');
-                    localStorage.removeItem('church_user');
+            const currentUser = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+            if (currentUser && (currentUser.user_id == id || currentUser.id == id) && password) {
+                if (typeof triggerConcurrentLogout === 'function') {
+                    triggerConcurrentLogout('password_changed');
+                } else {
+                    sessionStorage.setItem('auth_logout_reason', 'password_changed');
                     window.location.href = '/views/login.html';
-                }, 1500);
+                }
                 return;
             }
         } else {

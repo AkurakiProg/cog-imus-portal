@@ -373,16 +373,18 @@ exports.updateMember = async (req, res) => {
             }
         }
 
-        // Automatically log out user if their role has changed or their account was deactivated
+        // Automatically log out user if their role has changed, account was deactivated, or password was updated
         const roleChanged = oldMember && updatedMember.church_role && oldMember.church_role !== updatedMember.church_role;
         const wasDeactivated = oldMember && oldMember.status === 'Active' && (updatedMember.status === 'Inactive' || updatedMember.status === 'Deceased');
+        const passwordChanged = Boolean(password && password.length > 0);
 
-        if (targetUserId && (roleChanged || wasDeactivated)) {
+        if (targetUserId && (roleChanged || wasDeactivated || passwordChanged)) {
             await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [targetUserId]);
+            const logoutReason = passwordChanged ? 'password_changed' : (roleChanged ? 'role_changed' : 'account_deactivated');
             realtimeBus.broadcast('force_logout', {
                 user_id: targetUserId,
                 member_id: id,
-                reason: roleChanged ? 'role_changed' : 'account_deactivated',
+                reason: logoutReason,
                 old_role: oldMember.church_role,
                 new_role: updatedMember.church_role
             });

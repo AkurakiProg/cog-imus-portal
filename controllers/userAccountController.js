@@ -444,6 +444,11 @@ exports.update = async (req, res) => {
             const salt = await bcrypt.genSalt(10);
             const passwordHash = await bcrypt.hash(password, salt);
             await userAccountModel.updatePassword(id, passwordHash);
+            await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [id]);
+            realtimeBus.broadcast('force_logout', {
+                user_id: id,
+                reason: 'password_changed'
+            });
         }
 
         await userModel.logAudit(req.user.id, 'UPDATE', 'Users', id, null, { username, email, role_name }, req.ip, req.headers['user-agent']);

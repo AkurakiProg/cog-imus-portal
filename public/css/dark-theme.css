@@ -4891,7 +4891,8 @@ html.dark-mode .session-terminated-btn {
     color: #2563EB !important;
     border: 1px solid #DBEAFE !important;
 }
-#session-terminated-overlay .session-icon-warning {
+#session-terminated-overlay .session-icon-warning,
+#session-terminated-overlay .session-icon-password {
     background: #FEF3C7 !important;
     color: #D97706 !important;
     border: 1px solid #FDE68A !important;
@@ -4917,7 +4918,11 @@ html.dark-mode #session-terminated-overlay .session-icon-role,
 body.dark-mode #session-terminated-overlay .session-icon-warning,
 html.dark-mode #session-terminated-overlay .session-icon-warning,
 [data-theme="dark"] #session-terminated-overlay .session-icon-warning,
-#session-terminated-overlay[data-theme="dark"] .session-icon-warning {
+#session-terminated-overlay[data-theme="dark"] .session-icon-warning,
+body.dark-mode #session-terminated-overlay .session-icon-password,
+html.dark-mode #session-terminated-overlay .session-icon-password,
+[data-theme="dark"] #session-terminated-overlay .session-icon-password,
+#session-terminated-overlay[data-theme="dark"] .session-icon-password {
     background: rgba(245, 158, 11, 0.2) !important;
     color: #FBBF24 !important;
     border: 1px solid rgba(245, 158, 11, 0.35) !important;

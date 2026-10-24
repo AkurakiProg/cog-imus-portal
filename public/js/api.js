@@ -68,6 +68,14 @@ function triggerConcurrentLogout(reason = 'concurrent_login') {
         iconBg = isDark ? 'rgba(37, 99, 235, 0.22)' : '#eff6ff';
         iconColor = isDark ? '#60a5fa' : '#2563eb';
         iconBorder = isDark ? 'rgba(59, 130, 246, 0.4)' : '#dbeafe';
+    } else if (reason === 'password_changed') {
+        title = 'Password Updated';
+        message = 'Your account password has been changed. For your security, this session has been automatically logged out. Please log in again with your new credentials.';
+        icon = '<i class="fa-solid fa-key"></i>';
+        iconClass = 'session-icon-password';
+        iconBg = isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7';
+        iconColor = isDark ? '#fbbf24' : '#d97706';
+        iconBorder = isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a';
     } else if (reason === 'unauthorized') {
         title = 'Session Expired';
         message = 'Your session has expired or is invalid. Please log in again to continue.';
@@ -133,7 +141,9 @@ async function checkSessionStatus() {
         if (res.status === 401) {
             const data = await res.json().catch(() => ({}));
             const msg = data.message || '';
-            if (msg.toLowerCase().includes('role')) {
+            if (msg.toLowerCase().includes('password')) {
+                triggerConcurrentLogout('password_changed');
+            } else if (msg.toLowerCase().includes('role')) {
                 triggerConcurrentLogout('role_changed');
             } else if (msg.includes('another browser') || msg.includes('Session terminated')) {
                 triggerConcurrentLogout('concurrent_login');
@@ -303,7 +313,9 @@ const api = {
                     triggerConcurrentLogout('server_offline');
                 }
             } else if (response.status === 401) {
-                if (error.message && error.message.toLowerCase().includes('role')) {
+                if (error.message && error.message.toLowerCase().includes('password')) {
+                    triggerConcurrentLogout('password_changed');
+                } else if (error.message && error.message.toLowerCase().includes('role')) {
                     triggerConcurrentLogout('role_changed');
                 } else if (error.message && (error.message.includes('another browser or device') || error.message.includes('Session terminated'))) {
                     triggerConcurrentLogout('concurrent_login');
@@ -338,7 +350,9 @@ const api = {
                     triggerConcurrentLogout('server_offline');
                 }
             } else if (response.status === 401) {
-                if (error.message && error.message.toLowerCase().includes('role')) {
+                if (error.message && error.message.toLowerCase().includes('password')) {
+                    triggerConcurrentLogout('password_changed');
+                } else if (error.message && error.message.toLowerCase().includes('role')) {
                     triggerConcurrentLogout('role_changed');
                 } else if (error.message && (error.message.includes('another browser or device') || error.message.includes('Session terminated'))) {
                     triggerConcurrentLogout('concurrent_login');
