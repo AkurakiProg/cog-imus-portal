@@ -166,5 +166,19 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         assert.ok(darkCss.includes('.session-icon-danger'), 'dark-theme.css styles .session-icon-danger');
         assert.ok(darkCss.includes('.session-icon-role'), 'dark-theme.css styles .session-icon-role');
     });
+
+    await t.test('11. Security notices on login page have badge color styling', () => {
+        const authJs = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+        assert.ok(authJs.includes('badge-role'), 'auth.js includes badge-role markup');
+        assert.ok(authJs.includes('Your account role was updated by Church Administration. Please log in again to continue with your new permissions.'), 'auth.js has exact role update notice');
+        assert.ok(authJs.includes('badge-password'), 'auth.js includes badge-password markup');
+        assert.ok(authJs.includes('Your account password was updated. Please log in with your new credentials.'), 'auth.js has exact password update notice');
+
+        const authCss = fs.readFileSync(path.join(__dirname, '../public/css/auth.css'), 'utf8');
+        assert.ok(authCss.includes('.alert-badge.badge-role'), 'auth.css styles .alert-badge.badge-role');
+        assert.ok(authCss.includes('.alert-badge.badge-password'), 'auth.css styles .alert-badge.badge-password');
+        assert.ok(authCss.includes('.alert-role'), 'auth.css styles .alert-role container');
+        assert.ok(authCss.includes('.alert-password'), 'auth.css styles .alert-password container');
+    });
 });
 

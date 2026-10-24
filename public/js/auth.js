@@ -18,7 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showAlert(message, type) {
         if (!alertBox) return;
-        alertBox.textContent = message;
+        if (typeof message === 'string' && message.includes('<') && message.includes('>')) {
+            alertBox.innerHTML = message;
+        } else {
+            alertBox.textContent = message;
+        }
         alertBox.className = `alert alert-${type}`;
         alertBox.style.display = 'block';
     }
@@ -43,19 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutReason = sessionStorage.getItem('auth_logout_reason');
     if (logoutReason === 'concurrent_login') {
         sessionStorage.removeItem('auth_logout_reason');
-        showAlert('Security Notice: You were logged out because your account logged in on another device or browser.', 'error');
+        showAlert('<span class="alert-badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Security Notice</span> You were logged out because your account logged in on another device or browser.', 'error');
     } else if (logoutReason === 'server_offline') {
         sessionStorage.removeItem('auth_logout_reason');
-        showAlert('Notice: You were automatically logged out because the server was turned off or disconnected.', 'error');
+        showAlert('<span class="alert-badge badge-warning"><i class="fa-solid fa-power-off"></i> Notice</span> You were automatically logged out because the server was turned off or disconnected.', 'warning');
     } else if (logoutReason === 'role_changed') {
         sessionStorage.removeItem('auth_logout_reason');
-        showAlert('Security Notice: Your account role was updated by Church Administration. Please log in again to access your updated dashboard.', 'info');
+        showAlert('<span class="alert-badge badge-role"><i class="fa-solid fa-user-shield"></i> Security Notice</span> Your account role was updated by Church Administration. Please log in again to continue with your new permissions.', 'role');
     } else if (logoutReason === 'password_changed') {
         sessionStorage.removeItem('auth_logout_reason');
-        showAlert('Security Notice: Your account password was updated. Please log in with your new credentials.', 'info');
+        showAlert('<span class="alert-badge badge-password"><i class="fa-solid fa-key"></i> Security Notice</span> Your account password was updated. Please log in with your new credentials.', 'password');
     } else if (logoutReason === 'unauthorized') {
         sessionStorage.removeItem('auth_logout_reason');
-        showAlert('Notice: Your session has expired. Please log in again.', 'error');
+        showAlert('<span class="alert-badge badge-danger"><i class="fa-solid fa-clock-rotate-left"></i> Notice</span> Your session has expired. Please log in again.', 'error');
     }
 
     let currentMfaChallengeToken = null;

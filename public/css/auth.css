@@ -444,6 +444,112 @@ html, body {
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
 }
 
+.alert-info,
+.alert-role {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.alert-warning,
+.alert-password {
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+}
+
+/* Alert Security & Status Badges */
+.alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.alert-badge.badge-role {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
+}
+
+.alert-badge.badge-password {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fcd34d;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+}
+
+.alert-badge.badge-danger {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);
+}
+
+.alert-badge.badge-warning {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+}
+
+.alert-badge.badge-success {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
+}
+
+/* Dark Mode Overrides for Alerts & Badges */
+body.dark-mode .alert-info,
+html.dark-mode .alert-info,
+[data-theme="dark"] .alert-info,
+body.dark-mode .alert-role,
+html.dark-mode .alert-role,
+[data-theme="dark"] .alert-role {
+    background: #0e1f38 !important;
+    color: #93c5fd !important;
+    border: 1px solid #1e3a8a !important;
+}
+
+body.dark-mode .alert-warning,
+html.dark-mode .alert-warning,
+[data-theme="dark"] .alert-warning,
+body.dark-mode .alert-password,
+html.dark-mode .alert-password,
+[data-theme="dark"] .alert-password {
+    background: #241c0e !important;
+    color: #fde047 !important;
+    border: 1px solid #854d0e !important;
+}
+
+body.dark-mode .alert-badge.badge-role,
+html.dark-mode .alert-badge.badge-role,
+[data-theme="dark"] .alert-badge.badge-role {
+    background: rgba(37, 99, 235, 0.28) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(96, 165, 250, 0.45) !important;
+}
+
+body.dark-mode .alert-badge.badge-password,
+html.dark-mode .alert-badge.badge-password,
+[data-theme="dark"] .alert-badge.badge-password {
+    background: rgba(245, 158, 11, 0.28) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(251, 191, 36, 0.45) !important;
+}
+
 /* Form Fields */
 .form-group {
     margin-bottom: 1.35rem;
