@@ -312,8 +312,8 @@ const c2sModel = {
     /**
      * Get all active church members with their system-wide C2S designation
      */
-    async getAvailableMembers() {
-        const query = `
+    async getAvailableMembers(excludeGroupId = null) {
+        let query = `
             SELECT 
                 m.member_id,
                 CONCAT(m.first_name, ' ', COALESCE(CONCAT(m.middle_name, ' '), ''), m.last_name) AS full_name,
@@ -368,10 +368,22 @@ const c2sModel = {
                         AND UPPER(TRIM(min2.department)) = 'RELATIONSHIP'
                   )
               )
-            ORDER BY m.first_name ASC, m.last_name ASC
         `;
 
-        const [rows] = await pool.execute(query);
+        const params = [];
+        if (excludeGroupId) {
+            query += ` AND m.member_id NOT IN (
+                SELECT member_id FROM c2s_group_members WHERE group_id = ?
+            )`;
+            query += ` AND m.member_id != (
+                SELECT COALESCE(leader_id, 0) FROM c2s_groups WHERE group_id = ?
+            )`;
+            params.push(excludeGroupId, excludeGroupId);
+        }
+
+        query += ` ORDER BY m.first_name ASC, m.last_name ASC`;
+
+        const [rows] = await pool.query(query, params);
         return rows;
     },
 

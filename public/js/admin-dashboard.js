@@ -680,8 +680,8 @@ function navigateTo(viewName, event) {
         case 'users': loadUsers(1); break;
         case 'members': loadMembers(1); break;
         case 'c2s': 
-            if (typeof loadC2STable === 'function') loadC2STable(1);
-            else if (typeof loadC2SGroups === 'function') loadC2SGroups(1);
+            if (typeof loadC2SGroups === 'function') loadC2SGroups();
+            else if (typeof loadC2STable === 'function') loadC2STable(1);
             break;
         case 'ministries': 
             if (typeof loadMinistries === 'function') loadMinistries();
@@ -2670,7 +2670,7 @@ async function removeMemberFromRoster(mmId, memberName) {
 // ===================================================
 // DEPARTMENT HEAD MANAGEMENT (WORDA DEPARTMENTS)
 // ===================================================
-function openManageDeptHeadModal(deptName = null) {
+async function openManageDeptHeadModal(deptName = null) {
     const targetDept = deptName || selectedWordaDept;
     if (!targetDept) {
         return showToast('Please select a WORDA department first.');
@@ -2680,69 +2680,133 @@ function openManageDeptHeadModal(deptName = null) {
     document.getElementById('deptHeadModalTitle').textContent = `Manage Department Head — ${targetDept} Department`;
     document.getElementById('deptHeadModalSubtitle').textContent = `Assign or update the head leader of the ${targetDept} Department`;
 
-    // Filter ALL active members who are Church Leaders or Church Admins ONLY
-    const eligibleMembers = (allMembersCache || []).filter(m => {
-        const role = (m.church_role || '').trim().toLowerCase();
-        const isEligible = role === 'leader' || role === 'admin' || role === 'church leader' || role === 'church admin';
-        const isActive = (m.status === 'Active' || m.status == 1);
-        return isEligible && isActive;
-    });
-
-    // Sort alphabetically by first_name, last_name
-    eligibleMembers.sort((a, b) => {
-        const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
-        const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
-        return nameA.localeCompare(nameB);
-    });
-
-    // Current assigned head
-    const currentHead = (departmentHeadsCache || []).find(h => (h.department || '').toLowerCase() === targetDept.toLowerCase());
-    const currentHeadId = currentHead ? currentHead.head_member_id : null;
-
-    // Render current head info box
-    const currentBox = document.getElementById('deptHeadCurrentBox');
-    if (currentBox) {
-        if (currentHead && currentHead.head_member_id) {
-            currentBox.innerHTML = `
-                <div class="flex items-center gap-3 w-full">
-                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1rem;"><i class="fa-solid fa-crown text-gold"></i></div>
-                    <div class="flex-1">
-                        <div class="text-xs text-slate-500 font-medium">Current Department Head</div>
-                        <div class="font-bold text-navy text-sm">${escapeHtml(currentHead.head_name || 'Assigned')} <span class="badge ${currentHead.church_role === 'Admin' ? 'badge-primary' : 'badge-gold'}" style="font-size: 0.65rem;">${escapeHtml(currentHead.church_role === 'Admin' ? 'Church Admin' : 'Church Leader')}</span></div>
-                    </div>
-                </div>
-            `;
-        } else {
-            currentBox.innerHTML = `
-                <div class="flex items-center gap-3 w-full text-amber-800">
-                    <i class="fa-solid fa-circle-exclamation text-amber-600 text-lg"></i>
-                    <div>
-                        <div class="text-xs text-slate-500 font-medium">Current Status</div>
-                        <div class="font-semibold text-xs">Currently unassigned. No department head selected.</div>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    // Populate dropdown with Church Leaders & Church Admins ONLY
     const selectEl = document.getElementById('deptHeadSelect');
+    const currentBox = document.getElementById('deptHeadCurrentBox');
+
+    // Show initial loading state in dropdown and preview
     if (selectEl) {
-        let html = '<option value="">-- No Department Head (Unassigned) --</option>';
-        if (eligibleMembers.length === 0) {
-            html += '<option value="" disabled>No eligible Church Leaders or Admins found</option>';
-        } else {
-            eligibleMembers.forEach(mem => {
-                const isSelected = (currentHeadId && currentHeadId == mem.member_id) ? 'selected' : '';
-                const roleLabel = mem.church_role === 'Admin' ? 'Church Admin' : 'Church Leader';
-                const fullName = [mem.first_name, mem.middle_name ? mem.middle_name.charAt(0) + '.' : '', mem.last_name, mem.suffix].filter(Boolean).join(' ');
-                html += `<option value="${mem.member_id}" ${isSelected}>${escapeHtml(fullName)} (${roleLabel})</option>`;
-            });
-        }
-        selectEl.innerHTML = html;
+        selectEl.innerHTML = '<option value="">Loading eligible church leaders...</option>';
+        selectEl.disabled = true;
+    }
+    if (currentBox) {
+        currentBox.innerHTML = `
+            <div class="flex items-center gap-3 w-full text-slate-500 py-1">
+                <i class="fa-solid fa-spinner fa-spin text-primary"></i>
+                <div class="text-xs">Fetching current department head and eligible leaders...</div>
+            </div>
+        `;
     }
 
     document.getElementById('deptHeadModal').classList.add('active');
+
+    try {
+        // Ensure fresh, unpaginated active members and up-to-date department heads are loaded
+        const [memRes, headsRes] = await Promise.all([
+            api.members.getAll({ all: true, status: 'Active' }).catch(() => ({ data: [] })),
+            api.ministries.getDepartmentHeads().catch(() => ({ data: [] }))
+        ]);
+
+        if (memRes && Array.isArray(memRes.data) && memRes.data.length > 0) {
+            allMembersCache = memRes.data;
+        }
+        if (headsRes && Array.isArray(headsRes.data)) {
+            departmentHeadsCache = headsRes.data;
+        }
+
+        // Filter ALL active members who are Church Leaders or Church Admins ONLY
+        const eligibleMembers = (allMembersCache || []).filter(m => {
+            const role = (m.church_role || '').trim().toLowerCase();
+            const isEligible = role === 'leader' || role === 'admin' || role === 'church leader' || role === 'church admin';
+            const isActive = (m.status === 'Active' || m.status == 1);
+            return isEligible && isActive;
+        });
+
+        // Sort alphabetically by full name
+        eligibleMembers.sort((a, b) => {
+            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        // Current assigned head
+        const currentHead = (departmentHeadsCache || []).find(h => (h.department || '').toLowerCase() === targetDept.toLowerCase());
+        const currentHeadId = currentHead ? currentHead.head_member_id : null;
+
+        // Function to render the preview box dynamically
+        const renderHeadPreview = (selectedMemberId) => {
+            if (!currentBox) return;
+            if (!selectedMemberId) {
+                currentBox.innerHTML = `
+                    <div class="flex items-center gap-3 w-full text-amber-800">
+                        <i class="fa-solid fa-circle-exclamation text-amber-600 text-lg"></i>
+                        <div>
+                            <div class="text-xs text-slate-500 font-medium">Department Head Assignment</div>
+                            <div class="font-semibold text-xs">Currently unassigned. No department head selected.</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const mem = eligibleMembers.find(m => String(m.member_id) === String(selectedMemberId));
+            if (mem) {
+                const isCurrent = currentHeadId && String(currentHeadId) === String(mem.member_id);
+                const roleBadgeClass = mem.church_role === 'Admin' ? 'badge-primary' : 'badge-gold';
+                const roleLabel = mem.church_role === 'Admin' ? 'Church Admin' : 'Church Leader';
+                const fullName = [mem.first_name, mem.middle_name ? mem.middle_name.charAt(0) + '.' : '', mem.last_name, mem.suffix].filter(Boolean).join(' ');
+
+                currentBox.innerHTML = `
+                    <div class="flex items-center gap-3 w-full">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+                            <i class="fa-solid fa-crown text-gold"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs text-slate-500 font-medium">${isCurrent ? 'Current Department Head' : 'Selected Leader (Pending Save)'}</div>
+                            <div class="font-bold text-navy text-sm flex items-center gap-2 flex-wrap">
+                                <span>${escapeHtml(fullName)}</span>
+                                <span class="badge ${roleBadgeClass}" style="font-size: 0.65rem; padding: 1px 6px;">${escapeHtml(roleLabel)}</span>
+                            </div>
+                            <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-3 flex-wrap">
+                                ${mem.email ? `<span><i class="fa-regular fa-envelope mr-1"></i>${escapeHtml(mem.email)}</span>` : ''}
+                                ${mem.contact_number ? `<span><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(mem.contact_number)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // Populate dropdown with Church Leaders & Church Admins ONLY
+        if (selectEl) {
+            selectEl.disabled = false;
+            let html = '<option value="">-- No Department Head (Unassigned) --</option>';
+            if (eligibleMembers.length === 0) {
+                html += '<option value="" disabled>No eligible Church Leaders or Admins found</option>';
+            } else {
+                eligibleMembers.forEach(mem => {
+                    const isSelected = (currentHeadId && String(currentHeadId) === String(mem.member_id)) ? 'selected' : '';
+                    const roleLabel = mem.church_role === 'Admin' ? 'Church Admin' : 'Church Leader';
+                    const fullName = [mem.first_name, mem.middle_name ? mem.middle_name.charAt(0) + '.' : '', mem.last_name, mem.suffix].filter(Boolean).join(' ');
+                    html += `<option value="${mem.member_id}" ${isSelected}>${escapeHtml(fullName)} (${roleLabel})</option>`;
+                });
+            }
+            selectEl.innerHTML = html;
+
+            // Ensure selection matches current head precisely
+            const initialVal = (currentHeadId && eligibleMembers.some(m => String(m.member_id) === String(currentHeadId)))
+                ? String(currentHeadId)
+                : '';
+            selectEl.value = initialVal;
+
+            // Render live preview on selection change
+            renderHeadPreview(initialVal);
+            selectEl.onchange = () => renderHeadPreview(selectEl.value);
+        }
+    } catch (err) {
+        console.error('Error loading department head modal:', err);
+        if (selectEl) selectEl.disabled = false;
+        showToast('Failed to load eligible department heads: ' + err.message);
+    }
 }
 
 function closeDeptHeadModal() {
@@ -7974,6 +8038,19 @@ function formatTime(timeStr) {
 }
 
 
+function updateC2SStats(groups) {
+    if (!groups) return;
+    const totalGroups = groups.length;
+    const activeGroups = groups.filter(g => g.status === 'Active').length;
+    const uniqueMentors = new Set(groups.map(g => g.leader_id).filter(Boolean)).size;
+    const totalMentees = groups.reduce((sum, g) => sum + (parseInt(g.mentees_count, 10) || 0), 0);
+
+    if (document.getElementById('c2sStatTotal')) document.getElementById('c2sStatTotal').textContent = totalGroups;
+    if (document.getElementById('c2sStatActive')) document.getElementById('c2sStatActive').textContent = activeGroups;
+    if (document.getElementById('c2sStatMentors')) document.getElementById('c2sStatMentors').textContent = uniqueMentors;
+    if (document.getElementById('c2sStatMentees')) document.getElementById('c2sStatMentees').textContent = totalMentees;
+}
+
 async function loadC2SGroups() {
     try {
         const tbody = document.getElementById('c2sGroupsTableBody');
@@ -7985,17 +8062,9 @@ async function loadC2SGroups() {
         c2sGroupsData = res.data || [];
 
         // Update stats
-        const totalGroups = c2sGroupsData.length;
-        const activeGroups = c2sGroupsData.filter(g => g.status === 'Active').length;
-        const uniqueMentors = new Set(c2sGroupsData.map(g => g.leader_id).filter(Boolean)).size;
-        const totalMentees = c2sGroupsData.reduce((sum, g) => sum + (parseInt(g.mentees_count, 10) || 0), 0);
+        updateC2SStats(c2sGroupsData);
 
-        if (document.getElementById('c2sStatTotal')) document.getElementById('c2sStatTotal').textContent = totalGroups;
-        if (document.getElementById('c2sStatActive')) document.getElementById('c2sStatActive').textContent = activeGroups;
-        if (document.getElementById('c2sStatMentors')) document.getElementById('c2sStatMentors').textContent = uniqueMentors;
-        if (document.getElementById('c2sStatMentees')) document.getElementById('c2sStatMentees').textContent = totalMentees;
-
-        applyC2SFilters();
+        await loadC2STable(1);
     } catch (error) {
         console.error('Error loading C2S groups:', error);
         showToast('Error loading C2S groups: ' + error.message);
@@ -8021,6 +8090,12 @@ async function loadC2STable(page = 1) {
         const res = await api.c2s.getAll(currentC2SPage, C2S_PAGE_LIMIT, { search, status });
         const list = res.data || [];
         renderC2SGroupsTable(list);
+
+        // Ensure stats are updated if c2sGroupsData hasn't been populated yet
+        if (!c2sGroupsData || c2sGroupsData.length === 0) {
+            c2sGroupsData = list;
+            updateC2SStats(list);
+        }
 
         const total = res.pagination ? res.pagination.total : list.length;
         const totalPages = res.pagination ? res.pagination.totalPages : Math.ceil(total / C2S_PAGE_LIMIT);
@@ -8545,7 +8620,7 @@ function renderMentorModalList(members) {
 
                     const age = getMemberAge(m);
                     const ageGroup = getMemberAgeGroup(m);
-                    const ageDisplay = age !== null ? `${age} yrs &bull; ${ageGroup}` : (ageGroup !== 'Unspecified' ? ageGroup : 'Age N/A');
+                    const ageDisplay = age !== null ? `${age} yrs • ${ageGroup}` : (ageGroup !== 'Unspecified' ? ageGroup : 'Age N/A');
                     const relMinistry = m.relationship_ministries || 'Relationship Dept';
 
                     return `
@@ -8716,7 +8791,7 @@ function renderMenteesModalList(members) {
 
                     const age = getMemberAge(m);
                     const ageGroup = getMemberAgeGroup(m);
-                    const ageDisplay = age !== null ? `${age} yrs &bull; ${ageGroup}` : (ageGroup !== 'Unspecified' ? ageGroup : 'Age N/A');
+                    const ageDisplay = age !== null ? `${age} yrs • ${ageGroup}` : (ageGroup !== 'Unspecified' ? ageGroup : 'Age N/A');
                     const relMinistry = m.relationship_ministries || 'Relationship Dept';
 
                     return `
@@ -8750,11 +8825,11 @@ function renderMenteesModalList(members) {
                             </td>
                             <td class="p-3 text-right" style="white-space: nowrap; width: 190px;">
                                 <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;">
-                                    <button type="button" class="btn-primary btn-sm" onclick="selectMenteeForC2S('${m.member_id}', '${escapeHtml(m.full_name).replace(/'/g, "\\'")}', '${m.system_designation || 'Mentee'}')" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; white-space: nowrap;">
-                                        <i class="fa-solid fa-check mr-1"></i> Select
+                                    <button type="button" class="btn-${isSelected ? 'primary' : 'secondary'} btn-sm" onclick="selectMenteeForC2S('${m.member_id}', '${escapeHtml(m.full_name).replace(/'/g, "\\'")}', '${m.system_designation || 'Mentee'}')" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; white-space: nowrap;">
+                                        ${isSelected ? '<i class="fa-solid fa-check mr-1"></i> Selected' : '<i class="fa-solid fa-hand-pointer mr-1"></i> Select'}
                                     </button>
-                                    <button type="button" class="btn-secondary btn-sm" onclick="quickAddMenteeDirectly('${m.member_id}', '${escapeHtml(m.full_name).replace(/'/g, "\\'")}')" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; white-space: nowrap;" title="Add directly to cell group now">
-                                        <i class="fa-solid fa-plus text-primary mr-1"></i> Add Now
+                                    <button type="button" class="btn-primary btn-sm" onclick="quickAddMenteeDirectly('${m.member_id}', '${escapeHtml(m.full_name).replace(/'/g, "\\'")}')" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; white-space: nowrap;" title="Add directly to cell group now">
+                                        <i class="fa-solid fa-plus mr-1"></i> Add Now
                                     </button>
                                 </div>
                             </td>

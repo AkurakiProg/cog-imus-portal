@@ -126,7 +126,8 @@ exports.removeMember = async (req, res) => {
 
 exports.getAvailableMembers = async (req, res) => {
     try {
-        const members = await c2sModel.getAvailableMembers();
+        const excludeGroupId = req.query.excludeGroupId || req.query.exclude_group_id || null;
+        const members = await c2sModel.getAvailableMembers(excludeGroupId);
         return successResponse(res, members, 'Available members retrieved successfully');
     } catch (error) {
         console.error('Get Available Members Error:', error);

@@ -688,11 +688,11 @@ INSERT INTO `ministry_members` VALUES (275,10,4,'Member','2026-10-21','Active','
 ON DUPLICATE KEY UPDATE `role_in_ministry` = VALUES(`role_in_ministry`);
 
 -- C2S Cell Groups & Members
-INSERT INTO `c2s_groups` VALUES (1,'C2S Grace & Truth Discipleship',14,'Wednesday','7:00 ','Sanctuary Room 101','Faith Foundation and Discipleship Cell Group','Active','2026-10-15 15:37:02','2026-10-16 16:09:27'),(2,'C2S Youth Alive Impact',16,'Friday','7:30 ','Fellowship Hall - West Wing','Youth & Young Professionals C2S Group','Active','2026-10-15 15:37:02','2026-10-16 14:46:58');
-ON DUPLICATE KEY UPDATE `group_name` = VALUES(`group_name`);
+INSERT INTO `c2s_groups` VALUES (1,'C2S Grace & Truth Discipleship',5,'Wednesday','7:00 ','Sanctuary Room 101','Faith Foundation and Discipleship Cell Group','Active','2026-10-15 15:37:02','2026-10-16 16:09:27'),(2,'C2S Youth Alive Impact',19,'Friday','7:30 ','Fellowship Hall - West Wing','Youth & Young Professionals C2S Group','Active','2026-10-15 15:37:02','2026-10-16 14:46:58');
+ON DUPLICATE KEY UPDATE `group_name` = VALUES(`group_name`), `leader_id` = VALUES(`leader_id`);
 
-INSERT INTO `c2s_group_members` VALUES (3,1,16,'Mentee in training','2026-10-15','2026-10-15 15:37:02');
-ON DUPLICATE KEY UPDATE `notes` = VALUES(`notes`);
+INSERT INTO `c2s_group_members` VALUES (3,1,19,'Mentee in training','2026-10-15','2026-10-15 15:37:02');
+ON DUPLICATE KEY UPDATE `notes` = VALUES(`notes`), `member_id` = VALUES(`member_id`);
 
 -- Ministry Attendance Sessions & Records
 INSERT INTO `ministry_attendance` VALUES (1,5,'Sunday Worship Rehearsal','2026-09-27','Rehearsal',5,'Soundcheck and praise lineup practice','2026-10-18 14:35:04','2026-10-18 14:35:04'),(2,5,'Midweek Team Fellowship','2026-10-04','Meeting',5,'Devotion and music ministry planning','2026-10-18 14:35:04','2026-10-18 14:35:04'),(3,5,'Sunday Service Music Duty','2026-10-11','Service Duty',5,'Main sanctuary worship service','2026-10-18 14:35:04','2026-10-18 14:35:04'),(4,5,'Vocals & Band Tech Rehearsal','2026-10-17','Rehearsal',5,'Acoustic and monitor setup','2026-10-18 14:35:04','2026-10-18 14:35:04'),(5,10,'Sunday School Teachers Prep','2026-09-27','Training',4,'Curriculum review for Sunday classes','2026-10-18 14:35:04','2026-10-18 14:35:04'),(6,10,'Children Ministry Sunday Service','2026-10-04','Service Duty',4,'Kids church classes and worship','2026-10-18 14:35:04','2026-10-18 14:35:04'),(7,10,'Department Coordination Meeting','2026-10-11','Meeting',4,'Relationship department updates','2026-10-18 14:35:04','2026-10-18 14:35:04');

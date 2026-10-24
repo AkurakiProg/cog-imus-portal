@@ -323,7 +323,10 @@ const api = {
         delete: (id) => api.request(`/c2s/${id}`, 'DELETE'),
         addMember: (id, data) => api.request(`/c2s/${id}/members`, 'POST', data),
         removeMember: (groupId, memberId) => api.request(`/c2s/${groupId}/members/${memberId}`, 'DELETE'),
-        getAvailableMembers: () => api.request('/c2s/members/available', 'GET'),
+        getAvailableMembers: (params = {}) => {
+            const query = (params && typeof params === 'object' && Object.keys(params).length) ? '?' + new URLSearchParams(params).toString() : '';
+            return api.request('/c2s/members/available' + query, 'GET');
+        },
         quickCreateMember: (data, groupId = null) => api.request(groupId ? `/c2s/${groupId}/quick-member` : '/c2s/quick-member', 'POST', data)
     },
     finance: {
