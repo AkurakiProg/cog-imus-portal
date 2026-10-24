@@ -1134,10 +1134,18 @@ async function saveUser() {
             
             // Check if current logged-in user changed credentials, role, or active status
             const currentUser = JSON.parse(sessionStorage.getItem('church_user') || '{}');
-            const isSelf = currentUser && (currentUser.user_id == id || currentUser.id == id);
-            const selectedRoleId = parseInt(document.getElementById('user_role_id').value, 10);
-            const selectedStatus = document.getElementById('user_is_active').value;
-            const roleChanged = currentUser.role_id !== undefined && selectedRoleId !== currentUser.role_id;
+            const isSelf = Boolean(currentUser && (currentUser.user_id == id || currentUser.id == id));
+            
+            const selectedRoleName = document.getElementById('user_role')?.value || '';
+            let selectedRoleId = 3;
+            if (selectedRoleName === 'Admin') selectedRoleId = 1;
+            else if (selectedRoleName === 'Church Leader') selectedRoleId = 2;
+
+            const selectedStatus = document.getElementById('user_is_active')?.value || '1';
+            const roleChanged = Boolean(
+                (currentUser.role_id !== undefined && selectedRoleId !== currentUser.role_id) ||
+                (currentUser.role_name && selectedRoleName && selectedRoleName !== currentUser.role_name)
+            );
             const deactivated = selectedStatus === '0';
 
             if (isSelf && (password || roleChanged || deactivated)) {
