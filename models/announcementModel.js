@@ -199,7 +199,7 @@ const AnnouncementModel = {
         let simulatedCount = 0;
         let failedCount = 0;
 
-        const prefix = `[COGWM Imus] ${announcement.title}: `;
+        const prefix = `[COG Imus] ${announcement.title}: `;
         const maxContentLen = Math.max(20, 150 - prefix.length);
         const cleanContent = (announcement.content || '').replace(/\s+/g, ' ').trim();
         const contentSummary = cleanContent.length > maxContentLen 

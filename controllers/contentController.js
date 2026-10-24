@@ -392,4 +392,123 @@ exports.getLiveStreamCommentLogs = async (req, res) => {
         console.error('getLiveStreamCommentLogs error:', error);
         return errorResponse(res, 'Failed to retrieve comment logs: ' + error.message, 500);
     }
-};
+};
+
+// --- Public Website Content Management (Admin CMS) ---
+exports.getWebsiteSection = async (req, res) => {
+    try {
+        const section = req.params.section;
+        if (section === 'all') {
+            const all = await contentModel.getAllWebsiteContent();
+            return successResponse(res, all, 'All website content retrieved');
+        }
+        const data = await contentModel.getWebsiteSection(section);
+        if (!data) {
+            return errorResponse(res, `Website content section not found: ${section}`, 404);
+        }
+        return successResponse(res, data, `Website section '${section}' retrieved`);
+    } catch (error) {
+        console.error('getWebsiteSection error:', error);
+        return errorResponse(res, 'Failed to retrieve website content section: ' + error.message, 500);
+    }
+};
+
+exports.saveWebsiteSection = async (req, res) => {
+    try {
+        const section = req.params.section;
+        const payload = req.body;
+        if (!payload || (typeof payload !== 'object' && typeof payload !== 'string')) {
+            return errorResponse(res, 'Invalid content data payload', 400);
+        }
+
+        const saved = await contentModel.saveWebsiteSection(section, payload, req.user ? req.user.id : null);
+        
+        await userModel.logAudit(
+            req.user ? req.user.id : null,
+            'UPDATE',
+            'WebsiteContent',
+            saved.page_id || 0,
+            null,
+            { section },
+            req.ip,
+            req.headers['user-agent']
+        );
+
+        // Realtime notification to synchronize connected public and admin tabs
+        try {
+            realtimeBus.broadcast('website_content', {
+                section,
+                action: 'update',
+                timestamp: Date.now()
+            });
+        } catch (busErr) {
+            console.warn('RealtimeBus broadcast error:', busErr.message);
+        }
+
+        return successResponse(res, saved, `Website section '${section}' saved successfully`);
+    } catch (error) {
+        console.error('saveWebsiteSection error:', error);
+        return errorResponse(res, 'Failed to save website content: ' + error.message, 500);
+    }
+};
+
+exports.uploadWebsiteVideo = async (req, res) => {
+    try {
+        if (!req.file) {
+            return errorResponse(res, 'No video file uploaded', 400);
+        }
+        const fileUrl = '/uploads/videos/' + req.file.filename;
+        const fileSizeMb = (req.file.size / (1024 * 1024)).toFixed(2);
+
+        await userModel.logAudit(
+            req.user ? req.user.id : null,
+            'UPLOAD',
+            'WebsiteVideo',
+            0,
+            null,
+            { filename: req.file.filename, size: req.file.size },
+            req.ip,
+            req.headers['user-agent']
+        );
+
+        return successResponse(res, {
+            url: fileUrl,
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            size: req.file.size,
+            sizeMb: fileSizeMb
+        }, 'Background video uploaded successfully');
+    } catch (error) {
+        console.error('uploadWebsiteVideo error:', error);
+        return errorResponse(res, 'Failed to upload background video: ' + error.message, 500);
+    }
+};
+
+exports.uploadWebsiteImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return errorResponse(res, 'No image file uploaded', 400);
+        }
+        const fileUrl = '/uploads/content/' + req.file.filename;
+
+        await userModel.logAudit(
+            req.user ? req.user.id : null,
+            'UPLOAD',
+            'WebsiteImage',
+            0,
+            null,
+            { filename: req.file.filename, size: req.file.size },
+            req.ip,
+            req.headers['user-agent']
+        );
+
+        return successResponse(res, {
+            url: fileUrl,
+            filename: req.file.filename,
+            originalName: req.file.originalname
+        }, 'Image uploaded successfully');
+    } catch (error) {
+        console.error('uploadWebsiteImage error:', error);
+        return errorResponse(res, 'Failed to upload image: ' + error.message, 500);
+    }
+};

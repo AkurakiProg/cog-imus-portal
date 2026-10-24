@@ -19,6 +19,8 @@ router.get('/gallery', ctrl.getGalleryAlbums);
 router.get('/gallery/albums', ctrl.getGalleryAlbums);
 router.get('/gallery/:id', ctrl.getAlbumImages);
 router.get('/pages/:key', ctrl.getPage);
+router.get('/website', ctrl.getWebsiteContent);
+router.get('/website/:section', ctrl.getWebsiteContent);
 router.post('/contact', contactLimiter, contactCtrl.submitPublic);
 
 module.exports = router;

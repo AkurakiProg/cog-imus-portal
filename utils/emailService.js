@@ -250,7 +250,7 @@ async function sendAccountVerificationEmail({ to, fullName, username, roleName =
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${isActivation ? 'Action Required: Activate Your Account' : 'Account Verified'} - COGWM Imus Portal</title>
+    <title>${isActivation ? 'Action Required: Activate Your Account' : 'Account Verified'} - COG Imus Portal</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 40px 15px;">
@@ -406,7 +406,7 @@ async function sendAnnouncementEmail({ to, recipientName, title, content, catego
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${escapeHtmlEmail(title)} - COGWM Imus Announcement</title>
+    <title>${escapeHtmlEmail(title)} - COG Imus Announcement</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 40px 15px;">
@@ -468,7 +468,7 @@ ${escapeHtmlEmail(content)}
                     <tr>
                         <td style="background-color: #0b1d3a; color: #94a3b8; padding: 20px 30px; text-align: center; font-size: 11px;">
                             <p style="margin: 0 0 4px; color: #cbd5e1;">Church of God World Missions Philippines - Imus</p>
-                            <p style="margin: 0;">You received this email because you are a registered member of the COGWM Imus Portal.</p>
+                            <p style="margin: 0;">You received this email because you are a registered member of the COG Imus Portal.</p>
                         </td>
                     </tr>
                 </table>

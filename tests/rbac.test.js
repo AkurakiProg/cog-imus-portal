@@ -33,9 +33,13 @@ test.before(async () => {
         });
     });
 
-    adminToken = await createAuthTokenForUser(1, 'Admin');
-    leaderToken = await createAuthTokenForUser(5, 'Church Leader');
-    memberToken = await createAuthTokenForUser(4, 'Church Member');
+    const [adminRow] = await pool.query('SELECT user_id FROM users WHERE role_id = 1 LIMIT 1');
+    const [leaderRow] = await pool.query('SELECT user_id FROM users WHERE role_id = 2 LIMIT 1');
+    const [memberRow] = await pool.query('SELECT user_id FROM users WHERE role_id = 3 LIMIT 1');
+
+    adminToken = await createAuthTokenForUser(adminRow[0]?.user_id || 1, 'Admin');
+    leaderToken = await createAuthTokenForUser(leaderRow[0]?.user_id || 46, 'Church Leader');
+    memberToken = await createAuthTokenForUser(memberRow[0]?.user_id || 53, 'Church Member');
 });
 
 test.after(async () => {

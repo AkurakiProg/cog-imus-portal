@@ -37,7 +37,7 @@ test('Clean Page Routes: Root URL GET / returns 200 and index.html', async () =>
     assert.equal(res.status, 200);
     const html = await res.text();
     assert.match(html, /<!DOCTYPE html>/i);
-    assert.match(html, /COGWM Imus/i);
+    assert.match(html, /COG Imus/i);
 });
 
 test('Clean Page Routes: Friendly URLs resolve to correct HTML views', async () => {

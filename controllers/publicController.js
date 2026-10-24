@@ -104,3 +104,15 @@ exports.leaveLiveStreamView = async (req, res) => {
         return successResponse(res, { left: true }, 'Viewer left');
     } catch (error) { return errorResponse(res, 'Leave failed', 500); }
 };
+
+exports.getWebsiteContent = async (req, res) => {
+    try {
+        const section = req.params.section || 'all';
+        const data = await publicModel.getWebsiteContent(section);
+        if (!data) return errorResponse(res, 'Website content not found', 404);
+        return successResponse(res, data, 'Website content retrieved successfully');
+    } catch (error) {
+        console.error('getWebsiteContent error:', error);
+        return errorResponse(res, 'Failed to retrieve website content: ' + error.message, 500);
+    }
+};

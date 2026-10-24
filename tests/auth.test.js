@@ -12,6 +12,9 @@ let adminToken;
 let adminUser;
 let mfaChallengeToken;
 
+let originalMfaEnabled = 0;
+let originalMfaSecret = null;
+
 test.before(async () => {
     await new Promise((resolve) => {
         server = http.createServer(app);
@@ -21,9 +24,21 @@ test.before(async () => {
             resolve();
         });
     });
+
+    const [uRows] = await pool.query('SELECT mfa_enabled, mfa_secret FROM users WHERE user_id = 1');
+    if (uRows.length > 0) {
+        originalMfaEnabled = uRows[0].mfa_enabled;
+        originalMfaSecret = uRows[0].mfa_secret;
+    }
+    const { encryptSecret } = require('../utils/cryptoHelper');
+    const { generateSecret } = require('otplib');
+    const secret = generateSecret();
+    const encrypted = encryptSecret(secret);
+    await pool.query('UPDATE users SET mfa_enabled = 1, mfa_secret = ? WHERE user_id = 1', [encrypted]);
 });
 
 test.after(async () => {
+    await pool.query('UPDATE users SET mfa_enabled = ?, mfa_secret = ? WHERE user_id = 1', [originalMfaEnabled, originalMfaSecret]);
     await new Promise((resolve) => server.close(resolve));
     await pool.end();
 });

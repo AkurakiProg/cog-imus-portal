@@ -539,6 +539,111 @@ const ContentModel = {
         }
         const [rows] = await pool.query(sql, params);
         return rows[0] ? rows[0].total : 0;
+    },
+
+    // --- Public Website Content Management (Admin CMS) ---
+    async getWebsiteSection(sectionKey) {
+        const [rows] = await pool.execute(
+            `SELECT page_id, page_key, title, body, featured_image, updated_at 
+             FROM content_pages WHERE page_key = ? LIMIT 1`,
+            [sectionKey]
+        );
+        if (rows.length === 0) return null;
+        let parsed = null;
+        try {
+            parsed = JSON.parse(rows[0].body);
+        } catch (e) {
+            parsed = { raw_body: rows[0].body };
+        }
+        return {
+            page_id: rows[0].page_id,
+            page_key: rows[0].page_key,
+            title: rows[0].title,
+            data: parsed,
+            featured_image: rows[0].featured_image,
+            updated_at: rows[0].updated_at
+        };
+    },
+
+    async getAllWebsiteContent() {
+        const keys = ['homepage', 'about_us', 'contact_us', 'footer', 'site_branding'];
+        const [rows] = await pool.query(
+            `SELECT page_id, page_key, title, body, featured_image, updated_at 
+             FROM content_pages WHERE page_key IN (?)`,
+            [keys]
+        );
+        const result = {};
+        for (const r of rows) {
+            try {
+                result[r.page_key] = JSON.parse(r.body);
+            } catch (e) {
+                result[r.page_key] = { raw_body: r.body };
+            }
+        }
+        return result;
+    },
+
+    async saveWebsiteSection(sectionKey, data, userId) {
+        const validKeys = {
+            homepage: 'Homepage Content',
+            about_us: 'About Us Content',
+            contact_us: 'Contact Us Content',
+            footer: 'Footer Content',
+            site_branding: 'Site Branding & Logos'
+        };
+
+        if (!validKeys[sectionKey]) {
+            throw new Error(`Invalid website content section: ${sectionKey}`);
+        }
+
+        const title = validKeys[sectionKey];
+        const jsonBody = typeof data === 'string' ? data : JSON.stringify(data);
+
+        await pool.execute(
+            `INSERT INTO content_pages (page_key, title, body, is_published, updated_by)
+             VALUES (?, ?, ?, 1, ?)
+             ON DUPLICATE KEY UPDATE 
+                body = VALUES(body),
+                updated_by = VALUES(updated_by),
+                updated_at = CURRENT_TIMESTAMP`,
+            [sectionKey, title, jsonBody, userId || null]
+        );
+
+        // Keep legacy content_pages rows synchronized
+        try {
+            const parsedObj = typeof data === 'object' ? data : JSON.parse(data);
+            if (sectionKey === 'about_us') {
+                if (parsedObj.history && parsedObj.history.body) {
+                    await pool.execute(
+                        `INSERT INTO content_pages (page_key, title, body, is_published, updated_by)
+                         VALUES ('church_history', 'Our Church History', ?, 1, ?)
+                         ON DUPLICATE KEY UPDATE body = VALUES(body), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP`,
+                        [parsedObj.history.body, userId || null]
+                    );
+                }
+                if (parsedObj.mission && parsedObj.vision) {
+                    const mvBody = `Mission:\n${parsedObj.mission.body || ''}\n\nVision:\n${parsedObj.vision.body || ''}`;
+                    await pool.execute(
+                        `INSERT INTO content_pages (page_key, title, body, is_published, updated_by)
+                         VALUES ('mission_vision', 'Mission and Vision', ?, 1, ?)
+                         ON DUPLICATE KEY UPDATE body = VALUES(body), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP`,
+                        [mvBody, userId || null]
+                    );
+                }
+            } else if (sectionKey === 'contact_us') {
+                const cBody = `${parsedObj.address || ''}\nPhone: ${parsedObj.phone || ''} / ${parsedObj.mobile || ''}\nEmail: ${parsedObj.email || ''}\nOffice Hours: ${parsedObj.office_hours || ''}`;
+                await pool.execute(
+                    `INSERT INTO content_pages (page_key, title, body, is_published, updated_by)
+                     VALUES ('contact_info', 'Contact Information', ?, 1, ?)
+                     ON DUPLICATE KEY UPDATE body = VALUES(body), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP`,
+                    [cBody, userId || null]
+                );
+            }
+        } catch (syncErr) {
+            console.warn('[CMS Sync] Notice while synchronizing legacy pages:', syncErr.message);
+        }
+
+        return this.getWebsiteSection(sectionKey);
     }
 };
 

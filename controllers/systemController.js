@@ -176,7 +176,7 @@ exports.sendTestSms = async (req, res) => {
 
         const testMsg = message && message.trim() 
             ? message.trim() 
-            : `[COGWM Imus] Live SMS Gateway Test dispatched at ${new Date().toLocaleTimeString('en-US')}. Praise the Lord!`;
+            : `[COG Imus] Live SMS Gateway Test dispatched at ${new Date().toLocaleTimeString('en-US')}. Praise the Lord!`;
 
         const smsResult = await sendSms(recipient_number, testMsg);
 

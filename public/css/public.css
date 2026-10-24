@@ -65,6 +65,11 @@ h1, h2, h3, h4 {
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes heroFadeUpCentered {
+    from { opacity: 0; transform: translate(-50%, 24px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 @keyframes floatBadge {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-5px); }
@@ -322,7 +327,11 @@ h1, h2, h3, h4 {
 .hero-content h1.reveal-hero { animation-delay: 0.25s; }
 .hero-content p.reveal-hero { animation-delay: 0.4s; }
 .hero-actions.reveal-hero { animation-delay: 0.55s; }
-.hero-scroll-pill.reveal-hero { animation-delay: 0.7s; }
+.hero-scroll-pill.reveal-hero {
+    transform: translate(-50%, 24px);
+    animation: heroFadeUpCentered 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.7s;
+}
 
 .hero-badge {
     display: inline-flex;
@@ -456,25 +465,28 @@ h1, h2, h3, h4 {
 /* Subtle Mouse Scroll Indicator */
 .hero-scroll-pill {
     position: absolute;
-    bottom: 2.5rem;
+    bottom: 2.25rem;
     left: 50%;
     transform: translateX(-50%);
+    margin: 0 !important;
     z-index: 10;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.45rem;
-    color: rgba(255, 255, 255, 0.82);
+    color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     font-size: 0.725rem;
     font-weight: 600;
     letter-spacing: 1.5px;
     text-transform: uppercase;
+    text-align: center;
     transition: all 0.25s ease;
 }
 .hero-scroll-pill:hover {
     color: var(--gold-light);
-    transform: translateX(-50%) translateY(3px);
+    transform: translate(-50%, 3px);
 }
 .scroll-mouse {
     width: 22px;
@@ -1719,7 +1731,12 @@ body.has-live-banner .navbar {
     .hero-content h1 em { font-size: 1.9rem; }
     .hero-content p { font-size: 1.05rem; }
     .hero-video-control { bottom: 1.25rem; right: 1.25rem; }
-    .hero-scroll-pill { display: none; }
+    .hero-scroll-pill {
+    display: flex !important;
+    bottom: 1.5rem !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+}
     .service-times-strip { margin: 0 auto 3rem; }
     .service-times-card { grid-template-columns: 1fr; }
     .service-time-item { border-right: none !important; border-bottom: 1px solid rgba(226, 232, 240, 0.85); padding: 1.5rem; }

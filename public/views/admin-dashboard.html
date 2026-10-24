@@ -47,7 +47,7 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>Admin Control Panel | COGWM Imus</title>
+    <title>Admin Control Panel | COG Imus</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -70,7 +70,7 @@
                 <i class="fa-solid fa-cross"></i>
             </div>
             <div>
-                <h2>COGWM Imus</h2>
+                <h2>COG Imus</h2>
                 <p>Admin Panel</p>
             </div>
             <button class="btn-close-sidebar" onclick="closeSidebar()">
@@ -1110,8 +1110,31 @@
 
             <!-- ==== CONTENT VIEW (Photo Albums & Sermons) === -->
             <div class="view" id="view-content">
-                <!-- 1. Facebook Live Stream Broadcast -->
-                <div class="card mb-6" id="facebookLiveStudioCard">
+                <!-- Content Management Top Navigation (Mode Switcher) -->
+                <div class="card mb-6 cms-top-nav-card" style="padding: 1rem 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--navy); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-layer-group text-primary"></i> Content Management
+                            </h2>
+                            <p style="font-size: 0.8rem; color: var(--text-light); margin: 2px 0 0;">
+                                Select between broadcasting live media & past sermons or dynamically managing public website pages.
+                            </p>
+                        </div>
+                        <div class="cms-nav-toggle-group" style="display: inline-flex; background: var(--bg-secondary, #f1f5f9); padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); gap: 4px;">
+                            <button type="button" id="btnModeMediaContent" class="cms-mode-btn active" onclick="switchContentSubMode('media')">
+                                <i class="fa-solid fa-photo-film mr-1.5"></i> Media Content Management
+                            </button>
+                            <button type="button" id="btnModeWebsiteContent" class="cms-mode-btn" onclick="switchContentSubMode('website')">
+                                <i class="fa-solid fa-globe mr-1.5"></i> Website Content Management
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-SECTION 1: Media Content Management (Photo Albums, Sermons, Livestream) -->
+                <div id="mediaContentSection">
+                    <div class="card mb-6" id="facebookLiveStudioCard">
                     <div class="card-header flex justify-between items-center py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                         <div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 0.75rem;">
                             <div style="background: linear-gradient(135deg, #1877f2, #0d5cb6); font-size: 1.35rem; width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #ffffff;">
@@ -1413,9 +1436,580 @@
                         <button id="albumsNextBtn" onclick="changeAlbumsPage(1)" class="btn-secondary disabled:opacity-50">Next</button>
                     </div>
                 </div>
-            </div>
+                </div>
 
-            <!-- ==== AUDIT TRAIL VIEW === -->
+                <!-- SUB-SECTION 2: Website Content Management (CMS for Public Website) -->
+                <div id="websiteContentSection" style="display: none;">
+                    <!-- CMS Sub-Navbar & Sticky Action Header -->
+                    <div class="card mb-6" style="padding: 0.85rem 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <!-- Section Tabs -->
+                            <div class="cms-section-tabs" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button type="button" class="cms-tab-btn active" id="tabNavHomepage" onclick="switchCmsTab('homepage')">
+                                    <i class="fa-solid fa-house"></i> Homepage
+                                </button>
+                                <button type="button" class="cms-tab-btn" id="tabNavAbout" onclick="switchCmsTab('about_us')">
+                                    <i class="fa-solid fa-church"></i> About Us
+                                </button>
+                                <button type="button" class="cms-tab-btn" id="tabNavContact" onclick="switchCmsTab('contact_us')">
+                                    <i class="fa-solid fa-address-book"></i> Contact
+                                </button>
+                                <button type="button" class="cms-tab-btn" id="tabNavFooter" onclick="switchCmsTab('footer')">
+                                    <i class="fa-solid fa-shoe-prints"></i> Footer
+                                </button>
+                            </div>
+
+                            <!-- Save / Cancel / Preview Actions -->
+                            <div style="display: flex; align-items: center; gap: 0.65rem; margin-left: auto;">
+                                <button type="button" class="btn-secondary" onclick="previewCurrentCmsPage()" title="Preview this page on public site">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Preview Page
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="reloadCurrentCmsSection()" title="Discard unsaved changes">
+                                    <i class="fa-solid fa-rotate-left"></i> Cancel
+                                </button>
+                                <button type="button" class="btn-primary" id="btnSaveCmsSection" onclick="saveCurrentCmsSection()" style="min-width: 130px; font-weight: 700;">
+                                    <i class="fa-solid fa-floppy-disk"></i> <span>Save Changes</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== 1. HOMEPAGE CMS PANEL ==================== -->
+                    <div id="cmsPanelHomepage" class="cms-panel active">
+                        <!-- A. Top Bar Logo Icon -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #0284c7, #0369a1); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-image"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Top Bar Logo Icon</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Upload or replace the public website header logo. Automatically fits top bar height with aspect ratio preserved.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                                    <!-- Logo Preview Box with Contain Fit -->
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                                        <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Current Logo Preview</label>
+                                        <div class="cms-logo-preview-box" id="topLogoPreviewContainer" style="width: 140px; height: 60px; background: #061730; border-radius: 8px; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden;">
+                                            <img id="topLogoPreviewImg" src="/images/logo.png" alt="Top Bar Logo Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                        </div>
+                                        <span id="topLogoDimensionLabel" style="font-size: 0.72rem; color: #64748b;">Fits in 44px navbar</span>
+                                    </div>
+
+                                    <!-- Upload Controls -->
+                                    <div style="flex: 1; min-width: 260px;">
+                                        <label style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 0.4rem;">Select New Logo Image</label>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                            <input type="file" id="cmsLogoFileInput" accept=".png,.jpg,.jpeg,.webp,.svg" onchange="handleLogoFileSelect(event)" style="font-size: 0.85rem; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color); flex: 1;">
+                                            <button type="button" class="btn-secondary" onclick="resetToDefaultLogo()" style="font-size: 0.82rem; white-space: nowrap;">
+                                                <i class="fa-solid fa-rotate-left"></i> Use Default
+                                            </button>
+                                        </div>
+                                        <small style="color: #64748b; font-size: 0.72rem; margin-top: 0.35rem; display: block;">
+                                            Supports PNG, SVG, WebP, JPEG. Max file size: 5 MB. Image is rendered using contain fit to prevent top bar height distortion.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- B. Hero Content -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #d97706, #b45309); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-heading"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Hero Content & Call-to-Actions</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Manage homepage hero headings, badge pill, description, and primary/secondary action buttons.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Hero Badge Tagline *</label>
+                                        <input type="text" id="cms_hero_badge" placeholder="e.g. A Christ-Centered Sanctuary in Imus">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Main Hero Heading (H1) *</label>
+                                        <input type="text" id="cms_hero_heading" placeholder="e.g. A Place to Belong, A Faith to Believe.">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Hero Description / Subheading *</label>
+                                        <textarea id="cms_hero_subheading" rows="3" placeholder="Welcome message and mission focus..."></textarea>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Primary Button Text</label>
+                                            <input type="text" id="cms_hero_btn1_text" placeholder="e.g. Join Sunday Worship">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Primary Button URL</label>
+                                            <input type="text" id="cms_hero_btn1_url" placeholder="/views/events.html">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Secondary Button Text</label>
+                                            <input type="text" id="cms_hero_btn2_text" placeholder="e.g. Watch Sermons">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Secondary Button URL</label>
+                                            <input type="text" id="cms_hero_btn2_url" placeholder="/views/sermons.html">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- C. Background Video (Strict 100 MB Limit) -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-video"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                            Homepage Background Video
+                                            <span class="badge" style="background: rgba(139, 92, 246, 0.15); color: #7c3aed; border: 1px solid rgba(139, 92, 246, 0.3); font-size: 0.72rem; font-weight: 700;">Max 100 MB Enforced</span>
+                                        </h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Upload or replace the hero background video. Enforces 100 MB maximum size limit on client and server.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+                                    <!-- Video Preview Screen -->
+                                    <div>
+                                        <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 0.35rem; display: block;">Video Playback Preview</label>
+                                        <div style="width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                                            <video id="cmsHeroVideoPreview" autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: cover;">
+                                                <source id="cmsHeroVideoSource" src="/videos/church-hero.mp4" type="video/mp4">
+                                            </video>
+                                            <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.65); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">
+                                                <i class="fa-solid fa-circle-play text-emerald-400"></i> Autoplay &bull; Muted &bull; Loop
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 0.4rem; font-size: 0.75rem; color: #64748b; display: flex; justify-content: space-between;">
+                                            <span id="cmsCurrentVideoNameLabel">Source: /videos/church-hero.mp4</span>
+                                            <span id="cmsVideoStatusBadge" style="color: #10b981; font-weight: 600;">Active</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Upload and Validation Controls -->
+                                    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Upload New Background Video (Max 100 MB) *</label>
+                                            <input type="file" id="cmsVideoFileInput" accept="video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.ogv,.mov" onchange="handleHeroVideoSelect(event)" style="font-size: 0.85rem; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color);">
+                                        </div>
+                                        <div id="cmsVideoFileInfo" style="display: none; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 6px; padding: 0.65rem 0.85rem; font-size: 0.8rem; color: #1e40af;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <span><i class="fa-solid fa-file-video mr-1"></i> <strong id="cmsVideoSelectedName">-</strong></span>
+                                                <span id="cmsVideoSelectedSize" style="font-weight: 700;">- MB</span>
+                                            </div>
+                                            <div id="cmsVideoUploadProgressWrap" style="display: none; margin-top: 0.5rem;">
+                                                <div style="background: rgba(0,0,0,0.1); border-radius: 999px; height: 6px; overflow: hidden;">
+                                                    <div id="cmsVideoProgressBar" style="width: 0%; height: 100%; background: #2563eb; transition: width 0.2s;"></div>
+                                                </div>
+                                                <span id="cmsVideoProgressText" style="font-size: 0.72rem; margin-top: 2px; display: block;">Uploading...</span>
+                                            </div>
+                                        </div>
+
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <button type="button" class="btn-primary" id="btnUploadHeroVideo" onclick="executeHeroVideoUpload()" style="font-size: 0.85rem; font-weight: 600;" disabled>
+                                                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Video to Server
+                                            </button>
+                                            <button type="button" class="btn-secondary" onclick="resetToDefaultVideo()" style="font-size: 0.85rem;">
+                                                <i class="fa-solid fa-rotate-left"></i> Reset to Default Video
+                                            </button>
+                                        </div>
+
+                                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 0.95rem; font-size: 0.76rem; color: #64748b;">
+                                            <div style="font-weight: 700; color: #334155; margin-bottom: 2px;"><i class="fa-solid fa-shield-check text-primary"></i> Upload Policies & Fallback Behavior:</div>
+                                            <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.5;">
+                                                <li>Strict client & server rejection for files exceeding <strong>100 MB</strong>.</li>
+                                                <li>Supported formats: <strong>MP4 (H.264), WebM, MOV</strong>.</li>
+                                                <li>If the video fails to stream on client browsers, the cinematic fallback poster is displayed automatically without breaking the layout.</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- D. Weekly Worship Schedule -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #059669, #047857); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-calendar-week"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Weekly Worship Schedule Bar</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Manage services displayed on the homepage schedule strip and synchronized into the footer.</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-primary" onclick="addScheduleItemPrompt()" style="font-size: 0.82rem; padding: 0.45rem 0.85rem;">
+                                    <i class="fa-solid fa-plus"></i> Add Service
+                                </button>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                                            <tr>
+                                                <th class="p-3" style="width: 70px;">Icon</th>
+                                                <th class="p-3">Service Name</th>
+                                                <th class="p-3">Day & Time Details</th>
+                                                <th class="p-3 text-right" style="width: 140px;">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="cmsScheduleTableBody" class="divide-y divide-slate-100">
+                                            <!-- Dynamically populated from CMS state -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- E. Welcome Section -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-hands-praying"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Welcome Section</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Customize the pastoral welcome section, family gathering image, and feature pillars.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+                                    <div style="display: flex; flex-direction: column; gap: 0.95rem;">
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Section Tagline Badge</label>
+                                            <input type="text" id="cms_welcome_badge" placeholder="WORSHIP • DISCIPLESHIP • COMMUNITY">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Welcome Heading (H2) *</label>
+                                            <input type="text" id="cms_welcome_heading" placeholder="Welcome to Our Church Family">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Welcome Subheading</label>
+                                            <input type="text" id="cms_welcome_subheading" placeholder="Knowing Christ and Making Him Known">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Welcome Narrative Body *</label>
+                                            <textarea id="cms_welcome_description" rows="5" placeholder="Pastoral greeting and introduction to church life..."></textarea>
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Key Feature Bullets (One per line)</label>
+                                            <textarea id="cms_welcome_features" rows="3" placeholder="Feature 1&#10;Feature 2&#10;Feature 3"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- Welcome Image Card Preview & Upload -->
+                                    <div>
+                                        <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 0.35rem; display: block;">Welcome Section Image Preview</label>
+                                        <div style="width: 100%; height: 260px; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid var(--border-color); background: #061730;">
+                                            <img id="cmsWelcomeImagePreview" src="https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=800&auto=format&fit=crop" alt="Welcome Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        <div class="form-group" style="margin: 0.85rem 0 0;">
+                                            <label>Upload New Welcome Image</label>
+                                            <input type="file" id="cmsWelcomeFileInput" accept="image/*" onchange="handleWelcomeImageSelect(event)" style="font-size: 0.85rem; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color);">
+                                        </div>
+                                        <div class="form-group" style="margin: 0.75rem 0 0;">
+                                            <label>Image Badge / Scripture Pill Text</label>
+                                            <input type="text" id="cms_welcome_scripture_badge" placeholder="Where Faith, Fellowship & Family Flourish">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- F. WORDA Pillars Section -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #0d9488, #0f766e); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-shapes"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">WORDA 5 Pillars Section</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Edit the titles, subtitles, descriptions, and icon styles for Worship, Outreach, Relationship, Discipleship, and Action.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;" id="cmsWordaPillarsContainer">
+                                <!-- Populated dynamically from CMS data -->
+                            </div>
+                        </div>
+
+                        <!-- G. Scripture Spotlight Section -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #c9a961, #926f2a); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-book-bible"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Scripture Spotlight</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Update the homepage scripture passage, scripture reference, and ministry description.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Scripture Passage Verse *</label>
+                                        <textarea id="cms_scripture_text" rows="3" placeholder="And He said to them, 'Go into all the world and preach the gospel to all creation.'"></textarea>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Scripture Reference *</label>
+                                            <input type="text" id="cms_scripture_ref" placeholder="Mark 16:15 • The Great Commission">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Accompanying Call-to-Action / Calling Note</label>
+                                            <input type="text" id="cms_scripture_desc" placeholder="Our sacred calling to proclaim the transformative hope...">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== 2. ABOUT US CMS PANEL ==================== -->
+                    <div id="cmsPanelAbout" class="cms-panel" style="display: none;">
+                        <!-- Church History -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #0284c7, #0369a1); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Church History</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Edit the narrative history of the church and upload the featured history photo.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+                                    <div style="display: flex; flex-direction: column; gap: 0.95rem;">
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>History Section Heading *</label>
+                                            <input type="text" id="cms_history_heading" placeholder="Our Journey of Grace & Faith">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Church History Story (Paragraphs separated by newlines) *</label>
+                                            <textarea id="cms_history_body" rows="10" placeholder="Church of God World Missions Philippines - Imus Chapter was founded..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 0.35rem; display: block;">History Photo Preview</label>
+                                        <div style="width: 100%; height: 260px; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid var(--border-color); background: #061730;">
+                                            <img id="cmsHistoryImagePreview" src="https://images.unsplash.com/photo-1544427920-c49ccfb85579?q=80&w=900&auto=format&fit=crop" alt="History Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        <div class="form-group" style="margin: 0.85rem 0 0;">
+                                            <label>Upload New History Photo</label>
+                                            <input type="file" id="cmsHistoryFileInput" accept="image/*" onchange="handleHistoryImageSelect(event)" style="font-size: 0.85rem; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color);">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mission and Vision -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #10b981, #059669); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-bullseye"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Mission and Vision Statements</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Independently configure the mission and vision headings and statement bodies.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+                                    <div style="display: flex; flex-direction: column; gap: 0.85rem; background: var(--bg-secondary, #f8fafc); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-color);">
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Mission Heading *</label>
+                                            <input type="text" id="cms_mission_heading" placeholder="Our Mission">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Mission Statement Body *</label>
+                                            <textarea id="cms_mission_body" rows="6" placeholder="To know Jesus Christ and make Him known..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 0.85rem; background: var(--bg-secondary, #f8fafc); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-color);">
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Vision Heading *</label>
+                                            <input type="text" id="cms_vision_heading" placeholder="Our Vision">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Vision Statement Body *</label>
+                                            <textarea id="cms_vision_body" rows="6" placeholder="A Christ-centered, Spirit-filled church transforming..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== 3. CONTACT CMS PANEL ==================== -->
+                    <div id="cmsPanelContact" class="cms-panel" style="display: none;">
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #0284c7, #0369a1); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Church Contact Information</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Configure church name, address, phone numbers, email, and ministry office hours synchronized across contact page and footer.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Church Name *</label>
+                                        <input type="text" id="cms_contact_church_name" placeholder="COG Imus">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Primary Email Address *</label>
+                                        <input type="email" id="cms_contact_email" placeholder="contact@cogimus.org">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Landline Phone Number</label>
+                                        <input type="text" id="cms_contact_phone" placeholder="+63 46 471 2345">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Mobile Contact Number</label>
+                                        <input type="text" id="cms_contact_mobile" placeholder="+63 917 123 4567">
+                                    </div>
+                                    <div class="form-group" style="margin: 0; grid-column: 1 / -1;">
+                                        <label>Complete Church Physical Address *</label>
+                                        <input type="text" id="cms_contact_address" placeholder="Emilio Aguinaldo Highway, Palico, Imus, Cavite, Philippines">
+                                    </div>
+                                    <div class="form-group" style="margin: 0; grid-column: 1 / -1;">
+                                        <label>Office & Ministry Working Hours *</label>
+                                        <input type="text" id="cms_contact_hours" placeholder="Tuesday – Saturday: 9:00 AM – 5:00 PM | Sunday: 7:00 AM – 1:00 PM">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== 4. FOOTER CMS PANEL ==================== -->
+                    <div id="cmsPanelFooter" class="cms-panel" style="display: none;">
+                        <!-- Social Media Links -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #1877f2, #0d5cb6); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Social Media Links & Channels</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Update public social media channel URLs and toggle them on or off without breaking layout.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                    <!-- Facebook -->
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <div style="width: 140px; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.85rem;">
+                                            <i class="fa-brands fa-facebook text-blue-600"></i> Facebook
+                                        </div>
+                                        <input type="url" id="cms_social_fb_url" placeholder="https://facebook.com/..." style="flex: 1; min-width: 220px; font-size: 0.85rem; padding: 0.45rem 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color);">
+                                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; cursor: pointer; text-transform: none;">
+                                            <input type="checkbox" id="cms_social_fb_enabled"> Visible in footer
+                                        </label>
+                                    </div>
+
+                                    <!-- YouTube -->
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <div style="width: 140px; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.85rem;">
+                                            <i class="fa-brands fa-youtube text-red-600"></i> YouTube
+                                        </div>
+                                        <input type="url" id="cms_social_yt_url" placeholder="https://youtube.com/..." style="flex: 1; min-width: 220px; font-size: 0.85rem; padding: 0.45rem 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color);">
+                                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; cursor: pointer; text-transform: none;">
+                                            <input type="checkbox" id="cms_social_yt_enabled"> Visible in footer
+                                        </label>
+                                    </div>
+
+                                    <!-- Email -->
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <div style="width: 140px; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.85rem;">
+                                            <i class="fa-solid fa-envelope text-amber-600"></i> Email Link
+                                        </div>
+                                        <input type="text" id="cms_social_email_url" placeholder="mailto:contact@cogimus.org" style="flex: 1; min-width: 220px; font-size: 0.85rem; padding: 0.45rem 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color);">
+                                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; cursor: pointer; text-transform: none;">
+                                            <input type="checkbox" id="cms_social_email_enabled"> Visible in footer
+                                        </label>
+                                    </div>
+
+                                    <!-- Instagram -->
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <div style="width: 140px; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.85rem;">
+                                            <i class="fa-brands fa-instagram text-pink-600"></i> Instagram
+                                        </div>
+                                        <input type="url" id="cms_social_ig_url" placeholder="https://instagram.com/..." style="flex: 1; min-width: 220px; font-size: 0.85rem; padding: 0.45rem 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-color);">
+                                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; cursor: pointer; text-transform: none;">
+                                            <input type="checkbox" id="cms_social_ig_enabled"> Visible in footer
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer Logo & Column Text -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #475569, #1e293b); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-table-columns"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Footer Logo & Column Information</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Manage footer branding logo, about summary, copyright statement, and ministry tagline.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+                                    <div class="form-group" style="margin: 0; grid-column: 1 / -1;">
+                                        <label>Footer About Church Summary *</label>
+                                        <textarea id="cms_footer_about_text" rows="3" placeholder="A vibrant Christ-centered church family committed to knowing Christ..."></textarea>
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Footer Copyright Text *</label>
+                                        <input type="text" id="cms_footer_copyright" placeholder="© 2026 Church of God World Missions Philippines - Imus. All rights reserved.">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Footer Bottom Tagline</label>
+                                        <input type="text" id="cms_footer_tagline" placeholder="To God Be All the Glory">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<!-- ==== AUDIT TRAIL VIEW === -->
             <div class="view" id="view-audit">
                 <div class="audit-layout">
                     <div class="system-services-grid">
@@ -3381,7 +3975,7 @@
                 </div>
                 <div class="form-group mb-3">
                     <label class="text-xs font-semibold text-slate-700">Message Content</label>
-                    <textarea id="test_sms_message" rows="3" class="filter-input" style="width: 100%; resize: vertical;">[COGWM Imus] Live SMS Gateway verification test. Praise the Lord!</textarea>
+                    <textarea id="test_sms_message" rows="3" class="filter-input" style="width: 100%; resize: vertical;">[COG Imus] Live SMS Gateway verification test. Praise the Lord!</textarea>
                 </div>
 
                 <!-- Result Box -->

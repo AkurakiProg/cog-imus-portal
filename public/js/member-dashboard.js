@@ -1289,7 +1289,7 @@ function renderMyC2STab() {
                 </div>
                 <h3 style="font-size: 1.35rem; color: var(--navy); margin-bottom: 0.5rem; font-weight: 700;">Join a C2S Discipleship Cell Group</h3>
                 <p style="color: #64748b; max-width: 520px; margin: 0 auto 1.5rem; line-height: 1.6; font-size: 0.95rem;">
-                    At COGWM Imus, we believe spiritual growth happens in community. A C2S Group connects you with a spiritual mentor and loving brothers and sisters in Christ to grow deeper in God's Word, prayer, and accountability.
+                    At COG Imus, we believe spiritual growth happens in community. A C2S Group connects you with a spiritual mentor and loving brothers and sisters in Christ to grow deeper in God's Word, prayer, and accountability.
                 </p>
                 <button type="button" class="btn-primary" onclick="switchMemberC2STab('all')" style="padding: 0.65rem 1.25rem; font-size: 0.9rem;">
                     <i class="fa-solid fa-compass mr-1"></i> Browse Church C2S Directory & Find a Group
@@ -1520,7 +1520,7 @@ function renderMemberC2SDirectory(groups) {
                         </div>
                         <div>
                             <div style="font-weight: 600; color: var(--navy);">${escapeHtml(g.leader_name || 'Assigned Mentor')}</div>
-                            <span class="text-xs text-slate-400">${escapeHtml(g.leader_contact || 'COGWM Imus')}</span>
+                            <span class="text-xs text-slate-400">${escapeHtml(g.leader_contact || 'COG Imus')}</span>
                         </div>
                     </div>
                 </td>
@@ -2277,7 +2277,7 @@ function openMemberAnnouncementReaderModal(id) {
     bodyEl.innerHTML = `
         <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.825rem; color: var(--text-light); flex-wrap: wrap; gap: 0.5rem;">
             <div><i class="fa-solid fa-calendar-day mr-1 text-amber-600"></i> ${dateStr}</div>
-            <div><i class="fa-solid fa-church mr-1 text-blue-600"></i> ${escapeHtml(a.department || 'COGWM Imus Pastoral Office')}</div>
+            <div><i class="fa-solid fa-church mr-1 text-blue-600"></i> ${escapeHtml(a.department || 'COG Imus Pastoral Office')}</div>
         </div>
 
         <div style="font-size: 0.975rem; line-height: 1.8; color: #1e293b; white-space: pre-line; margin-bottom: 1.75rem;">${escapeHtml((a.content || '').trim())}</div>

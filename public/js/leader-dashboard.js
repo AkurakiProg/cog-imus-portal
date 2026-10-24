@@ -96,7 +96,7 @@ function formatLocalDateTime(date = new Date()) {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 // ============================================================
-// COGWM Imus Portal - Leader Dashboard Script
+// COG Imus Portal - Leader Dashboard Script
 // ============================================================
 
 // --- Helper: HTML Escaping ---
@@ -3603,7 +3603,7 @@ function renderLeaderReceiptPaper(trans) {
                     &ldquo;Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver.&rdquo; &mdash; <em>2 Corinthians 9:7</em>
                 </p>
                 <p class="receipt-gen-info">
-                    Official Electronic Receipt &bull; COGWM Imus Portal &bull; Printed / Generated on ${new Date().toLocaleString()} &bull; System Verified
+                    Official Electronic Receipt &bull; COG Imus Portal &bull; Printed / Generated on ${new Date().toLocaleString()} &bull; System Verified
                 </p>
             </div>
         </div>

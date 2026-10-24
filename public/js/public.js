@@ -748,6 +748,270 @@ function broadcastLocalMutation(type, action = 'update') {
 }
 window.broadcastLocalMutation = broadcastLocalMutation;
 
+
+// ==================== DYNAMIC CMS WEBSITE HYDRATION ====================
+async function loadWebsiteDynamicContent() {
+    try {
+        const res = await api.public.getWebsiteContent('all');
+        if (!res || !res.data) return;
+        const data = res.data;
+
+        // 1. Branding: Logo in Navigation Topbar & Footers
+        const hp = data.homepage || {};
+        const logoIcon = hp.logo_icon || data.site_branding?.top_logo;
+        if (logoIcon && logoIcon !== '/images/logo.png') {
+            const navLogos = document.querySelectorAll('.navbar .logo-icon, .nav-logo-wrap .logo-icon');
+            navLogos.forEach(wrap => {
+                wrap.innerHTML = `<img src="${encodeURI(logoIcon)}" alt="Church Logo" style="max-height: 38px; max-width: 120px; object-fit: contain;">`;
+            });
+        }
+
+        // 2. Homepage Sections (index.html)
+        const path = window.location.pathname.toLowerCase();
+        const isHome = path === '/' || path.endsWith('/index.html') || path === '' || path.endsWith('/');
+
+        if (isHome) {
+            // A. Hero Content
+            if (hp.hero) {
+                const badgeEl = document.querySelector('.hero-badge span:last-child') || document.querySelector('.hero-badge');
+                if (badgeEl && hp.hero.badge) {
+                    badgeEl.innerHTML = `<i class="fa-solid fa-church" style="color: var(--gold-light);"></i> ${escapeHtml(hp.hero.badge)}`;
+                }
+                const h1El = document.querySelector('.hero-content h1');
+                if (h1El && hp.hero.heading) {
+                    h1El.textContent = hp.hero.heading;
+                }
+                const pEl = document.querySelector('.hero-content p');
+                if (pEl && hp.hero.subheading) {
+                    pEl.textContent = hp.hero.subheading;
+                }
+                const btn1 = document.querySelector('.hero-actions .btn-hero-primary');
+                if (btn1 && hp.hero.primary_btn_text) {
+                    btn1.innerHTML = `${escapeHtml(hp.hero.primary_btn_text)} <i class="fa-solid fa-arrow-right" style="font-size: 0.8rem; margin-left: 0.4rem;"></i>`;
+                    if (hp.hero.primary_btn_url) btn1.href = hp.hero.primary_btn_url;
+                }
+                const btn2 = document.querySelector('.hero-actions .btn-hero-outline');
+                if (btn2 && hp.hero.secondary_btn_text) {
+                    btn2.innerHTML = `<i class="fa-solid fa-circle-play"></i> ${escapeHtml(hp.hero.secondary_btn_text)}`;
+                    if (hp.hero.secondary_btn_url) btn2.href = hp.hero.secondary_btn_url;
+                }
+            }
+
+            // B. Background Video
+            if (hp.background_video && hp.background_video.video_url) {
+                const videoEl = document.getElementById('heroVideo');
+                if (videoEl && videoEl.querySelector('source')) {
+                    const currentSrc = videoEl.querySelector('source').getAttribute('src');
+                    if (currentSrc !== hp.background_video.video_url) {
+                        videoEl.innerHTML = `<source src="${encodeURI(hp.background_video.video_url)}" type="video/mp4">`;
+                        videoEl.load();
+                        videoEl.play().catch(() => {});
+                    }
+                }
+            }
+
+            // C. Weekly Worship Schedule Strip
+            if (Array.isArray(hp.schedule) && hp.schedule.length > 0) {
+                const schedCard = document.querySelector('.service-times-card');
+                if (schedCard) {
+                    schedCard.innerHTML = hp.schedule.map(s => `
+                        <div class="service-time-item">
+                            <div class="service-time-icon"><i class="fa-solid ${escapeHtml(s.icon || 'fa-clock')}"></i></div>
+                            <div>
+                                <h4>${escapeHtml(s.title || 'Worship Service')}</h4>
+                                <p>${escapeHtml(s.time || '')}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // D. Welcome Section
+            if (hp.welcome) {
+                const wBadge = document.querySelector('.welcome-content .section-badge');
+                if (wBadge && hp.welcome.badge) wBadge.textContent = hp.welcome.badge;
+
+                const wHeading = document.querySelector('.welcome-content h2');
+                if (wHeading && hp.welcome.heading) wHeading.textContent = hp.welcome.heading;
+
+                const wDesc = document.querySelector('.welcome-content > p');
+                if (wDesc && hp.welcome.description) wDesc.textContent = hp.welcome.description;
+
+                const wImg = document.querySelector('.welcome-image-card img');
+                if (wImg && hp.welcome.image_url) wImg.src = hp.welcome.image_url;
+
+                const wScripture = document.querySelector('.welcome-scripture-pill span');
+                if (wScripture && hp.welcome.scripture_badge) wScripture.textContent = hp.welcome.scripture_badge;
+
+                if (Array.isArray(hp.welcome.features) && hp.welcome.features.length > 0) {
+                    const featsWrap = document.querySelector('.welcome-features');
+                    if (featsWrap) {
+                        featsWrap.innerHTML = hp.welcome.features.map(f => `
+                            <div class="welcome-feature-item">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>${escapeHtml(f)}</span>
+                            </div>
+                        `).join('');
+                    }
+                }
+            }
+
+            // E. WORDA 5-Pillar Showcase
+            if (Array.isArray(hp.worda) && hp.worda.length > 0) {
+                const wordaGrid = document.querySelector('.worda-grid');
+                if (wordaGrid) {
+                    wordaGrid.innerHTML = hp.worda.map(p => `
+                        <div class="worda-card">
+                            <span class="worda-number">${escapeHtml(p.number || '')} ${escapeHtml(p.name || '')}</span>
+                            <div class="worda-icon"><i class="fa-solid ${escapeHtml(p.icon || 'fa-star')}"></i></div>
+                            <h3>${escapeHtml(p.name || '')}</h3>
+                            <p style="font-size: 0.85rem; color: var(--gold-dark); margin-bottom: 0.5rem; font-weight: 500;">
+                                ${escapeHtml(p.subtitle || '')}
+                            </p>
+                            <p>${escapeHtml(p.description || '')}</p>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // F. Scripture Spotlight
+            if (hp.scripture) {
+                const sText = document.querySelector('.scripture-text');
+                if (sText && hp.scripture.text) sText.innerHTML = `&ldquo;${escapeHtml(hp.scripture.text)}&rdquo;`;
+
+                const sRef = document.querySelector('.scripture-ref');
+                if (sRef && hp.scripture.reference) sRef.innerHTML = `&mdash; ${escapeHtml(hp.scripture.reference)}`;
+            }
+        }
+
+        // 3. About Us Page (history.html)
+        const isAbout = path.includes('history.html') || path.includes('/about');
+        if (isAbout) {
+            const ab = data.about_us || {};
+            if (ab.history) {
+                const hHeading = document.querySelector('.history-text h3');
+                if (hHeading && ab.history.heading) hHeading.textContent = ab.history.heading;
+
+                const hBody = document.getElementById('historyText');
+                if (hBody && ab.history.body) {
+                    hBody.innerHTML = ab.history.body.split('\n\n').map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+                }
+
+                const hImg = document.querySelector('.history-img-wrapper img');
+                if (hImg && ab.history.image_url) hImg.src = ab.history.image_url;
+            }
+
+            if (ab.mission) {
+                const mText = document.getElementById('missionText');
+                if (mText && ab.mission.body) mText.textContent = ab.mission.body;
+            }
+
+            if (ab.vision) {
+                const vText = document.getElementById('visionText');
+                if (vText && ab.vision.body) vText.textContent = ab.vision.body;
+            }
+        }
+
+        // 4. Contact Page (contact.html)
+        const isContact = path.includes('contact.html') || path.includes('/contact');
+        const ct = data.contact_us || {};
+        if (isContact && ct) {
+            const addrEl = document.querySelector('.contact-info-item:nth-child(2) p');
+            if (addrEl && ct.address) addrEl.textContent = ct.address;
+
+            const phoneEl = document.querySelector('.contact-info-item:nth-child(3) p');
+            if (phoneEl) {
+                const pParts = [];
+                if (ct.phone) pParts.push(ct.phone);
+                if (ct.mobile) pParts.push(ct.mobile);
+                if (pParts.length > 0) phoneEl.textContent = pParts.join(' • ');
+            }
+
+            const emailEl = document.querySelector('.contact-info-item:nth-child(4) p a');
+            if (emailEl && ct.email) {
+                emailEl.textContent = ct.email;
+                emailEl.href = 'mailto:' + ct.email;
+            }
+
+            const hoursEl = document.querySelector('.contact-info-item:nth-child(5) p');
+            if (hoursEl && ct.office_hours) hoursEl.textContent = ct.office_hours;
+        }
+
+        // 5. Global Footer across ALL public pages
+        const ft = data.footer || {};
+        const footerAbout = document.querySelector('.footer-col > p');
+        if (footerAbout && ft.about_text) footerAbout.textContent = ft.about_text;
+
+        const ftBottom = document.querySelector('.footer-bottom');
+        if (ftBottom) {
+            const copyP = ftBottom.querySelector('p:first-child');
+            if (copyP && ft.copyright_text) copyP.textContent = ft.copyright_text;
+            const tagP = ftBottom.querySelector('p:last-child');
+            if (tagP && ft.tagline) tagP.textContent = ft.tagline;
+        }
+
+        if (ft.social_links) {
+            const fbBtn = document.querySelector('.footer-social-btn[aria-label="Facebook"]');
+            if (fbBtn) {
+                if (ft.social_links.facebook?.enabled && ft.social_links.facebook?.url) {
+                    fbBtn.href = ft.social_links.facebook.url;
+                    fbBtn.style.display = 'inline-flex';
+                } else if (ft.social_links.facebook?.enabled === false) {
+                    fbBtn.style.display = 'none';
+                }
+            }
+
+            const ytBtn = document.querySelector('.footer-social-btn[aria-label="YouTube"]');
+            if (ytBtn) {
+                if (ft.social_links.youtube?.enabled && ft.social_links.youtube?.url) {
+                    ytBtn.href = ft.social_links.youtube.url;
+                    ytBtn.style.display = 'inline-flex';
+                } else if (ft.social_links.youtube?.enabled === false) {
+                    ytBtn.style.display = 'none';
+                }
+            }
+
+            const emailBtn = document.querySelector('.footer-social-btn[aria-label="Email"]');
+            if (emailBtn) {
+                if (ft.social_links.email?.enabled && ft.social_links.email?.url) {
+                    emailBtn.href = ft.social_links.email.url;
+                    emailBtn.style.display = 'inline-flex';
+                } else if (ft.social_links.email?.enabled === false) {
+                    emailBtn.style.display = 'none';
+                }
+            }
+        }
+
+        if (Array.isArray(hp.schedule) && hp.schedule.length > 0) {
+            const footerSchedCol = document.querySelectorAll('.footer-col')[2];
+            if (footerSchedCol && footerSchedCol.querySelector('h3')?.textContent.includes('Schedule')) {
+                footerSchedCol.innerHTML = `
+                    <h3>Service Schedule</h3>
+                    ${hp.schedule.map(s => `
+                        <p><strong style="color: var(--gold-light);"><i class="fa-regular fa-calendar-check" style="margin-right: 0.35rem;"></i> ${escapeHtml(s.title)}:</strong><br>${escapeHtml(s.time)}</p>
+                    `).join('')}
+                `;
+            }
+        }
+
+        if (ct && (ct.address || ct.phone || ct.email)) {
+            const footerInfoCol = document.querySelectorAll('.footer-col')[3];
+            if (footerInfoCol && footerInfoCol.querySelector('h3')?.textContent.includes('Info')) {
+                const pList = footerInfoCol.querySelectorAll('p');
+                if (pList.length >= 3) {
+                    if (ct.address) pList[0].innerHTML = `<i class="fa-solid fa-location-dot" style="color: var(--gold); margin-right: 0.5rem;"></i> ${escapeHtml(ct.address)}`;
+                    if (ct.phone || ct.mobile) pList[1].innerHTML = `<i class="fa-solid fa-phone" style="color: var(--gold); margin-right: 0.5rem;"></i> ${escapeHtml(ct.phone || ct.mobile)}`;
+                    if (ct.email) pList[2].innerHTML = `<i class="fa-solid fa-envelope" style="color: var(--gold); margin-right: 0.5rem;"></i> ${escapeHtml(ct.email)}`;
+                }
+            }
+        }
+
+    } catch (err) {
+        console.warn('loadWebsiteDynamicContent notice (using default static template):', err);
+    }
+}
+window.loadWebsiteDynamicContent = loadWebsiteDynamicContent;
+
 function handleRealtimePublicUpdate(eventData) {
     if (!eventData || !eventData.type || eventData.type === 'connected') return;
     const type = eventData.type;
@@ -763,6 +1027,9 @@ function handleRealtimePublicUpdate(eventData) {
         if (isHome && typeof loadHomeSermons === 'function') loadHomeSermons();
         if (typeof checkLiveBroadcastBanner === 'function') checkLiveBroadcastBanner();
     } else if (type === 'announcements') {
+        if (typeof window.loadAnnouncements === 'function') window.loadAnnouncements();
+    } else if (type === 'website_content') {
+        loadWebsiteDynamicContent();
         if (typeof window.loadAnnouncements === 'function') window.loadAnnouncements();
     }
 }
@@ -823,5 +1090,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initContactForm();
     checkLiveBroadcastBanner();
     initScrollAnimations();
+    loadWebsiteDynamicContent();
     initPublicRealtimeSync();
 });

@@ -41,7 +41,7 @@ function formatLocalDateTime(date = new Date()) {
 
 let currentFinancePageTransactions = [];
 // ============================================================
-// COGWM Imus Portal - Admin Dashboard Script
+// COG Imus Portal - Admin Dashboard Script
 // ============================================================
 
 let allEventsCache = [];
@@ -700,6 +700,7 @@ function navigateTo(viewName, event) {
             if (typeof loadAlbumsAdmin === 'function') loadAlbumsAdmin(1); 
             if (typeof loadSermons === 'function') loadSermons(1); 
             if (typeof loadLiveStreamAdmin === 'function') loadLiveStreamAdmin();
+            if (typeof loadCmsWebsiteContent === 'function') loadCmsWebsiteContent();
             break;
         case 'audit': 
             loadAuditTrail(1); 
@@ -8983,3 +8984,767 @@ function clearSelectedLeader() {
     if (textEl) textEl.innerHTML = '<i class="fa-regular fa-user mr-1 text-slate-400"></i> No leader assigned';
     if (clearBtn) clearBtn.style.display = 'none';
 }
+
+/* ============================================================
+   WEBSITE CONTENT MANAGEMENT (ADMIN CMS) CONTROLLER
+   ============================================================ */
+
+window._cmsData = {
+    homepage: null,
+    about_us: null,
+    contact_us: null,
+    footer: null,
+    site_branding: null
+};
+
+window._currentCmsSection = 'homepage';
+window._cmsSelectedVideoFile = null;
+
+// --- Sub-Mode Switching: Media Content vs Website Content ---
+function switchContentSubMode(mode) {
+    const btnMedia = document.getElementById('btnModeMediaContent');
+    const btnWebsite = document.getElementById('btnModeWebsiteContent');
+    const secMedia = document.getElementById('mediaContentSection');
+    const secWebsite = document.getElementById('websiteContentSection');
+
+    if (mode === 'website') {
+        if (btnMedia) btnMedia.classList.remove('active');
+        if (btnWebsite) btnWebsite.classList.add('active');
+        if (secMedia) secMedia.style.display = 'none';
+        if (secWebsite) secWebsite.style.display = 'block';
+
+        if (!window._cmsData.homepage) {
+            loadCmsWebsiteContent();
+        }
+    } else {
+        if (btnMedia) btnMedia.classList.add('active');
+        if (btnWebsite) btnWebsite.classList.remove('active');
+        if (secMedia) secMedia.style.display = 'block';
+        if (secWebsite) secWebsite.style.display = 'none';
+    }
+}
+window.switchContentSubMode = switchContentSubMode;
+
+// --- Tab Switching inside Website Content Management ---
+function switchCmsTab(section) {
+    window._currentCmsSection = section;
+
+    const tabs = [
+        { id: 'tabNavHomepage', panelId: 'cmsPanelHomepage', key: 'homepage' },
+        { id: 'tabNavAbout', panelId: 'cmsPanelAbout', key: 'about_us' },
+        { id: 'tabNavContact', panelId: 'cmsPanelContact', key: 'contact_us' },
+        { id: 'tabNavFooter', panelId: 'cmsPanelFooter', key: 'footer' }
+    ];
+
+    tabs.forEach(t => {
+        const btn = document.getElementById(t.id);
+        const panel = document.getElementById(t.panelId);
+        if (t.key === section) {
+            if (btn) btn.classList.add('active');
+            if (panel) {
+                panel.style.display = 'block';
+                panel.classList.add('active');
+            }
+        } else {
+            if (btn) btn.classList.remove('active');
+            if (panel) {
+                panel.style.display = 'none';
+                panel.classList.remove('active');
+            }
+        }
+    });
+}
+window.switchCmsTab = switchCmsTab;
+
+// --- Load All Website Content from Backend ---
+async function loadCmsWebsiteContent() {
+    try {
+        const res = await api.content.getWebsiteContent('all');
+        if (res && res.data) {
+            window._cmsData = res.data;
+            populateCmsAllPanels();
+        }
+    } catch (err) {
+        console.error('Failed to load CMS content:', err);
+        showToast('Failed to load website content: ' + (err.message || 'Server error'), 'error');
+    }
+}
+window.loadCmsWebsiteContent = loadCmsWebsiteContent;
+
+// --- Populate UI from State ---
+function populateCmsAllPanels() {
+    const data = window._cmsData;
+    if (!data) return;
+
+    // 1. Homepage
+    const hp = data.homepage || {};
+    // Logo
+    const logoImg = document.getElementById('topLogoPreviewImg');
+    if (logoImg && hp.logo_icon) {
+        logoImg.src = hp.logo_icon;
+    }
+    // Hero
+    if (hp.hero) {
+        setInputValue('cms_hero_badge', hp.hero.badge || '');
+        setInputValue('cms_hero_heading', hp.hero.heading || '');
+        setInputValue('cms_hero_subheading', hp.hero.subheading || '');
+        setInputValue('cms_hero_btn1_text', hp.hero.primary_btn_text || '');
+        setInputValue('cms_hero_btn1_url', hp.hero.primary_btn_url || '');
+        setInputValue('cms_hero_btn2_text', hp.hero.secondary_btn_text || '');
+        setInputValue('cms_hero_btn2_url', hp.hero.secondary_btn_url || '');
+    }
+    // Video
+    if (hp.background_video) {
+        const videoSrc = document.getElementById('cmsHeroVideoSource');
+        const videoEl = document.getElementById('cmsHeroVideoPreview');
+        const videoLabel = document.getElementById('cmsCurrentVideoNameLabel');
+        const vUrl = hp.background_video.video_url || '/videos/church-hero.mp4';
+        if (videoSrc) videoSrc.src = vUrl;
+        if (videoEl) {
+            videoEl.load();
+            videoEl.play().catch(() => {});
+        }
+        if (videoLabel) videoLabel.textContent = 'Source: ' + vUrl;
+    }
+    // Schedule
+    renderCmsScheduleTable(hp.schedule || []);
+    // Welcome
+    if (hp.welcome) {
+        setInputValue('cms_welcome_badge', hp.welcome.badge || '');
+        setInputValue('cms_welcome_heading', hp.welcome.heading || '');
+        setInputValue('cms_welcome_subheading', hp.welcome.subheading || '');
+        setInputValue('cms_welcome_description', hp.welcome.description || '');
+        setInputValue('cms_welcome_scripture_badge', hp.welcome.scripture_badge || '');
+        if (Array.isArray(hp.welcome.features)) {
+            setInputValue('cms_welcome_features', hp.welcome.features.join('\n'));
+        }
+        const wImg = document.getElementById('cmsWelcomeImagePreview');
+        if (wImg && hp.welcome.image_url) wImg.src = hp.welcome.image_url;
+    }
+    // WORDA Pillars
+    renderCmsWordaPillars(hp.worda || []);
+    // Scripture
+    if (hp.scripture) {
+        setInputValue('cms_scripture_text', hp.scripture.text || '');
+        setInputValue('cms_scripture_ref', hp.scripture.reference || '');
+        setInputValue('cms_scripture_desc', hp.scripture.description || '');
+    }
+
+    // 2. About Us
+    const ab = data.about_us || {};
+    if (ab.history) {
+        setInputValue('cms_history_heading', ab.history.heading || '');
+        setInputValue('cms_history_body', ab.history.body || '');
+        const hImg = document.getElementById('cmsHistoryImagePreview');
+        if (hImg && ab.history.image_url) hImg.src = ab.history.image_url;
+    }
+    if (ab.mission) {
+        setInputValue('cms_mission_heading', ab.mission.heading || '');
+        setInputValue('cms_mission_body', ab.mission.body || '');
+    }
+    if (ab.vision) {
+        setInputValue('cms_vision_heading', ab.vision.heading || '');
+        setInputValue('cms_vision_body', ab.vision.body || '');
+    }
+
+    // 3. Contact Us
+    const ct = data.contact_us || {};
+    setInputValue('cms_contact_church_name', ct.church_name || 'COG Imus');
+    setInputValue('cms_contact_email', ct.email || '');
+    setInputValue('cms_contact_phone', ct.phone || '');
+    setInputValue('cms_contact_mobile', ct.mobile || '');
+    setInputValue('cms_contact_address', ct.address || '');
+    setInputValue('cms_contact_hours', ct.office_hours || '');
+
+    // 4. Footer
+    const ft = data.footer || {};
+    if (ft.social_links) {
+        setInputValue('cms_social_fb_url', ft.social_links.facebook?.url || '');
+        setCheckboxValue('cms_social_fb_enabled', !!ft.social_links.facebook?.enabled);
+        setInputValue('cms_social_yt_url', ft.social_links.youtube?.url || '');
+        setCheckboxValue('cms_social_yt_enabled', !!ft.social_links.youtube?.enabled);
+        setInputValue('cms_social_email_url', ft.social_links.email?.url || '');
+        setCheckboxValue('cms_social_email_enabled', !!ft.social_links.email?.enabled);
+        setInputValue('cms_social_ig_url', ft.social_links.instagram?.url || '');
+        setCheckboxValue('cms_social_ig_enabled', !!ft.social_links.instagram?.enabled);
+    }
+    setInputValue('cms_footer_about_text', ft.about_text || '');
+    setInputValue('cms_footer_copyright', ft.copyright_text || '');
+    setInputValue('cms_footer_tagline', ft.tagline || '');
+}
+
+function setInputValue(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+}
+function setCheckboxValue(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.checked = !!val;
+}
+
+// --- Render Schedule Table in CMS ---
+function renderCmsScheduleTable(items) {
+    const tbody = document.getElementById('cmsScheduleTableBody');
+    if (!tbody) return;
+
+    if (!items || items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">No schedule items configured. Click "+ Add Service" to create one.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = items.map((item, index) => `
+        <tr>
+            <td class="p-3">
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(5, 150, 105, 0.1); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 0.95rem;">
+                    <i class="fa-solid ${escapeHtml(item.icon || 'fa-clock')}"></i>
+                </div>
+            </td>
+            <td class="p-3 font-semibold text-slate-800" style="color: var(--text-color);">
+                ${escapeHtml(item.title || 'Service')}
+            </td>
+            <td class="p-3 text-slate-600" style="color: var(--text-light);">
+                ${escapeHtml(item.time || '')}
+            </td>
+            <td class="p-3 text-right">
+                <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                    <button type="button" class="btn-icon" onclick="moveScheduleItem(${index}, -1)" title="Move Up" ${index === 0 ? 'disabled style="opacity:0.3"' : ''}>
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="btn-icon" onclick="moveScheduleItem(${index}, 1)" title="Move Down" ${index === items.length - 1 ? 'disabled style="opacity:0.3"' : ''}>
+                        <i class="fa-solid fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="btn-icon text-primary" onclick="editScheduleItem(${index})" title="Edit Service">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button type="button" class="btn-icon text-danger" onclick="deleteScheduleItem(${index})" title="Delete Service">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function addScheduleItemPrompt() {
+    const title = prompt('Enter service name (e.g. Sunday Celebration Service):');
+    if (!title || !title.trim()) return;
+    const time = prompt('Enter service day and time (e.g. Sunday 9:00 AM • Worship & Word):');
+    if (!time || !time.trim()) return;
+
+    if (!window._cmsData.homepage) window._cmsData.homepage = {};
+    if (!Array.isArray(window._cmsData.homepage.schedule)) window._cmsData.homepage.schedule = [];
+
+    window._cmsData.homepage.schedule.push({
+        id: 'sch_' + Date.now(),
+        title: title.trim(),
+        time: time.trim(),
+        icon: 'fa-sun'
+    });
+
+    renderCmsScheduleTable(window._cmsData.homepage.schedule);
+    showToast('Schedule item added. Remember to click "Save Changes" to publish.', 'info');
+}
+window.addScheduleItemPrompt = addScheduleItemPrompt;
+
+function editScheduleItem(index) {
+    const schedule = window._cmsData?.homepage?.schedule;
+    if (!schedule || !schedule[index]) return;
+    const item = schedule[index];
+
+    const newTitle = prompt('Edit service name:', item.title);
+    if (newTitle === null) return;
+    const newTime = prompt('Edit service day & time:', item.time);
+    if (newTime === null) return;
+
+    item.title = newTitle.trim() || item.title;
+    item.time = newTime.trim() || item.time;
+
+    renderCmsScheduleTable(schedule);
+    showToast('Schedule item updated. Click "Save Changes" to publish.', 'info');
+}
+window.editScheduleItem = editScheduleItem;
+
+function deleteScheduleItem(index) {
+    const schedule = window._cmsData?.homepage?.schedule;
+    if (!schedule || !schedule[index]) return;
+
+    if (confirm(`Remove "${schedule[index].title}" from schedule?`)) {
+        schedule.splice(index, 1);
+        renderCmsScheduleTable(schedule);
+        showToast('Service removed. Click "Save Changes" to publish.', 'info');
+    }
+}
+window.deleteScheduleItem = deleteScheduleItem;
+
+function moveScheduleItem(index, dir) {
+    const schedule = window._cmsData?.homepage?.schedule;
+    if (!schedule || !schedule[index]) return;
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= schedule.length) return;
+
+    const temp = schedule[index];
+    schedule[index] = schedule[targetIdx];
+    schedule[targetIdx] = temp;
+
+    renderCmsScheduleTable(schedule);
+}
+window.moveScheduleItem = moveScheduleItem;
+
+// --- Render WORDA Pillars in CMS ---
+function renderCmsWordaPillars(pillars) {
+    const container = document.getElementById('cmsWordaPillarsContainer');
+    if (!container) return;
+
+    const defaultPillars = [
+        { number: '01', name: 'Worship', subtitle: "Passionate adoration honoring God's holiness", description: 'Lifting up Jesus Christ through vibrant music, fervent prayer, and heartfelt thanksgiving.', icon: 'fa-hands-holding-child' },
+        { number: '02', name: 'Outreach', subtitle: 'Sharing the Good News with our community', description: 'Taking the Gospel outside church walls through medical missions, evangelism, and acts of love.', icon: 'fa-globe' },
+        { number: '03', name: 'Relationship', subtitle: 'Authentic fellowship and spiritual family', description: 'Building strong bonds in Christ through small groups (C2S), mutual care, and lifelong friendships.', icon: 'fa-people-group' },
+        { number: '04', name: 'Discipleship', subtitle: 'Growing deeper in biblical truth and wisdom', description: 'Equipping every believer through Sunday school, leadership training, and Bible studies.', icon: 'fa-seedling' },
+        { number: '05', name: 'Action', subtitle: 'Faith lived out through compassionate service', description: 'Serving church ministries, disaster relief, community welfare, and active volunteerism.', icon: 'fa-hand-holding-heart' }
+    ];
+
+    const list = (pillars && pillars.length === 5) ? pillars : defaultPillars;
+
+    container.innerHTML = `
+        <div class="cms-pillar-grid">
+            ${list.map((p, idx) => `
+                <div class="cms-pillar-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-weight: 700; color: #0d9488; font-size: 0.85rem;">
+                            ${escapeHtml(p.number || ('0' + (idx + 1)))} Pillar
+                        </span>
+                        <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(13, 148, 136, 0.12); color: #0d9488; display: flex; align-items: center; justify-content: center; font-size: 0.85rem;">
+                            <i class="fa-solid ${escapeHtml(p.icon || 'fa-star')}"></i>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.68rem;">Pillar Title</label>
+                        <input type="text" id="cms_worda_name_${idx}" value="${escapeHtml(p.name || '')}" style="font-size: 0.82rem; font-weight: 600;">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.68rem;">Subtitle</label>
+                        <input type="text" id="cms_worda_sub_${idx}" value="${escapeHtml(p.subtitle || '')}" style="font-size: 0.82rem;">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.68rem;">Description</label>
+                        <textarea id="cms_worda_desc_${idx}" rows="2" style="font-size: 0.8rem;">${escapeHtml(p.description || '')}</textarea>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// --- Logo Selection and Upload ---
+async function handleLogoFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Logo file exceeds maximum size limit (5 MB). Please choose a smaller image.', 'error');
+        e.target.value = '';
+        return;
+    }
+
+    const previewImg = document.getElementById('topLogoPreviewImg');
+    if (previewImg) {
+        previewImg.src = URL.createObjectURL(file);
+    }
+
+    try {
+        showToast('Uploading new logo image...', 'info');
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await api.content.uploadWebsiteImage(formData);
+
+        if (res && res.data && res.data.url) {
+            if (!window._cmsData.homepage) window._cmsData.homepage = {};
+            window._cmsData.homepage.logo_icon = res.data.url;
+            if (!window._cmsData.site_branding) window._cmsData.site_branding = {};
+            window._cmsData.site_branding.top_logo = res.data.url;
+
+            showToast('Logo uploaded. Click "Save Changes" to publish across public website.', 'success');
+        }
+    } catch (err) {
+        console.error('Logo upload error:', err);
+        showToast('Failed to upload logo: ' + (err.message || 'Server error'), 'error');
+    }
+}
+window.handleLogoFileSelect = handleLogoFileSelect;
+
+function resetToDefaultLogo() {
+    const previewImg = document.getElementById('topLogoPreviewImg');
+    if (previewImg) previewImg.src = '/images/logo.png';
+    if (!window._cmsData.homepage) window._cmsData.homepage = {};
+    window._cmsData.homepage.logo_icon = '/images/logo.png';
+    showToast('Reset to default logo. Click "Save Changes" to publish.', 'info');
+}
+window.resetToDefaultLogo = resetToDefaultLogo;
+
+// --- Background Video Handling (STRICT 100 MB Limit) ---
+function handleHeroVideoSelect(e) {
+    const file = e.target.files[0];
+    const uploadBtn = document.getElementById('btnUploadHeroVideo');
+    const infoWrap = document.getElementById('cmsVideoFileInfo');
+    const nameLabel = document.getElementById('cmsVideoSelectedName');
+    const sizeLabel = document.getElementById('cmsVideoSelectedSize');
+
+    if (!file) {
+        window._cmsSelectedVideoFile = null;
+        if (uploadBtn) uploadBtn.disabled = true;
+        if (infoWrap) infoWrap.style.display = 'none';
+        return;
+    }
+
+    // STRICT 100 MB LIMIT CHECK
+    const maxBytes = 100 * 1024 * 1024;
+    const fileMb = (file.size / (1024 * 1024)).toFixed(1);
+
+    if (file.size > maxBytes) {
+        showToast(`Validation Error: Background video exceeds the maximum 100 MB limit (${fileMb} MB selected). Please select a compressed video file under 100 MB.`, 'error');
+        e.target.value = '';
+        window._cmsSelectedVideoFile = null;
+        if (uploadBtn) uploadBtn.disabled = true;
+        if (infoWrap) infoWrap.style.display = 'none';
+        return;
+    }
+
+    // MIME and Extension Check
+    const validFormats = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    const validExts = /\.(mp4|webm|ogv|mov)$/i;
+    if (!validFormats.includes(file.type) && !validExts.test(file.name)) {
+        showToast('Validation Error: Unsupported video format. Please upload MP4, WebM, OGG, or MOV videos only.', 'error');
+        e.target.value = '';
+        window._cmsSelectedVideoFile = null;
+        if (uploadBtn) uploadBtn.disabled = true;
+        if (infoWrap) infoWrap.style.display = 'none';
+        return;
+    }
+
+    window._cmsSelectedVideoFile = file;
+
+    // Show selected info
+    if (nameLabel) nameLabel.textContent = file.name;
+    if (sizeLabel) sizeLabel.textContent = fileMb + ' MB';
+    if (infoWrap) infoWrap.style.display = 'block';
+    if (uploadBtn) uploadBtn.disabled = false;
+
+    // Instant local preview in player
+    const preview = document.getElementById('cmsHeroVideoPreview');
+    if (preview) {
+        preview.src = URL.createObjectURL(file);
+        preview.play().catch(() => {});
+    }
+
+    showToast(`Selected "${file.name}" (${fileMb} MB). Click "Upload Video to Server" to save.`, 'info');
+}
+window.handleHeroVideoSelect = handleHeroVideoSelect;
+
+async function executeHeroVideoUpload() {
+    const file = window._cmsSelectedVideoFile;
+    if (!file) {
+        showToast('No video file selected. Please choose a video file under 100 MB first.', 'error');
+        return;
+    }
+
+    const uploadBtn = document.getElementById('btnUploadHeroVideo');
+    const progressWrap = document.getElementById('cmsVideoUploadProgressWrap');
+    const progressBar = document.getElementById('cmsVideoProgressBar');
+    const progressText = document.getElementById('cmsVideoProgressText');
+
+    try {
+        if (uploadBtn) {
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading Video...';
+        }
+        if (progressWrap) progressWrap.style.display = 'block';
+        if (progressBar) progressBar.style.width = '45%';
+        if (progressText) progressText.textContent = 'Uploading to server (max 100 MB)...';
+
+        const formData = new FormData();
+        formData.append('video', file);
+
+        const res = await api.content.uploadWebsiteVideo(formData);
+
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressText) progressText.textContent = 'Upload complete!';
+
+        if (res && res.data && res.data.url) {
+            if (!window._cmsData.homepage) window._cmsData.homepage = {};
+            if (!window._cmsData.homepage.background_video) window._cmsData.homepage.background_video = {};
+            window._cmsData.homepage.background_video.video_url = res.data.url;
+
+            const nameLabel = document.getElementById('cmsCurrentVideoNameLabel');
+            if (nameLabel) nameLabel.textContent = 'Source: ' + res.data.url + ' (' + (res.data.sizeMb || '') + ' MB)';
+
+            showToast('Background video uploaded successfully! Click "Save Changes" to publish.', 'success');
+        }
+    } catch (err) {
+        console.error('Video upload failed:', err);
+        showToast('Video upload failed: ' + (err.message || 'File may exceed 100 MB limit or server error'), 'error');
+    } finally {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Upload Video to Server';
+        }
+        setTimeout(() => {
+            if (progressWrap) progressWrap.style.display = 'none';
+        }, 1200);
+    }
+}
+window.executeHeroVideoUpload = executeHeroVideoUpload;
+
+function resetToDefaultVideo() {
+    const preview = document.getElementById('cmsHeroVideoPreview');
+    const videoSrc = document.getElementById('cmsHeroVideoSource');
+    const defaultUrl = '/videos/church-hero.mp4';
+
+    if (preview) {
+        preview.src = defaultUrl;
+        preview.load();
+        preview.play().catch(() => {});
+    }
+    if (!window._cmsData.homepage) window._cmsData.homepage = {};
+    if (!window._cmsData.homepage.background_video) window._cmsData.homepage.background_video = {};
+    window._cmsData.homepage.background_video.video_url = defaultUrl;
+
+    const nameLabel = document.getElementById('cmsCurrentVideoNameLabel');
+    if (nameLabel) nameLabel.textContent = 'Source: ' + defaultUrl;
+
+    showToast('Reset to default background video. Click "Save Changes" to publish.', 'info');
+}
+window.resetToDefaultVideo = resetToDefaultVideo;
+
+// --- Welcome and History Image Uploads ---
+async function handleWelcomeImageSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('Image exceeds 10 MB limit.', 'error');
+        return;
+    }
+    const preview = document.getElementById('cmsWelcomeImagePreview');
+    if (preview) preview.src = URL.createObjectURL(file);
+
+    try {
+        showToast('Uploading welcome section image...', 'info');
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await api.content.uploadWebsiteImage(formData);
+        if (res && res.data && res.data.url) {
+            if (!window._cmsData.homepage) window._cmsData.homepage = {};
+            if (!window._cmsData.homepage.welcome) window._cmsData.homepage.welcome = {};
+            window._cmsData.homepage.welcome.image_url = res.data.url;
+            showToast('Welcome image uploaded. Click "Save Changes" to publish.', 'success');
+        }
+    } catch (err) {
+        showToast('Failed to upload welcome image: ' + err.message, 'error');
+    }
+}
+window.handleWelcomeImageSelect = handleWelcomeImageSelect;
+
+async function handleHistoryImageSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('Image exceeds 10 MB limit.', 'error');
+        return;
+    }
+    const preview = document.getElementById('cmsHistoryImagePreview');
+    if (preview) preview.src = URL.createObjectURL(file);
+
+    try {
+        showToast('Uploading history photo...', 'info');
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await api.content.uploadWebsiteImage(formData);
+        if (res && res.data && res.data.url) {
+            if (!window._cmsData.about_us) window._cmsData.about_us = {};
+            if (!window._cmsData.about_us.history) window._cmsData.about_us.history = {};
+            window._cmsData.about_us.history.image_url = res.data.url;
+            showToast('History image uploaded. Click "Save Changes" to publish.', 'success');
+        }
+    } catch (err) {
+        showToast('Failed to upload history image: ' + err.message, 'error');
+    }
+}
+window.handleHistoryImageSelect = handleHistoryImageSelect;
+
+// --- Save Current Section Changes ---
+async function saveCurrentCmsSection() {
+    const section = window._currentCmsSection || 'homepage';
+    const saveBtn = document.getElementById('btnSaveCmsSection');
+
+    let payload = null;
+
+    if (section === 'homepage') {
+        const hp = window._cmsData.homepage || {};
+        // Hero
+        hp.hero = {
+            badge: (document.getElementById('cms_hero_badge')?.value || '').trim(),
+            heading: (document.getElementById('cms_hero_heading')?.value || '').trim(),
+            subheading: (document.getElementById('cms_hero_subheading')?.value || '').trim(),
+            primary_btn_text: (document.getElementById('cms_hero_btn1_text')?.value || '').trim(),
+            primary_btn_url: (document.getElementById('cms_hero_btn1_url')?.value || '').trim(),
+            secondary_btn_text: (document.getElementById('cms_hero_btn2_text')?.value || '').trim(),
+            secondary_btn_url: (document.getElementById('cms_hero_btn2_url')?.value || '').trim()
+        };
+
+        if (!hp.hero.heading) {
+            showToast('Validation Error: Hero Heading (H1) cannot be empty.', 'error');
+            return;
+        }
+
+        // Welcome
+        const featsRaw = document.getElementById('cms_welcome_features')?.value || '';
+        hp.welcome = {
+            badge: (document.getElementById('cms_welcome_badge')?.value || '').trim(),
+            heading: (document.getElementById('cms_welcome_heading')?.value || '').trim(),
+            subheading: (document.getElementById('cms_welcome_subheading')?.value || '').trim(),
+            description: (document.getElementById('cms_welcome_description')?.value || '').trim(),
+            image_url: hp.welcome?.image_url || 'https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=800&auto=format&fit=crop',
+            scripture_badge: (document.getElementById('cms_welcome_scripture_badge')?.value || '').trim(),
+            features: featsRaw.split('\n').map(s => s.trim()).filter(Boolean)
+        };
+
+        // WORDA Pillars
+        const worda = [];
+        const defaultIcons = ['fa-hands-holding-child', 'fa-globe', 'fa-people-group', 'fa-seedling', 'fa-hand-holding-heart'];
+        for (let i = 0; i < 5; i++) {
+            worda.push({
+                number: '0' + (i + 1),
+                name: (document.getElementById('cms_worda_name_' + i)?.value || '').trim(),
+                subtitle: (document.getElementById('cms_worda_sub_' + i)?.value || '').trim(),
+                description: (document.getElementById('cms_worda_desc_' + i)?.value || '').trim(),
+                icon: defaultIcons[i]
+            });
+        }
+        hp.worda = worda;
+
+        // Scripture Spotlight
+        hp.scripture = {
+            text: (document.getElementById('cms_scripture_text')?.value || '').trim(),
+            reference: (document.getElementById('cms_scripture_ref')?.value || '').trim(),
+            description: (document.getElementById('cms_scripture_desc')?.value || '').trim()
+        };
+
+        payload = hp;
+
+    } else if (section === 'about_us') {
+        const ab = window._cmsData.about_us || {};
+        ab.history = {
+            heading: (document.getElementById('cms_history_heading')?.value || '').trim(),
+            body: (document.getElementById('cms_history_body')?.value || '').trim(),
+            image_url: ab.history?.image_url || 'https://images.unsplash.com/photo-1544427920-c49ccfb85579?q=80&w=900&auto=format&fit=crop'
+        };
+        ab.mission = {
+            heading: (document.getElementById('cms_mission_heading')?.value || '').trim(),
+            body: (document.getElementById('cms_mission_body')?.value || '').trim()
+        };
+        ab.vision = {
+            heading: (document.getElementById('cms_vision_heading')?.value || '').trim(),
+            body: (document.getElementById('cms_vision_body')?.value || '').trim()
+        };
+
+        if (!ab.history.heading || !ab.history.body) {
+            showToast('Validation Error: Church history heading and body cannot be empty.', 'error');
+            return;
+        }
+
+        payload = ab;
+
+    } else if (section === 'contact_us') {
+        const churchName = (document.getElementById('cms_contact_church_name')?.value || '').trim();
+        const email = (document.getElementById('cms_contact_email')?.value || '').trim();
+        const phone = (document.getElementById('cms_contact_phone')?.value || '').trim();
+        const mobile = (document.getElementById('cms_contact_mobile')?.value || '').trim();
+        const address = (document.getElementById('cms_contact_address')?.value || '').trim();
+        const hours = (document.getElementById('cms_contact_hours')?.value || '').trim();
+
+        if (!churchName || !address) {
+            showToast('Validation Error: Church name and address are required.', 'error');
+            return;
+        }
+
+        payload = {
+            church_name: churchName,
+            email,
+            phone,
+            mobile,
+            address,
+            office_hours: hours
+        };
+
+    } else if (section === 'footer') {
+        const ft = window._cmsData.footer || {};
+        ft.social_links = {
+            facebook: {
+                url: (document.getElementById('cms_social_fb_url')?.value || '').trim(),
+                enabled: document.getElementById('cms_social_fb_enabled')?.checked || false
+            },
+            youtube: {
+                url: (document.getElementById('cms_social_yt_url')?.value || '').trim(),
+                enabled: document.getElementById('cms_social_yt_enabled')?.checked || false
+            },
+            email: {
+                url: (document.getElementById('cms_social_email_url')?.value || '').trim(),
+                enabled: document.getElementById('cms_social_email_enabled')?.checked || false
+            },
+            instagram: {
+                url: (document.getElementById('cms_social_ig_url')?.value || '').trim(),
+                enabled: document.getElementById('cms_social_ig_enabled')?.checked || false
+            }
+        };
+
+        ft.about_text = (document.getElementById('cms_footer_about_text')?.value || '').trim();
+        ft.copyright_text = (document.getElementById('cms_footer_copyright')?.value || '').trim();
+        ft.tagline = (document.getElementById('cms_footer_tagline')?.value || '').trim();
+
+        payload = ft;
+    }
+
+    try {
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving...</span>';
+        }
+
+        const res = await api.content.saveWebsiteContent(section, payload);
+
+        if (res && res.data) {
+            window._cmsData[section] = res.data.data || payload;
+            showToast(`${section.replace('_', ' ').toUpperCase()} changes saved and published!`, 'success');
+
+            // Notify open public pages locally to sync immediately
+            if (typeof broadcastLocalMutation === 'function') {
+                broadcastLocalMutation('website_content', 'update');
+            }
+        }
+    } catch (err) {
+        console.error('Failed to save CMS section:', err);
+        showToast('Save failed: ' + (err.message || 'Server error'), 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span>Save Changes</span>';
+        }
+    }
+}
+window.saveCurrentCmsSection = saveCurrentCmsSection;
+
+function reloadCurrentCmsSection() {
+    populateCmsAllPanels();
+    showToast('Unsaved changes discarded. Form reloaded from saved settings.', 'info');
+}
+window.reloadCurrentCmsSection = reloadCurrentCmsSection;
+
+function previewCurrentCmsPage() {
+    const section = window._currentCmsSection || 'homepage';
+    let url = '/';
+    if (section === 'about_us') url = '/views/history.html';
+    else if (section === 'contact_us') url = '/views/contact.html';
+    else if (section === 'footer') url = '/#welcome';
+
+    window.open(url, '_blank');
+}
+window.previewCurrentCmsPage = previewCurrentCmsPage;

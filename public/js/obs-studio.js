@@ -920,7 +920,7 @@
             ctx.fillText('0012-3456-7890', bx + 470, by + 195);
             ctx.fillStyle = '#94a3b8';
             ctx.font = '13px Inter, sans-serif';
-            ctx.fillText('Acct Name: COGWM Imus', bx + 470, by + 230);
+            ctx.fillText('Acct Name: COG Imus', bx + 470, by + 230);
             ctx.restore();
         },
 

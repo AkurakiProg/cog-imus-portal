@@ -272,6 +272,7 @@ const api = {
         getAlbums: () => api.request('/public/gallery', 'GET', null, false),
         getAlbumImages: (id) => api.request(`/public/gallery/${id}`, 'GET', null, false),
         getPage: (key) => api.request(`/public/pages/${key}`, 'GET', null, false),
+        getWebsiteContent: (section = 'all') => api.request(`/public/website/${section || 'all'}`, 'GET', null, false),
         submitContact: (data) => api.request('/public/contact', 'POST', data, false)
     },
 
@@ -388,7 +389,11 @@ const api = {
         getLiveStreamComments: (limit = 100) => api.request(`/content/livestream/comments?limit=${limit}`, 'GET'),
         postLiveStreamComment: (data) => api.request('/content/livestream/comments', 'POST', data),
         getLiveStreamCommentLogs: (page = null, limit = null, filters = {}) => api.request('/content/livestream/comment-logs' + buildApiQuery(page, limit, filters), 'GET'),
-        deleteLiveStreamComment: (id) => api.request(`/content/livestream/comments/${id}`, 'DELETE')
+        deleteLiveStreamComment: (id) => api.request(`/content/livestream/comments/${id}`, 'DELETE'),
+        getWebsiteContent: (section = 'all') => api.request(`/content/website/${section || 'all'}`, 'GET'),
+        saveWebsiteContent: (section, data) => api.request(`/content/website/${section}`, 'PUT', data),
+        uploadWebsiteVideo: (formData) => api.requestFormData('/content/upload-video', 'POST', formData),
+        uploadWebsiteImage: (formData) => api.requestFormData('/content/upload-image', 'POST', formData)
     },
     audit: {
         getAll: (page = 1, filters = {}) => api.request(`/audit?` + new URLSearchParams({ page, limit: 50, ...filters }).toString(), 'GET')

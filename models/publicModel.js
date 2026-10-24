@@ -64,6 +64,14 @@ const PublicModel = {
             [pageKey]
         );
         return rows[0];
+    },
+
+    async getWebsiteContent(sectionKey = 'all') {
+        const ContentModel = require('./contentModel');
+        if (!sectionKey || sectionKey === 'all') {
+            return ContentModel.getAllWebsiteContent();
+        }
+        return ContentModel.getWebsiteSection(sectionKey);
     }
 };
 
