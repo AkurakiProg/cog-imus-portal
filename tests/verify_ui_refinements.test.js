@@ -137,6 +137,20 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         const darkCss = fs.readFileSync(path.join(__dirname, '../public/css/dark-theme.css'), 'utf8');
         assert.ok(darkCss.includes('body.dark-mode .btn-action.btn-move'), 'dark-theme.css styles .btn-action.btn-move');
         assert.ok(darkCss.includes('body.dark-mode .btn-move'), 'dark-theme.css styles .btn-move');
+        assert.ok(darkCss.includes('.cms-sync-notice-banner'), 'dark-theme.css styles .cms-sync-notice-banner without white strip');
+    });
+
+    await t.test('9. Realtime channels, window.api export and CMS preview mode', () => {
+        const apiJs = fs.readFileSync(path.join(__dirname, '../public/js/api.js'), 'utf8');
+        assert.ok(apiJs.includes('window.api = api'), 'api.js explicitly attaches window.api');
+
+        const authJs = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+        assert.ok(authJs.includes('church_realtime_channel'), 'auth.js uses church_realtime_channel BroadcastChannel');
+        assert.ok(authJs.includes('/api/realtime/stream'), 'auth.js connects to server SSE stream');
+        assert.ok(authJs.includes('preview'), 'auth.js supports preview query parameter without redirect loop');
+
+        const adminJs = fs.readFileSync(path.join(__dirname, '../public/js/admin-dashboard.js'), 'utf8');
+        assert.ok(adminJs.includes('/views/login.html?preview=cms'), 'previewCurrentCmsPage opens with preview=cms');
     });
 });
 

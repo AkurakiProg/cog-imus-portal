@@ -9939,7 +9939,7 @@ function previewCurrentCmsPage() {
     if (section === 'about_us') url = '/views/history.html';
     else if (section === 'contact_us') url = '/views/contact.html';
     else if (section === 'footer') url = '/#welcome';
-    else if (section === 'auth_page') url = '/views/login.html';
+    else if (section === 'auth_page') url = '/views/login.html?preview=cms';
 
     window.open(url, '_blank');
 }

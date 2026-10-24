@@ -428,3 +428,7 @@ const api = {
         getEmailSettings: () => api.request('/system/email-settings', 'GET')
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.api = api;
+}

@@ -4115,6 +4115,22 @@ body.dark-mode .btn-icon[disabled] {
     color: #64748b !important;
 }
 
+body.dark-mode .cms-sync-notice-banner,
+body.dark-mode div[class*="cms-sync-notice-banner"] {
+    background: #141A24 !important;
+    border-top: 1px solid #283548 !important;
+    color: #cbd5e1 !important;
+}
+body.dark-mode .cms-sync-notice-banner strong {
+    color: #f1f5f9 !important;
+}
+body.dark-mode .cms-sync-notice-banner span {
+    color: #cbd5e1 !important;
+}
+body.dark-mode .card-title-text {
+    color: #f1f5f9 !important;
+}
+
 /* Universal Table Action & Inlined Buttons in Dark Mode */
 body.dark-mode button[style*="#fef3c7"],
 body.dark-mode .btn[style*="#fef3c7"],

@@ -419,6 +419,17 @@ td.text-center, th.text-center {
     pointer-events: none !important;
 }
 
+.cms-sync-notice-banner {
+    background: #f8fafc;
+    color: #475569;
+}
+.cms-sync-notice-banner strong {
+    color: #1e293b;
+}
+.cms-sync-notice-banner span {
+    color: #475569;
+}
+
 /* Modal */
 .modal-overlay { 
     display: none; 

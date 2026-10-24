@@ -3,9 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('church_token');
     localStorage.removeItem('church_user');
 
-    // If user already has a valid token in this active tab session, redirect directly
+    // Check if preview mode requested from CMS admin
+    const urlParams = new URLSearchParams(window.location.search);
+    const isCmsPreview = urlParams.get('preview') === 'cms' || urlParams.get('preview') === '1';
+
+    // If user already has a valid token in this active tab session, redirect directly (unless previewing from CMS)
     const token = sessionStorage.getItem('church_token');
-    if (token) {
+    if (token && !isCmsPreview) {
         redirectBasedOnRole();
     }
 
@@ -20,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Check if user arrived via email verification activation link
-    const urlParams = new URLSearchParams(window.location.search);
     const verifiedStatus = urlParams.get('verified');
     if (verifiedStatus === 'success') {
         showAlert('✅ Your account has been verified and activated successfully! You may now sign in.', 'success');
@@ -397,14 +400,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     try {
-        const authBroadcastChannel = new BroadcastChannel('church_realtime_sync');
-        authBroadcastChannel.onmessage = (event) => {
-            const data = event.data;
-            if (data && (data.type === 'website_content' || data.type === 'content')) {
-                loadAuthPageDynamicContent();
-            }
-        };
+        const authBroadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('church_realtime_channel') : null;
+        if (authBroadcastChannel) {
+            authBroadcastChannel.onmessage = (event) => {
+                const data = event.data;
+                if (data && (data.type === 'website_content' || data.type === 'content')) {
+                    loadAuthPageDynamicContent();
+                }
+            };
+        }
     } catch (e) {}
+
+    // Also connect to server SSE stream for real-time synchronization across devices
+    if (typeof EventSource !== 'undefined') {
+        let authSse = null;
+        function connectAuthSse() {
+            try {
+                authSse = new EventSource('/api/realtime/stream');
+                authSse.onmessage = (e) => {
+                    try {
+                        const payload = JSON.parse(e.data);
+                        if (payload && (payload.type === 'website_content' || payload.type === 'content')) {
+                            loadAuthPageDynamicContent();
+                        }
+                    } catch (err) {}
+                };
+                authSse.onerror = () => {
+                    if (authSse) { authSse.close(); authSse = null; }
+                    setTimeout(connectAuthSse, 6000);
+                };
+            } catch (err) {}
+        }
+        connectAuthSse();
+    }
 });
 
 // ==================== DYNAMIC CMS LOGIN PAGE HYDRATION ====================
@@ -420,26 +448,42 @@ function escapeAuthHtml(str) {
 
 async function loadAuthPageDynamicContent() {
     try {
-        if (!window.api || !window.api.public || typeof window.api.public.getWebsiteContent !== 'function') {
-            return;
+        let data = null;
+        const apiObj = (typeof window !== 'undefined' && window.api) || (typeof api !== 'undefined' ? api : null);
+        if (apiObj && apiObj.public && typeof apiObj.public.getWebsiteContent === 'function') {
+            try {
+                const res = await apiObj.public.getWebsiteContent('all');
+                data = res?.data;
+            } catch (err) {
+                console.warn('api.public.getWebsiteContent notice:', err);
+            }
         }
-
-        const res = await window.api.public.getWebsiteContent('all');
-        if (!res || !res.data) return;
-        const data = res.data;
+        if (!data) {
+            try {
+                const res = await fetch('/api/public/website/all');
+                if (res.ok) {
+                    const json = await res.json();
+                    data = json?.data;
+                }
+            } catch (err) {
+                console.warn('Direct fetch /api/public/website/all notice:', err);
+            }
+        }
+        if (!data) return;
 
         // 1. Branding: Topbar Logo Icon
         const hp = data.homepage || {};
         const logoIcon = hp.logo_icon || data.site_branding?.top_logo;
         const authBrand = document.querySelector('.auth-brand');
         if (authBrand) {
-            const existingIcon = authBrand.querySelector('.auth-brand-icon, .auth-brand-custom-img');
+            const existingIcon = authBrand.querySelector('.auth-brand-icon, .auth-brand-custom-img, #authBrandIcon');
             if (logoIcon && logoIcon !== '/images/logo.png' && logoIcon !== '') {
                 if (existingIcon) {
                     if (existingIcon.tagName === 'IMG') {
                         existingIcon.src = encodeURI(logoIcon);
                     } else {
                         const img = document.createElement('img');
+                        img.id = 'authBrandIcon';
                         img.src = encodeURI(logoIcon);
                         img.alt = 'Church Logo';
                         img.className = 'auth-brand-custom-img';
@@ -449,6 +493,7 @@ async function loadAuthPageDynamicContent() {
             } else {
                 if (existingIcon && existingIcon.tagName === 'IMG') {
                     const div = document.createElement('div');
+                    div.id = 'authBrandIcon';
                     div.className = 'auth-brand-icon';
                     div.innerHTML = '<i class="fa-solid fa-cross"></i>';
                     existingIcon.replaceWith(div);
@@ -461,9 +506,14 @@ async function loadAuthPageDynamicContent() {
             const videoEl = document.getElementById('authVideo');
             if (videoEl) {
                 const sourceEl = videoEl.querySelector('source');
-                const currentSrc = sourceEl ? sourceEl.getAttribute('src') : '';
-                if (currentSrc !== hp.background_video.video_url) {
-                    videoEl.innerHTML = `<source src="${encodeURI(hp.background_video.video_url)}" type="video/mp4">`;
+                const currentSrc = (sourceEl ? sourceEl.getAttribute('src') : '') || videoEl.getAttribute('src') || '';
+                const targetUrl = hp.background_video.video_url;
+                if (targetUrl && currentSrc !== targetUrl) {
+                    videoEl.innerHTML = `<source src="${encodeURI(targetUrl)}" type="video/mp4">`;
+                    videoEl.src = encodeURI(targetUrl);
+                    if (hp.background_video.poster_url) {
+                        videoEl.poster = encodeURI(hp.background_video.poster_url);
+                    }
                     videoEl.load();
                     videoEl.play().catch(() => {});
                 }
@@ -471,12 +521,15 @@ async function loadAuthPageDynamicContent() {
         }
 
         // 3. Left-Side Community Inspiration & Identity Panel
-        const authPage = data.auth_page || {};
-        const insp = authPage.inspiration || {};
+        let authPage = data.auth_page || {};
+        if (typeof authPage === 'string') {
+            try { authPage = JSON.parse(authPage); } catch (e) { authPage = {}; }
+        }
+        const insp = authPage.inspiration || authPage;
 
         // Kicker
         const kickerEl = document.getElementById('authInspirationKicker');
-        if (kickerEl && insp.kicker) {
+        if (kickerEl && insp.kicker !== undefined && insp.kicker !== null && insp.kicker !== '') {
             kickerEl.innerHTML = `<i class="fa-solid fa-cross"></i> <span>${escapeAuthHtml(insp.kicker)}</span>`;
         }
 
@@ -501,32 +554,42 @@ async function loadAuthPageDynamicContent() {
 
         // Narrative Description
         const descEl = document.getElementById('authInspirationDesc');
-        if (descEl && insp.description) {
+        if (descEl && insp.description !== undefined && insp.description !== null) {
             descEl.textContent = insp.description;
         }
 
         // Scripture Verse
         const verseEl = document.getElementById('authInspirationScriptureVerse');
-        if (verseEl && insp.scripture_verse) {
+        if (verseEl && insp.scripture_verse !== undefined && insp.scripture_verse !== null) {
             verseEl.innerHTML = `&ldquo;${escapeAuthHtml(insp.scripture_verse)}&rdquo;`;
         }
 
         // Scripture Citation / Reference
         const refEl = document.getElementById('authInspirationScriptureRef');
-        if (refEl && insp.scripture_reference) {
+        if (refEl && insp.scripture_reference !== undefined && insp.scripture_reference !== null) {
             refEl.innerHTML = `&mdash; ${escapeAuthHtml(insp.scripture_reference)}`;
         }
 
         // Trust Pillars
-        const p1El = document.getElementById('authInspirationPillar1');
-        const p2El = document.getElementById('authInspirationPillar2');
+        const pillarsContainer = document.getElementById('authInspirationPillars');
         const p1Val = insp.trust_pillar_1 || (Array.isArray(insp.trust_pillars) ? insp.trust_pillars[0] : null);
         const p2Val = insp.trust_pillar_2 || (Array.isArray(insp.trust_pillars) ? insp.trust_pillars[1] : null);
-        if (p1El && p1Val) p1El.textContent = p1Val;
-        if (p2El && p2Val) p2El.textContent = p2Val;
+        const p1El = document.getElementById('authInspirationPillar1');
+        const p2El = document.getElementById('authInspirationPillar2');
+        if (p1El && p1Val !== undefined && p1Val !== null) p1El.textContent = p1Val;
+        if (p2El && p2Val !== undefined && p2Val !== null) p2El.textContent = p2Val;
 
     } catch (err) {
         console.warn('Failed to hydrate login dynamic content:', err);
+    }
+}
+
+// Run immediately if DOM is already parsed, or when DOMContentLoaded fires
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadAuthPageDynamicContent);
+    } else {
+        loadAuthPageDynamicContent();
     }
 }
 window.loadAuthPageDynamicContent = loadAuthPageDynamicContent;
