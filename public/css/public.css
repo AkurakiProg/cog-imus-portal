@@ -142,6 +142,27 @@ h1, h2, h3, h4 {
 }
 .navbar .logo:hover .logo-icon { transform: rotate(8deg) scale(1.05); }
 
+.navbar .logo-custom-img {
+    height: 44px;
+    max-height: 44px;
+    width: auto;
+    max-width: 90px;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+    transition: transform 0.3s ease;
+}
+.navbar .logo:hover .logo-custom-img { transform: scale(1.05); }
+
+.footer-logo .logo-custom-img {
+    height: 42px;
+    max-height: 42px;
+    width: auto;
+    max-width: 90px;
+    object-fit: contain;
+    display: block;
+}
+
 .navbar .logo h2 {
     color: var(--white);
     font-size: 1.3rem;

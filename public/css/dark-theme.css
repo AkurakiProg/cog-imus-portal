@@ -4636,3 +4636,47 @@ body.dark-mode .cms-pillar-card {
     background: #141A24;
     border-color: #283548;
 }
+
+/* CMS Mode Switch Toggle Group (Fixes image 2 dark mode contrast) */
+body.dark-mode .cms-nav-toggle-group {
+    background: #141A24 !important;
+    border-color: #283548 !important;
+}
+
+/* CMS Card Inner Containers (Fixes image 4 Mission/Vision white card) */
+body.dark-mode .cms-card-inner {
+    background: #141A24 !important;
+    border-color: #283548 !important;
+}
+
+/* CMS File Inputs (Fixes image 3 glaring white file input) */
+body.dark-mode .cms-file-input {
+    background: #141A24 !important;
+    border-color: #283548 !important;
+    color: #E2E8F0 !important;
+}
+body.dark-mode .cms-file-input::file-selector-button {
+    background: #212C3D;
+    color: #F8FAFC;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 0.25rem 0.65rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: background 0.15s ease;
+}
+body.dark-mode .cms-file-input::file-selector-button:hover {
+    background: #2b394e;
+}
+
+/* CMS Schedule Modal & Table Dark Theme Overrides */
+body.dark-mode #cmsScheduleModal .modal-dialog {
+    background: #141A24 !important;
+    border-color: #283548 !important;
+    color: #F8FAFC !important;
+}
+body.dark-mode #cmsScheduleTableBody tr {
+    border-color: #283548 !important;
+}
+

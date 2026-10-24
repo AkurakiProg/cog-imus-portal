@@ -7887,7 +7887,7 @@ async function dispatchTestSms() {
     const rawEl = document.getElementById('testSmsResultRaw');
 
     if (!recipient) {
-        alert('Please enter a recipient mobile number (+63).');
+        showToast('Please enter a recipient mobile number (+63).', 'warning');
         return;
     }
 
@@ -9086,7 +9086,28 @@ function populateCmsAllPanels() {
     // Hero
     if (hp.hero) {
         setInputValue('cms_hero_badge', hp.hero.badge || '');
-        setInputValue('cms_hero_heading', hp.hero.heading || '');
+        let l1 = hp.hero.heading_line1 || '';
+        let l2 = hp.hero.heading_line2 || '';
+        if (!l1 && hp.hero.heading) {
+            if (hp.hero.heading.includes('<em>')) {
+                const match = hp.hero.heading.match(/^(.*?)\s*<em>(.*?)<\/em>/i);
+                if (match) {
+                    l1 = match[1].trim();
+                    l2 = match[2].trim();
+                } else {
+                    l1 = hp.hero.heading.replace(/<[^>]+>/g, '').trim();
+                }
+            } else if (hp.hero.heading.includes(',')) {
+                const parts = hp.hero.heading.split(',');
+                l1 = parts[0].trim() + ',';
+                l2 = parts.slice(1).join(',').trim();
+            } else {
+                l1 = hp.hero.heading;
+            }
+        }
+        setInputValue('cms_hero_heading_line1', l1 || 'A Place to Belong,');
+        setInputValue('cms_hero_heading_line2', l2 || 'A Faith to Believe.');
+        setInputValue('cms_hero_heading', hp.hero.heading || `${l1 || 'A Place to Belong,'} ${l2 || 'A Faith to Believe.'}`);
         setInputValue('cms_hero_subheading', hp.hero.subheading || '');
         setInputValue('cms_hero_btn1_text', hp.hero.primary_btn_text || '');
         setInputValue('cms_hero_btn1_url', hp.hero.primary_btn_url || '');
@@ -9110,11 +9131,14 @@ function populateCmsAllPanels() {
     renderCmsScheduleTable(hp.schedule || []);
     // Welcome
     if (hp.welcome) {
-        setInputValue('cms_welcome_badge', hp.welcome.badge || '');
-        setInputValue('cms_welcome_heading', hp.welcome.heading || '');
+        const subtitleText = hp.welcome.subtitle || hp.welcome.badge || 'Heartfelt Greeting & Community';
+        setInputValue('cms_welcome_subtitle', subtitleText);
+        setInputValue('cms_welcome_badge', subtitleText);
+        setInputValue('cms_welcome_heading', hp.welcome.heading || 'Welcome to Our Church Family');
         setInputValue('cms_welcome_subheading', hp.welcome.subheading || '');
         setInputValue('cms_welcome_description', hp.welcome.description || '');
-        setInputValue('cms_welcome_scripture_badge', hp.welcome.scripture_badge || '');
+        setInputValue('cms_welcome_scripture_badge', hp.welcome.scripture_badge || '— Matthew 11:28 • Christ\'s Invitation');
+        setInputValue('cms_welcome_scripture_verse', hp.welcome.scripture_verse || 'Come to Me, all you who labor and are heavy laden, and I will give you rest.');
         if (Array.isArray(hp.welcome.features)) {
             setInputValue('cms_welcome_features', hp.welcome.features.join('\n'));
         }
@@ -9213,7 +9237,7 @@ function renderCmsScheduleTable(items) {
                     <button type="button" class="btn-icon" onclick="moveScheduleItem(${index}, 1)" title="Move Down" ${index === items.length - 1 ? 'disabled style="opacity:0.3"' : ''}>
                         <i class="fa-solid fa-arrow-down"></i>
                     </button>
-                    <button type="button" class="btn-icon text-primary" onclick="editScheduleItem(${index})" title="Edit Service">
+                    <button type="button" class="btn-icon text-primary" onclick="openCmsScheduleModal(${index})" title="Edit Service">
                         <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     <button type="button" class="btn-icon text-danger" onclick="deleteScheduleItem(${index})" title="Delete Service">
@@ -9225,50 +9249,107 @@ function renderCmsScheduleTable(items) {
     `).join('');
 }
 
-function addScheduleItemPrompt() {
-    const title = prompt('Enter service name (e.g. Sunday Celebration Service):');
-    if (!title || !title.trim()) return;
-    const time = prompt('Enter service day and time (e.g. Sunday 9:00 AM • Worship & Word):');
-    if (!time || !time.trim()) return;
+function openCmsScheduleModal(index = -1) {
+    const modal = document.getElementById('cmsScheduleModal');
+    if (!modal) return;
+    const titleEl = document.getElementById('cmsSchedModalTitle');
+    const inputIndex = document.getElementById('cmsSchedEditIndex');
+    const inputTitle = document.getElementById('cmsSchedTitle');
+    const inputTime = document.getElementById('cmsSchedTime');
+    const selectIcon = document.getElementById('cmsSchedIcon');
+
+    const schedule = window._cmsData?.homepage?.schedule || [];
+
+    if (index >= 0 && schedule[index]) {
+        const item = schedule[index];
+        if (titleEl) titleEl.textContent = 'Edit Worship Service';
+        if (inputIndex) inputIndex.value = index;
+        if (inputTitle) inputTitle.value = item.title || '';
+        if (inputTime) inputTime.value = item.time || '';
+        if (selectIcon) selectIcon.value = item.icon || 'fa-sun';
+    } else {
+        if (titleEl) titleEl.textContent = 'Add Worship Service';
+        if (inputIndex) inputIndex.value = -1;
+        if (inputTitle) inputTitle.value = '';
+        if (inputTime) inputTime.value = '';
+        if (selectIcon) selectIcon.value = 'fa-sun';
+    }
+
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    setTimeout(() => inputTitle?.focus(), 50);
+}
+window.openCmsScheduleModal = openCmsScheduleModal;
+
+function closeCmsScheduleModal() {
+    const modal = document.getElementById('cmsScheduleModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+}
+window.closeCmsScheduleModal = closeCmsScheduleModal;
+
+function saveCmsScheduleModal(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const inputIndex = parseInt(document.getElementById('cmsSchedEditIndex')?.value, 10);
+    const title = (document.getElementById('cmsSchedTitle')?.value || '').trim();
+    const time = (document.getElementById('cmsSchedTime')?.value || '').trim();
+    const icon = (document.getElementById('cmsSchedIcon')?.value || 'fa-sun').trim();
+
+    if (!title || !time) {
+        showToast('Please provide both the service name and the day & time details.', 'warning');
+        return;
+    }
 
     if (!window._cmsData.homepage) window._cmsData.homepage = {};
     if (!Array.isArray(window._cmsData.homepage.schedule)) window._cmsData.homepage.schedule = [];
+    const schedule = window._cmsData.homepage.schedule;
 
-    window._cmsData.homepage.schedule.push({
-        id: 'sch_' + Date.now(),
-        title: title.trim(),
-        time: time.trim(),
-        icon: 'fa-sun'
-    });
+    if (inputIndex >= 0 && schedule[inputIndex]) {
+        schedule[inputIndex].title = title;
+        schedule[inputIndex].time = time;
+        schedule[inputIndex].icon = icon;
+        showToast('Service details updated. Click "Save Changes" to publish.', 'info');
+    } else {
+        schedule.push({
+            id: 'sch_' + Date.now(),
+            title,
+            time,
+            icon
+        });
+        showToast('New service added. Click "Save Changes" to publish.', 'info');
+    }
 
-    renderCmsScheduleTable(window._cmsData.homepage.schedule);
-    showToast('Schedule item added. Remember to click "Save Changes" to publish.', 'info');
+    renderCmsScheduleTable(schedule);
+    closeCmsScheduleModal();
+}
+window.saveCmsScheduleModal = saveCmsScheduleModal;
+
+function addScheduleItemPrompt() {
+    openCmsScheduleModal(-1);
 }
 window.addScheduleItemPrompt = addScheduleItemPrompt;
 
 function editScheduleItem(index) {
+    openCmsScheduleModal(index);
+}
+window.editScheduleItem = editScheduleItem;
+
+async function deleteScheduleItem(index) {
     const schedule = window._cmsData?.homepage?.schedule;
     if (!schedule || !schedule[index]) return;
     const item = schedule[index];
 
-    const newTitle = prompt('Edit service name:', item.title);
-    if (newTitle === null) return;
-    const newTime = prompt('Edit service day & time:', item.time);
-    if (newTime === null) return;
+    const confirmed = await showDecisionModal({
+        title: 'Remove Worship Service',
+        message: `Are you sure you want to remove "${item.title}" from the worship schedule?`,
+        confirmText: 'Yes, Remove',
+        cancelText: 'Cancel',
+        type: 'danger',
+        icon: 'fa-trash-can'
+    });
 
-    item.title = newTitle.trim() || item.title;
-    item.time = newTime.trim() || item.time;
-
-    renderCmsScheduleTable(schedule);
-    showToast('Schedule item updated. Click "Save Changes" to publish.', 'info');
-}
-window.editScheduleItem = editScheduleItem;
-
-function deleteScheduleItem(index) {
-    const schedule = window._cmsData?.homepage?.schedule;
-    if (!schedule || !schedule[index]) return;
-
-    if (confirm(`Remove "${schedule[index].title}" from schedule?`)) {
+    if (confirmed) {
         schedule.splice(index, 1);
         renderCmsScheduleTable(schedule);
         showToast('Service removed. Click "Save Changes" to publish.', 'info');
@@ -9372,7 +9453,17 @@ async function handleLogoFileSelect(e) {
 }
 window.handleLogoFileSelect = handleLogoFileSelect;
 
-function resetToDefaultLogo() {
+async function resetToDefaultLogo() {
+    const confirmed = await showDecisionModal({
+        title: 'Reset Website Logo',
+        message: 'Are you sure you want to restore the default COG Imus logo badge in the navigation top bar and footer?',
+        confirmText: 'Yes, Restore Default',
+        cancelText: 'Cancel',
+        type: 'warning',
+        icon: 'fa-rotate-left'
+    });
+    if (!confirmed) return;
+
     const previewImg = document.getElementById('topLogoPreviewImg');
     if (previewImg) previewImg.src = '/images/logo.png';
     if (!window._cmsData.homepage) window._cmsData.homepage = {};
@@ -9494,7 +9585,17 @@ async function executeHeroVideoUpload() {
 }
 window.executeHeroVideoUpload = executeHeroVideoUpload;
 
-function resetToDefaultVideo() {
+async function resetToDefaultVideo() {
+    const confirmed = await showDecisionModal({
+        title: 'Reset Background Video',
+        message: 'Are you sure you want to reset the hero background video back to the default church motion loop (/videos/church-hero.mp4)?',
+        confirmText: 'Yes, Reset Video',
+        cancelText: 'Cancel',
+        type: 'warning',
+        icon: 'fa-rotate-left'
+    });
+    if (!confirmed) return;
+
     const preview = document.getElementById('cmsHeroVideoPreview');
     const videoSrc = document.getElementById('cmsHeroVideoSource');
     const defaultUrl = '/videos/church-hero.mp4';
@@ -9580,9 +9681,20 @@ async function saveCurrentCmsSection() {
     if (section === 'homepage') {
         const hp = window._cmsData.homepage || {};
         // Hero
+        const line1 = (document.getElementById('cms_hero_heading_line1')?.value || '').trim();
+        const line2 = (document.getElementById('cms_hero_heading_line2')?.value || '').trim();
+        let fullHeading = '';
+        if (line1 && line2) {
+            fullHeading = `${line1} <em>${line2}</em>`;
+        } else {
+            fullHeading = line1 || line2 || (document.getElementById('cms_hero_heading')?.value || '').trim();
+        }
+
         hp.hero = {
             badge: (document.getElementById('cms_hero_badge')?.value || '').trim(),
-            heading: (document.getElementById('cms_hero_heading')?.value || '').trim(),
+            heading: fullHeading,
+            heading_line1: line1,
+            heading_line2: line2,
             subheading: (document.getElementById('cms_hero_subheading')?.value || '').trim(),
             primary_btn_text: (document.getElementById('cms_hero_btn1_text')?.value || '').trim(),
             primary_btn_url: (document.getElementById('cms_hero_btn1_url')?.value || '').trim(),
@@ -9597,13 +9709,16 @@ async function saveCurrentCmsSection() {
 
         // Welcome
         const featsRaw = document.getElementById('cms_welcome_features')?.value || '';
+        const subtitleText = (document.getElementById('cms_welcome_subtitle')?.value || document.getElementById('cms_welcome_badge')?.value || '').trim();
         hp.welcome = {
-            badge: (document.getElementById('cms_welcome_badge')?.value || '').trim(),
+            badge: subtitleText,
+            subtitle: subtitleText,
             heading: (document.getElementById('cms_welcome_heading')?.value || '').trim(),
             subheading: (document.getElementById('cms_welcome_subheading')?.value || '').trim(),
             description: (document.getElementById('cms_welcome_description')?.value || '').trim(),
             image_url: hp.welcome?.image_url || 'https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=800&auto=format&fit=crop',
             scripture_badge: (document.getElementById('cms_welcome_scripture_badge')?.value || '').trim(),
+            scripture_verse: (document.getElementById('cms_welcome_scripture_verse')?.value || '').trim(),
             features: featsRaw.split('\n').map(s => s.trim()).filter(Boolean)
         };
 
@@ -9732,7 +9847,17 @@ async function saveCurrentCmsSection() {
 }
 window.saveCurrentCmsSection = saveCurrentCmsSection;
 
-function reloadCurrentCmsSection() {
+async function reloadCurrentCmsSection() {
+    const confirmed = await showDecisionModal({
+        title: 'Discard Unsaved Changes',
+        message: 'Are you sure you want to discard your unsaved changes and reload the last saved settings?',
+        confirmText: 'Discard Changes',
+        cancelText: 'Keep Editing',
+        type: 'warning',
+        icon: 'fa-rotate-left'
+    });
+    if (!confirmed) return;
+
     populateCmsAllPanels();
     showToast('Unsaved changes discarded. Form reloaded from saved settings.', 'info');
 }

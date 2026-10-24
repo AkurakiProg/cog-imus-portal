@@ -759,12 +759,30 @@ async function loadWebsiteDynamicContent() {
         // 1. Branding: Logo in Navigation Topbar & Footers
         const hp = data.homepage || {};
         const logoIcon = hp.logo_icon || data.site_branding?.top_logo;
-        if (logoIcon && logoIcon !== '/images/logo.png') {
-            const navLogos = document.querySelectorAll('.navbar .logo-icon, .nav-logo-wrap .logo-icon');
-            navLogos.forEach(wrap => {
-                wrap.innerHTML = `<img src="${encodeURI(logoIcon)}" alt="Church Logo" style="max-height: 38px; max-width: 120px; object-fit: contain;">`;
-            });
-        }
+        const logoHolders = document.querySelectorAll('.navbar .logo, .footer-logo');
+        logoHolders.forEach(holder => {
+            const existingIcon = holder.querySelector('.logo-icon, .logo-custom-img');
+            if (logoIcon && logoIcon !== '/images/logo.png' && logoIcon !== '') {
+                if (existingIcon) {
+                    if (existingIcon.tagName === 'IMG') {
+                        existingIcon.src = encodeURI(logoIcon);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = encodeURI(logoIcon);
+                        img.alt = 'Church Logo';
+                        img.className = 'logo-custom-img';
+                        existingIcon.replaceWith(img);
+                    }
+                }
+            } else {
+                if (existingIcon && existingIcon.tagName === 'IMG') {
+                    const div = document.createElement('div');
+                    div.className = 'logo-icon';
+                    div.innerHTML = '<i class="fa-solid fa-cross"></i>';
+                    existingIcon.replaceWith(div);
+                }
+            }
+        });
 
         // 2. Homepage Sections (index.html)
         const path = window.location.pathname.toLowerCase();
@@ -775,24 +793,42 @@ async function loadWebsiteDynamicContent() {
             if (hp.hero) {
                 const badgeEl = document.querySelector('.hero-badge span:last-child') || document.querySelector('.hero-badge');
                 if (badgeEl && hp.hero.badge) {
-                    badgeEl.innerHTML = `<i class="fa-solid fa-church" style="color: var(--gold-light);"></i> ${escapeHtml(hp.hero.badge)}`;
+                    badgeEl.innerHTML = `<i class="fa-solid fa-cross"></i> ${escapeHtml(hp.hero.badge)}`;
                 }
-                const h1El = document.querySelector('.hero-content h1');
-                if (h1El && hp.hero.heading) {
-                    h1El.textContent = hp.hero.heading;
+
+                // Preserve Cormorant Garamond typography & gold italic em accent
+                const h1El = document.getElementById('heroMainHeading') || document.querySelector('.hero-content h1');
+                if (h1El) {
+                    const l1 = hp.hero.heading_line1;
+                    const l2 = hp.hero.heading_line2;
+                    if (l1 && l2) {
+                        h1El.innerHTML = `${escapeHtml(l1)} <em>${escapeHtml(l2)}</em>`;
+                    } else if (hp.hero.heading && hp.hero.heading.includes('<em>')) {
+                        h1El.innerHTML = hp.hero.heading;
+                    } else if (hp.hero.heading && hp.hero.heading.includes(',')) {
+                        const parts = hp.hero.heading.split(',');
+                        const first = parts[0].trim() + ',';
+                        const second = parts.slice(1).join(',').trim();
+                        h1El.innerHTML = `${escapeHtml(first)} <em>${escapeHtml(second)}</em>`;
+                    } else if (hp.hero.heading) {
+                        h1El.textContent = hp.hero.heading;
+                    }
                 }
-                const pEl = document.querySelector('.hero-content p');
+
+                const pEl = document.getElementById('heroSubheadingText') || document.querySelector('.hero-content p');
                 if (pEl && hp.hero.subheading) {
                     pEl.textContent = hp.hero.subheading;
                 }
-                const btn1 = document.querySelector('.hero-actions .btn-hero-primary');
+
+                const btn1 = document.getElementById('heroPrimaryActionBtn') || document.querySelector('.hero-actions .btn-hero-primary');
                 if (btn1 && hp.hero.primary_btn_text) {
-                    btn1.innerHTML = `${escapeHtml(hp.hero.primary_btn_text)} <i class="fa-solid fa-arrow-right" style="font-size: 0.8rem; margin-left: 0.4rem;"></i>`;
+                    btn1.innerHTML = `<i class="fa-solid fa-calendar-check"></i> <span>${escapeHtml(hp.hero.primary_btn_text)}</span>`;
                     if (hp.hero.primary_btn_url) btn1.href = hp.hero.primary_btn_url;
                 }
-                const btn2 = document.querySelector('.hero-actions .btn-hero-outline');
+
+                const btn2 = document.getElementById('heroSecondaryActionBtn') || document.querySelector('.hero-actions .btn-hero-outline');
                 if (btn2 && hp.hero.secondary_btn_text) {
-                    btn2.innerHTML = `<i class="fa-solid fa-circle-play"></i> ${escapeHtml(hp.hero.secondary_btn_text)}`;
+                    btn2.innerHTML = `<i class="fa-solid fa-circle-play"></i> <span>${escapeHtml(hp.hero.secondary_btn_text)}</span>`;
                     if (hp.hero.secondary_btn_url) btn2.href = hp.hero.secondary_btn_url;
                 }
             }
@@ -828,10 +864,12 @@ async function loadWebsiteDynamicContent() {
 
             // D. Welcome Section
             if (hp.welcome) {
-                const wBadge = document.querySelector('.welcome-content .section-badge');
-                if (wBadge && hp.welcome.badge) wBadge.textContent = hp.welcome.badge;
+                const wSubtitle = document.getElementById('welcomeHeaderSubtitle') || document.querySelector('.welcome-content .section-header p');
+                if (wSubtitle && (hp.welcome.subtitle || hp.welcome.badge)) {
+                    wSubtitle.textContent = hp.welcome.subtitle || hp.welcome.badge;
+                }
 
-                const wHeading = document.querySelector('.welcome-content h2');
+                const wHeading = document.getElementById('welcomeHeading') || document.querySelector('.welcome-content h2');
                 if (wHeading && hp.welcome.heading) wHeading.textContent = hp.welcome.heading;
 
                 const wDesc = document.querySelector('.welcome-content > p');
@@ -840,8 +878,17 @@ async function loadWebsiteDynamicContent() {
                 const wImg = document.querySelector('.welcome-image-card img');
                 if (wImg && hp.welcome.image_url) wImg.src = hp.welcome.image_url;
 
-                const wScripture = document.querySelector('.welcome-scripture-pill span');
-                if (wScripture && hp.welcome.scripture_badge) wScripture.textContent = hp.welcome.scripture_badge;
+                const wScriptureVerse = document.getElementById('welcomeScriptureVerse') || document.querySelector('.welcome-scripture-pill p');
+                if (wScriptureVerse && hp.welcome.scripture_verse) {
+                    const rawVerse = hp.welcome.scripture_verse.replace(/^[“"']+|[”"']+$/g, '');
+                    wScriptureVerse.textContent = `“${rawVerse}”`;
+                }
+
+                const wScriptureRef = document.getElementById('welcomeScriptureRef') || document.querySelector('.welcome-scripture-pill span');
+                if (wScriptureRef && (hp.welcome.scripture_badge || hp.welcome.scripture_reference)) {
+                    const refText = hp.welcome.scripture_badge || hp.welcome.scripture_reference;
+                    wScriptureRef.textContent = refText.startsWith('—') || refText.startsWith('-') ? refText : `— ${refText}`;
+                }
 
                 if (Array.isArray(hp.welcome.features) && hp.welcome.features.length > 0) {
                     const featsWrap = document.querySelector('.welcome-features');
@@ -916,25 +963,31 @@ async function loadWebsiteDynamicContent() {
         const isContact = path.includes('contact.html') || path.includes('/contact');
         const ct = data.contact_us || {};
         if (isContact && ct) {
-            const addrEl = document.querySelector('.contact-info-item:nth-child(2) p');
+            const addrEl = document.getElementById('contactCardLocation') || document.querySelector('.contact-info-card .contact-info-item:nth-of-type(1) p');
             if (addrEl && ct.address) addrEl.textContent = ct.address;
 
-            const phoneEl = document.querySelector('.contact-info-item:nth-child(3) p');
+            const phoneEl = document.getElementById('contactCardPhone') || document.querySelector('.contact-info-card .contact-info-item:nth-of-type(2) p');
             if (phoneEl) {
                 const pParts = [];
                 if (ct.phone) pParts.push(ct.phone);
                 if (ct.mobile) pParts.push(ct.mobile);
-                if (pParts.length > 0) phoneEl.textContent = pParts.join(' • ');
+                if (pParts.length > 0) {
+                    phoneEl.innerHTML = pParts.map(escapeHtml).join(' &bull; ');
+                }
             }
 
-            const emailEl = document.querySelector('.contact-info-item:nth-child(4) p a');
+            const emailEl = document.getElementById('contactCardEmail') || document.querySelector('.contact-info-card .contact-info-item:nth-of-type(3) p');
             if (emailEl && ct.email) {
-                emailEl.textContent = ct.email;
-                emailEl.href = 'mailto:' + ct.email;
+                emailEl.innerHTML = `<a href="mailto:${escapeHtml(ct.email)}" style="color: inherit; text-decoration: none;">${escapeHtml(ct.email)}</a>`;
             }
 
-            const hoursEl = document.querySelector('.contact-info-item:nth-child(5) p');
+            const hoursEl = document.getElementById('contactCardHours') || document.querySelector('.contact-info-card .contact-info-item:nth-of-type(4) p');
             if (hoursEl && ct.office_hours) hoursEl.textContent = ct.office_hours;
+
+            const servicesEl = document.getElementById('contactCardServices');
+            if (servicesEl && Array.isArray(hp.schedule) && hp.schedule.length > 0) {
+                servicesEl.innerHTML = hp.schedule.map(s => `<strong>${escapeHtml(s.title)}:</strong> ${escapeHtml(s.time)}`).join('<br>');
+            }
         }
 
         // 5. Global Footer across ALL public pages
