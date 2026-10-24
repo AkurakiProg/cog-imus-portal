@@ -91,5 +91,52 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         assert.ok(darkCss.includes('#cmsScheduleModal .modal-footer'), 'Dark CSS overrides cmsScheduleModal modal-footer');
         assert.ok(darkCss.includes('#cmsScheduleModal .btn-secondary'), 'Dark CSS styles cmsScheduleModal btn-secondary');
     });
+
+    await t.test('8. Login page dynamic sync & inspiration panel CMS controls & action button styling', () => {
+        // Login page IDs
+        const loginHtml = fs.readFileSync(path.join(__dirname, '../public/views/login.html'), 'utf8');
+        assert.ok(loginHtml.includes('id="authInspirationKicker"'), 'authInspirationKicker ID exists in login.html');
+        assert.ok(loginHtml.includes('id="authInspirationTitle"'), 'authInspirationTitle ID exists in login.html');
+        assert.ok(loginHtml.includes('id="authInspirationDesc"'), 'authInspirationDesc ID exists in login.html');
+        assert.ok(loginHtml.includes('id="authInspirationScriptureVerse"'), 'authInspirationScriptureVerse ID exists in login.html');
+        assert.ok(loginHtml.includes('id="authInspirationScriptureRef"'), 'authInspirationScriptureRef ID exists in login.html');
+        assert.ok(loginHtml.includes('id="authInspirationPillar1"'), 'authInspirationPillar1 ID exists in login.html');
+        assert.ok(loginHtml.includes('id="authInspirationPillar2"'), 'authInspirationPillar2 ID exists in login.html');
+
+        // auth.js hydration and synchronization
+        const authJs = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+        assert.ok(authJs.includes('loadAuthPageDynamicContent'), 'loadAuthPageDynamicContent function defined in auth.js');
+        assert.ok(authJs.includes('auth-brand-custom-img'), 'auth.js supports custom topbar logo replacement');
+        assert.ok(authJs.includes('authVideo'), 'auth.js synchronizes background video');
+        assert.ok(authJs.includes('church_realtime_ping'), 'auth.js listens to realtime CMS updates');
+
+        // Admin CMS panel and tabs
+        const adminHtml = fs.readFileSync(path.join(__dirname, '../public/views/admin-dashboard.html'), 'utf8');
+        assert.ok(adminHtml.includes('id="tabNavAuth"'), 'tabNavAuth exists in admin tabs');
+        assert.ok(adminHtml.includes('id="cmsPanelAuth"'), 'cmsPanelAuth exists in admin dashboard');
+        assert.ok(adminHtml.includes('id="cms_auth_kicker"'), 'cms_auth_kicker input exists');
+        assert.ok(adminHtml.includes('id="cms_auth_title_line1"'), 'cms_auth_title_line1 input exists');
+        assert.ok(adminHtml.includes('id="cms_auth_title_line2"'), 'cms_auth_title_line2 input exists');
+        assert.ok(adminHtml.includes('id="cms_auth_description"'), 'cms_auth_description input exists');
+        assert.ok(adminHtml.includes('id="cms_auth_scripture_verse"'), 'cms_auth_scripture_verse input exists');
+        assert.ok(adminHtml.includes('id="cms_auth_scripture_ref"'), 'cms_auth_scripture_ref input exists');
+        assert.ok(adminHtml.includes('id="cms_auth_pillar_1"'), 'cms_auth_pillar_1 input exists');
+        assert.ok(adminHtml.includes('id="cms_auth_pillar_2"'), 'cms_auth_pillar_2 input exists');
+
+        // Admin dashboard JS logic
+        const adminJs = fs.readFileSync(path.join(__dirname, '../public/js/admin-dashboard.js'), 'utf8');
+        assert.ok(adminJs.includes("key: 'auth_page'"), 'switchCmsTab includes auth_page');
+        assert.ok(adminJs.includes("section === 'auth_page'"), 'saveCurrentCmsSection handles auth_page');
+        assert.ok(adminJs.includes("cms_auth_kicker"), 'populateCmsAllPanels populates auth_page fields');
+        assert.ok(adminJs.includes("btn-action btn-move"), 'renderCmsScheduleTable uses btn-action btn-move');
+
+        // Action buttons CSS styling
+        const adminCss = fs.readFileSync(path.join(__dirname, '../public/css/admin.css'), 'utf8');
+        assert.ok(adminCss.includes('.btn-action.btn-move'), 'admin.css styles .btn-action.btn-move');
+
+        const darkCss = fs.readFileSync(path.join(__dirname, '../public/css/dark-theme.css'), 'utf8');
+        assert.ok(darkCss.includes('body.dark-mode .btn-action.btn-move'), 'dark-theme.css styles .btn-action.btn-move');
+        assert.ok(darkCss.includes('body.dark-mode .btn-move'), 'dark-theme.css styles .btn-move');
+    });
 });
 

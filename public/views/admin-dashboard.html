@@ -1457,6 +1457,9 @@
                                 <button type="button" class="cms-tab-btn" id="tabNavFooter" onclick="switchCmsTab('footer')">
                                     <i class="fa-solid fa-shoe-prints"></i> Footer
                                 </button>
+                                <button type="button" class="cms-tab-btn" id="tabNavAuth" onclick="switchCmsTab('auth_page')">
+                                    <i class="fa-solid fa-right-to-bracket"></i> Login &amp; Auth Page
+                                </button>
                             </div>
 
                             <!-- Save / Cancel / Preview Actions -->
@@ -2014,6 +2017,100 @@
                                     <div class="form-group" style="margin: 0;">
                                         <label>Footer Bottom Tagline</label>
                                         <input type="text" id="cms_footer_tagline" placeholder="To God Be All the Glory">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== 5. LOGIN & AUTH PAGE CMS PANEL ==================== -->
+                    <div id="cmsPanelAuth" class="cms-panel" style="display: none;">
+                        <!-- Synchronized Assets Notice Card -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-arrows-rotate"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Synchronized Branding &amp; Background Media</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">The Login &amp; Authentication portal automatically uses your active Top Bar Logo Icon and Cinematic Background Video.</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-secondary" onclick="switchCmsTab('homepage')" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+                                    <i class="fa-solid fa-pen-to-square"></i> Manage Logo &amp; Video in Homepage
+                                </button>
+                            </div>
+                            <div style="padding: 1.1rem 1.5rem; background: var(--hover-bg, #f8fafc); border-top: 1px solid var(--border-color); font-size: 0.84rem; color: var(--text-light); display: flex; flex-direction: column; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                    <i class="fa-solid fa-circle-check text-success"></i>
+                                    <span><strong>Top Bar Logo:</strong> Automatically synchronized with the Homepage Top Bar Logo Icon.</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                    <i class="fa-solid fa-circle-check text-success"></i>
+                                    <span><strong>Background Video:</strong> Automatically synchronized with the Homepage Cinematic Background Video (up to 100 MB).</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Left-Side Community Inspiration & Identity Panel -->
+                        <div class="card mb-6">
+                            <div class="card-header py-3.5 px-5" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: linear-gradient(135deg, #0ea5e9, #0284c7); font-size: 1.15rem; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff;">
+                                        <i class="fa-solid fa-heart"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--navy);">Left-Side Community Inspiration &amp; Identity Panel</h3>
+                                        <p style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0;">Manage the welcome kicker, headline typography, welcome description, scripture citation, and trust pillars on the login screen.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding: 1.25rem 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+                                    <!-- Kicker -->
+                                    <div class="form-group" style="margin: 0; grid-column: 1 / -1;">
+                                        <label>Kicker Badge Text *</label>
+                                        <input type="text" id="cms_auth_kicker" placeholder="Church of God World Missions">
+                                        <small style="color: var(--text-light); font-size: 0.75rem;">Displayed alongside the cross icon at the top of the inspiration panel.</small>
+                                    </div>
+
+                                    <!-- Headline Line 1 & Line 2 -->
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Main Heading — Line 1 (White Text) *</label>
+                                        <input type="text" id="cms_auth_title_line1" placeholder="A Place to Belong,">
+                                        <small style="color: var(--text-light); font-size: 0.75rem;">First line in clean Cormorant Garamond serif.</small>
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Main Heading — Line 2 (Golden Italic Accent) *</label>
+                                        <input type="text" id="cms_auth_title_line2" placeholder="A Faith to Believe.">
+                                        <small style="color: var(--text-light); font-size: 0.75rem;">Styled with elegant italic font and warm golden accent.</small>
+                                    </div>
+
+                                    <!-- Narrative Description -->
+                                    <div class="form-group" style="margin: 0; grid-column: 1 / -1;">
+                                        <label>Portal Narrative Description *</label>
+                                        <textarea id="cms_auth_description" rows="3" placeholder="Welcome to the COG Imus Ministry Portal. Secure, unified access for our church administrators, ministry leaders, and faithful congregation."></textarea>
+                                    </div>
+
+                                    <!-- Scripture Verse & Reference -->
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Scripture Verse Text</label>
+                                        <textarea id="cms_auth_scripture_verse" rows="2" placeholder="For where two or three gather in My name, there am I with them."></textarea>
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Scripture Citation / Reference</label>
+                                        <input type="text" id="cms_auth_scripture_ref" placeholder="Matthew 18:20 • Fellowship in Christ">
+                                    </div>
+
+                                    <!-- Trust Pillars -->
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Security / Trust Pillar 1 Text</label>
+                                        <input type="text" id="cms_auth_pillar_1" placeholder="End-to-End Secure SSL Session">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label>Security / Trust Pillar 2 Text</label>
+                                        <input type="text" id="cms_auth_pillar_2" placeholder="Dedicated Admin, Leader &amp; Member Portals">
                                     </div>
                                 </div>
                             </div>

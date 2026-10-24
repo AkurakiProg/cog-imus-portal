@@ -150,6 +150,20 @@ html, body {
     transform: rotate(8deg) scale(1.05);
 }
 
+.auth-brand-custom-img {
+    height: 42px;
+    max-height: 42px;
+    width: auto;
+    max-width: 90px;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+.auth-brand:hover .auth-brand-custom-img {
+    transform: scale(1.05);
+}
+
 .auth-brand-text h2 {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.28rem;

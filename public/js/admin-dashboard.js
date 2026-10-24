@@ -9033,7 +9033,8 @@ function switchCmsTab(section) {
         { id: 'tabNavHomepage', panelId: 'cmsPanelHomepage', key: 'homepage' },
         { id: 'tabNavAbout', panelId: 'cmsPanelAbout', key: 'about_us' },
         { id: 'tabNavContact', panelId: 'cmsPanelContact', key: 'contact_us' },
-        { id: 'tabNavFooter', panelId: 'cmsPanelFooter', key: 'footer' }
+        { id: 'tabNavFooter', panelId: 'cmsPanelFooter', key: 'footer' },
+        { id: 'tabNavAuth', panelId: 'cmsPanelAuth', key: 'auth_page' }
     ];
 
     tabs.forEach(t => {
@@ -9195,6 +9196,38 @@ function populateCmsAllPanels() {
     setInputValue('cms_footer_about_text', ft.about_text || '');
     setInputValue('cms_footer_copyright', ft.copyright_text || '');
     setInputValue('cms_footer_tagline', ft.tagline || '');
+
+    // 5. Auth / Login Page
+    const auth = data.auth_page || {};
+    const insp = auth.inspiration || {};
+    setInputValue('cms_auth_kicker', insp.kicker || 'Church of God World Missions');
+
+    let authL1 = insp.title_line1 || '';
+    let authL2 = insp.title_line2 || '';
+    if (!authL1 && insp.title) {
+        if (insp.title.includes('<em>')) {
+            const match = insp.title.match(/^(.*?)\s*<em>(.*?)<\/em>/i);
+            if (match) {
+                authL1 = match[1].trim();
+                authL2 = match[2].trim();
+            } else {
+                authL1 = insp.title.replace(/<[^>]+>/g, '').trim();
+            }
+        } else if (insp.title.includes(',')) {
+            const parts = insp.title.split(',');
+            authL1 = parts[0].trim() + ',';
+            authL2 = parts.slice(1).join(',').trim();
+        } else {
+            authL1 = insp.title;
+        }
+    }
+    setInputValue('cms_auth_title_line1', authL1);
+    setInputValue('cms_auth_title_line2', authL2);
+    setInputValue('cms_auth_description', insp.description || '');
+    setInputValue('cms_auth_scripture_verse', insp.scripture_verse || '');
+    setInputValue('cms_auth_scripture_ref', insp.scripture_reference || '');
+    setInputValue('cms_auth_pillar_1', insp.trust_pillar_1 || (Array.isArray(insp.trust_pillars) ? insp.trust_pillars[0] : '') || '');
+    setInputValue('cms_auth_pillar_2', insp.trust_pillar_2 || (Array.isArray(insp.trust_pillars) ? insp.trust_pillars[1] : '') || '');
 }
 
 function setInputValue(id, val) {
@@ -9231,16 +9264,16 @@ function renderCmsScheduleTable(items) {
             </td>
             <td class="p-3 text-right">
                 <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                    <button type="button" class="btn-icon" onclick="moveScheduleItem(${index}, -1)" title="Move Up" ${index === 0 ? 'disabled style="opacity:0.3"' : ''}>
+                    <button type="button" class="btn-action btn-move" onclick="moveScheduleItem(${index}, -1)" title="Move Up" ${index === 0 ? 'disabled' : ''}>
                         <i class="fa-solid fa-arrow-up"></i>
                     </button>
-                    <button type="button" class="btn-icon" onclick="moveScheduleItem(${index}, 1)" title="Move Down" ${index === items.length - 1 ? 'disabled style="opacity:0.3"' : ''}>
+                    <button type="button" class="btn-action btn-move" onclick="moveScheduleItem(${index}, 1)" title="Move Down" ${index === items.length - 1 ? 'disabled' : ''}>
                         <i class="fa-solid fa-arrow-down"></i>
                     </button>
-                    <button type="button" class="btn-icon text-primary" onclick="openCmsScheduleModal(${index})" title="Edit Service">
+                    <button type="button" class="btn-action btn-edit" onclick="openCmsScheduleModal(${index})" title="Edit Service">
                         <i class="fa-solid fa-pen-to-square"></i>
                     </button>
-                    <button type="button" class="btn-icon text-danger" onclick="deleteScheduleItem(${index})" title="Delete Service">
+                    <button type="button" class="btn-action btn-delete" onclick="deleteScheduleItem(${index})" title="Delete Service">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
@@ -9816,6 +9849,43 @@ async function saveCurrentCmsSection() {
         ft.tagline = (document.getElementById('cms_footer_tagline')?.value || '').trim();
 
         payload = ft;
+
+    } else if (section === 'auth_page') {
+        const authData = window._cmsData.auth_page || {};
+        const kicker = (document.getElementById('cms_auth_kicker')?.value || '').trim();
+        const line1 = (document.getElementById('cms_auth_title_line1')?.value || '').trim();
+        const line2 = (document.getElementById('cms_auth_title_line2')?.value || '').trim();
+        let fullTitle = '';
+        if (line1 && line2) {
+            fullTitle = `${line1} <em>${line2}</em>`;
+        } else {
+            fullTitle = line1 || line2;
+        }
+        const description = (document.getElementById('cms_auth_description')?.value || '').trim();
+        const scriptureVerse = (document.getElementById('cms_auth_scripture_verse')?.value || '').trim();
+        const scriptureRef = (document.getElementById('cms_auth_scripture_ref')?.value || '').trim();
+        const pillar1 = (document.getElementById('cms_auth_pillar_1')?.value || '').trim();
+        const pillar2 = (document.getElementById('cms_auth_pillar_2')?.value || '').trim();
+
+        if (!line1 && !line2) {
+            showToast('Validation Error: Inspiration Heading cannot be empty.', 'error');
+            return;
+        }
+
+        authData.inspiration = {
+            kicker: kicker || 'Church of God World Missions',
+            title: fullTitle,
+            title_line1: line1,
+            title_line2: line2,
+            description,
+            scripture_verse: scriptureVerse,
+            scripture_reference: scriptureRef,
+            trust_pillar_1: pillar1,
+            trust_pillar_2: pillar2,
+            trust_pillars: [pillar1, pillar2].filter(Boolean)
+        };
+
+        payload = authData;
     }
 
     try {
@@ -9869,6 +9939,7 @@ function previewCurrentCmsPage() {
     if (section === 'about_us') url = '/views/history.html';
     else if (section === 'contact_us') url = '/views/contact.html';
     else if (section === 'footer') url = '/#welcome';
+    else if (section === 'auth_page') url = '/views/login.html';
 
     window.open(url, '_blank');
 }

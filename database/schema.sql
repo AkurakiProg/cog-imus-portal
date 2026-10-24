@@ -670,7 +670,8 @@ ON DUPLICATE KEY UPDATE `username` = VALUES(`username`);
 INSERT INTO `content_pages` (`page_key`, `title`, `body`, `is_published`, `updated_by`) VALUES
 ('church_history', 'Our Church History', '', 1, 1),
 ('mission_vision', 'Mission and Vision', '', 1, 1),
-('contact_info', 'Contact Information', '', 1, 1)
+('contact_info', 'Contact Information', '', 1, 1),
+('auth_page', 'Login & Authentication Page Content', '{"inspiration":{"kicker":"Church of God World Missions","title_line1":"A Place to Belong,","title_line2":"A Faith to Believe.","title":"A Place to Belong, <em>A Faith to Believe.</em>","description":"Welcome to the COG Imus Ministry Portal. Secure, unified access for our church administrators, ministry leaders, and faithful congregation.","scripture_verse":"For where two or three gather in My name, there am I with them.","scripture_reference":"Matthew 18:20 • Fellowship in Christ","trust_pillar_1":"End-to-End Secure SSL Session","trust_pillar_2":"Dedicated Admin, Leader & Member Portals"}}', 1, 1)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `body` = VALUES(`body`);
 
 INSERT INTO `finance_categories` (`category_id`, `category_name`, `category_type`, `description`) VALUES

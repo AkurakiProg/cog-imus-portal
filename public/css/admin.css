@@ -383,6 +383,42 @@ td.text-center, th.text-center {
     border-color: #ef4444 !important;
 }
 
+.btn-action.btn-move,
+.btn-move,
+.btn-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 4px 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    line-height: 1.4 !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    margin: 0 2px !important;
+}
+
+.btn-action.btn-move:hover,
+.btn-move:hover,
+.btn-icon:hover {
+    background: #e2e8f0 !important;
+    color: #1e293b !important;
+    border-color: #94a3b8 !important;
+}
+
+.btn-action[disabled],
+.btn-move[disabled],
+.btn-icon[disabled] {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
 /* Modal */
 .modal-overlay { 
     display: none; 

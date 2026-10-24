@@ -380,4 +380,153 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = '/';
         }
     }
+
+    // Hydrate dynamic login page content (logo, video, inspiration panel)
+    loadAuthPageDynamicContent();
+
+    // Listen for realtime storage pings from admin CMS updates
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'church_realtime_ping' && e.newValue) {
+            try {
+                const pingData = JSON.parse(e.newValue);
+                if (pingData.type === 'website_content' || pingData.type === 'content') {
+                    loadAuthPageDynamicContent();
+                }
+            } catch (err) {}
+        }
+    });
+
+    try {
+        const authBroadcastChannel = new BroadcastChannel('church_realtime_sync');
+        authBroadcastChannel.onmessage = (event) => {
+            const data = event.data;
+            if (data && (data.type === 'website_content' || data.type === 'content')) {
+                loadAuthPageDynamicContent();
+            }
+        };
+    } catch (e) {}
 });
+
+// ==================== DYNAMIC CMS LOGIN PAGE HYDRATION ====================
+function escapeAuthHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+async function loadAuthPageDynamicContent() {
+    try {
+        if (!window.api || !window.api.public || typeof window.api.public.getWebsiteContent !== 'function') {
+            return;
+        }
+
+        const res = await window.api.public.getWebsiteContent('all');
+        if (!res || !res.data) return;
+        const data = res.data;
+
+        // 1. Branding: Topbar Logo Icon
+        const hp = data.homepage || {};
+        const logoIcon = hp.logo_icon || data.site_branding?.top_logo;
+        const authBrand = document.querySelector('.auth-brand');
+        if (authBrand) {
+            const existingIcon = authBrand.querySelector('.auth-brand-icon, .auth-brand-custom-img');
+            if (logoIcon && logoIcon !== '/images/logo.png' && logoIcon !== '') {
+                if (existingIcon) {
+                    if (existingIcon.tagName === 'IMG') {
+                        existingIcon.src = encodeURI(logoIcon);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = encodeURI(logoIcon);
+                        img.alt = 'Church Logo';
+                        img.className = 'auth-brand-custom-img';
+                        existingIcon.replaceWith(img);
+                    }
+                }
+            } else {
+                if (existingIcon && existingIcon.tagName === 'IMG') {
+                    const div = document.createElement('div');
+                    div.className = 'auth-brand-icon';
+                    div.innerHTML = '<i class="fa-solid fa-cross"></i>';
+                    existingIcon.replaceWith(div);
+                }
+            }
+        }
+
+        // 2. Cinematic Background Video
+        if (hp.background_video && hp.background_video.video_url) {
+            const videoEl = document.getElementById('authVideo');
+            if (videoEl) {
+                const sourceEl = videoEl.querySelector('source');
+                const currentSrc = sourceEl ? sourceEl.getAttribute('src') : '';
+                if (currentSrc !== hp.background_video.video_url) {
+                    videoEl.innerHTML = `<source src="${encodeURI(hp.background_video.video_url)}" type="video/mp4">`;
+                    videoEl.load();
+                    videoEl.play().catch(() => {});
+                }
+            }
+        }
+
+        // 3. Left-Side Community Inspiration & Identity Panel
+        const authPage = data.auth_page || {};
+        const insp = authPage.inspiration || {};
+
+        // Kicker
+        const kickerEl = document.getElementById('authInspirationKicker');
+        if (kickerEl && insp.kicker) {
+            kickerEl.innerHTML = `<i class="fa-solid fa-cross"></i> <span>${escapeAuthHtml(insp.kicker)}</span>`;
+        }
+
+        // Main Title (Typography: Line 1 + Line 2 with <em>)
+        const titleEl = document.getElementById('authInspirationTitle');
+        if (titleEl) {
+            const l1 = insp.title_line1;
+            const l2 = insp.title_line2;
+            if (l1 && l2) {
+                titleEl.innerHTML = `${escapeAuthHtml(l1)} <em>${escapeAuthHtml(l2)}</em>`;
+            } else if (insp.title && insp.title.includes('<em>')) {
+                titleEl.innerHTML = insp.title;
+            } else if (insp.title && insp.title.includes(',')) {
+                const parts = insp.title.split(',');
+                const first = parts[0].trim() + ',';
+                const second = parts.slice(1).join(',').trim();
+                titleEl.innerHTML = `${escapeAuthHtml(first)} <em>${escapeAuthHtml(second)}</em>`;
+            } else if (insp.title) {
+                titleEl.textContent = insp.title;
+            }
+        }
+
+        // Narrative Description
+        const descEl = document.getElementById('authInspirationDesc');
+        if (descEl && insp.description) {
+            descEl.textContent = insp.description;
+        }
+
+        // Scripture Verse
+        const verseEl = document.getElementById('authInspirationScriptureVerse');
+        if (verseEl && insp.scripture_verse) {
+            verseEl.innerHTML = `&ldquo;${escapeAuthHtml(insp.scripture_verse)}&rdquo;`;
+        }
+
+        // Scripture Citation / Reference
+        const refEl = document.getElementById('authInspirationScriptureRef');
+        if (refEl && insp.scripture_reference) {
+            refEl.innerHTML = `&mdash; ${escapeAuthHtml(insp.scripture_reference)}`;
+        }
+
+        // Trust Pillars
+        const p1El = document.getElementById('authInspirationPillar1');
+        const p2El = document.getElementById('authInspirationPillar2');
+        const p1Val = insp.trust_pillar_1 || (Array.isArray(insp.trust_pillars) ? insp.trust_pillars[0] : null);
+        const p2Val = insp.trust_pillar_2 || (Array.isArray(insp.trust_pillars) ? insp.trust_pillars[1] : null);
+        if (p1El && p1Val) p1El.textContent = p1Val;
+        if (p2El && p2Val) p2El.textContent = p2Val;
+
+    } catch (err) {
+        console.warn('Failed to hydrate login dynamic content:', err);
+    }
+}
+window.loadAuthPageDynamicContent = loadAuthPageDynamicContent;

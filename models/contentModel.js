@@ -566,7 +566,7 @@ const ContentModel = {
     },
 
     async getAllWebsiteContent() {
-        const keys = ['homepage', 'about_us', 'contact_us', 'footer', 'site_branding'];
+        const keys = ['homepage', 'about_us', 'contact_us', 'footer', 'site_branding', 'auth_page'];
         const [rows] = await pool.query(
             `SELECT page_id, page_key, title, body, featured_image, updated_at 
              FROM content_pages WHERE page_key IN (?)`,
@@ -589,7 +589,8 @@ const ContentModel = {
             about_us: 'About Us Content',
             contact_us: 'Contact Us Content',
             footer: 'Footer Content',
-            site_branding: 'Site Branding & Logos'
+            site_branding: 'Site Branding & Logos',
+            auth_page: 'Login & Authentication Page Content'
         };
 
         if (!validKeys[sectionKey]) {
