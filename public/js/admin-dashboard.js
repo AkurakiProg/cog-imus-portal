@@ -978,9 +978,9 @@ function renderUsersTable(users) {
 
 async function verifyUser(id) {
     try {
-        showToast('Verifying account and sending email via Gmail...');
+        showToast('Sending verification email...');
         const res = await api.users.verify(id);
-        showToast(res.message || 'Account verified and email verification sent successfully!');
+        showToast(res.message || 'Verification email sent successfully!');
         await loadUsers();
     } catch (err) {
         showToast('Verification failed: ' + err.message);
@@ -989,7 +989,7 @@ async function verifyUser(id) {
 
 async function resendVerificationEmail(id) {
     try {
-        showToast('Sending verification email via Gmail...');
+        showToast('Sending verification email...');
         const res = await api.users.resendEmail(id);
         showToast(res.message || 'Verification email sent successfully!');
     } catch (err) {

@@ -9,17 +9,20 @@ exports.generateActivationLink = async (req, res) => {
     try {
         const userId = req.params.id;
         const token = crypto.randomBytes(32).toString('hex');
-        const expires = new Date(Date.now() + 3600000); // 1 hour expiry
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hour expiry
 
         await userAccountModel.setActivationToken(userId, token, expires);
         
         const user = await userAccountModel.getById(userId);
         if (user && user.email) {
+            const portalUrl = process.env.PORTAL_URL || `${req.protocol}://${req.get('host')}`;
+            const activationLink = `${portalUrl}/api/users/activate/${token}`;
             await emailService.sendAccountVerificationEmail({
                 to: user.email,
                 fullName: user.full_name,
                 username: user.username,
-                roleName: user.role_name
+                roleName: user.role_name,
+                activationLink: activationLink
             });
         }
 
@@ -157,20 +160,13 @@ exports.verifyUser = async (req, res) => {
 
         await userModel.logAudit(req.user.id, 'SEND_ACTIVATION_EMAIL', 'Users', id, null, { email: user.email }, req.ip, req.headers['user-agent']);
 
-        // Directly activate user in database so account is verified regardless of email timeout
-        await userAccountModel.activate(id);
-
         if (!emailSent) {
-            return successResponse(
-                res, 
-                { user_id: id, is_verified: 1, email_sent: false }, 
-                'Account verified successfully! (Note: Email notification timed out because Render Free Tier blocks outbound SMTP ports, but account is now fully active).'
-            );
+            return errorResponse(res, `Failed to deliver verification email: ${emailError || 'Email service error'}`, 500);
         }
 
         return successResponse(
             res, 
-            { user_id: id, is_verified: user.is_verified, email_sent: true }, 
+            { user_id: id, is_verified: 0, email_sent: true }, 
             `Verification email with activation link sent to ${user.email}! The user must click the link in their email to activate their account.`
         );
     } catch (error) {
