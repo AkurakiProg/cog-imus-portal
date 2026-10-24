@@ -353,6 +353,12 @@ exports.update = async (req, res) => {
         }
         
         const password = req.body.password ? req.body.password.trim() : null;
+        if (password && password.length > 0) {
+            if (password.length < 6 || password.length > 16) {
+                return errorResponse(res, 'Password must be between 6 and 16 characters.', 400);
+            }
+        }
+
         const profile_image = req.file ? `/uploads/profiles/${req.file.filename}` : null;
 
         let role_id = 3;
@@ -374,20 +380,6 @@ exports.update = async (req, res) => {
             is_verified, 
             profile_image 
         });
-
-        // Automatically log out user if their role has changed or their account was deactivated
-        const roleChanged = oldRoleId !== null && oldRoleId !== role_id;
-        const wasDeactivated = oldIsActive === 1 && is_active === 0;
-        if (roleChanged || wasDeactivated) {
-            await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [id]);
-            realtimeBus.broadcast('force_logout', {
-                user_id: id,
-                reason: roleChanged ? 'role_changed' : 'account_deactivated',
-                old_role_id: oldRoleId,
-                new_role_id: role_id,
-                role_name: role_name
-            });
-        }
 
         // Synchronize with linked member record
         await pool.execute(
@@ -437,21 +429,32 @@ exports.update = async (req, res) => {
         }
 
         // Strict password update logic
+        let passwordChanged = false;
         if (password && password.length > 0) {
-            if (password.length < 6 || password.length > 16) {
-                return errorResponse(res, 'Password must be between 6 and 16 characters.', 400);
-            }
             const salt = await bcrypt.genSalt(10);
             const passwordHash = await bcrypt.hash(password, salt);
             await userAccountModel.updatePassword(id, passwordHash);
-            await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [id]);
-            realtimeBus.broadcast('force_logout', {
-                user_id: id,
-                reason: 'password_changed'
-            });
+            passwordChanged = true;
         }
 
         await userModel.logAudit(req.user.id, 'UPDATE', 'Users', id, null, { username, email, role_name }, req.ip, req.headers['user-agent']);
+
+        // Check if role changed or account deactivated or password changed
+        const roleChanged = oldRoleId !== null && oldRoleId !== role_id;
+        const wasDeactivated = oldIsActive === 1 && is_active === 0;
+
+        // Invalidate session and broadcast ONLY AFTER all changes are completely saved to the database
+        if (roleChanged || wasDeactivated || passwordChanged) {
+            await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [id]);
+            const logoutReason = passwordChanged ? 'password_changed' : (roleChanged ? 'role_changed' : 'account_deactivated');
+            realtimeBus.broadcast('force_logout', {
+                user_id: id,
+                reason: logoutReason,
+                old_role_id: oldRoleId,
+                new_role_id: role_id,
+                role_name: role_name
+            });
+        }
         
         const msg = unassignedCount > 0 
             ? `User account updated and linked member automatically removed from ${unassignedCount} ministry roster(s) due to church role change to ${church_role}.`

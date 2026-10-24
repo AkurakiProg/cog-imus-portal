@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const app = require('../server');
 const { pool } = require('../config/database');
@@ -252,4 +253,65 @@ test('Password Change Auto-Logout: User updating their own password terminates a
     const data = await checkAfter.json();
     assert.equal(data.success, false);
     assert.match(data.message, /terminated/i);
+});
+
+test('Changes Persistence: When account role, password, and member details are updated causing force logout, all submitted data is committed and saved in the database before termination', async () => {
+    const sessionToken = uuidv4();
+    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = 4', [sessionToken]);
+    const memberToken = jwt.sign(
+        { id: 4, user_id: 4, username: 'Akuraki', role_id: 3, role_name: 'Church Member', sessionToken },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+    );
+
+    const checkBefore = await fetch(`${baseUrl}/api/auth/check-session`, {
+        headers: { Authorization: `Bearer ${memberToken}` }
+    });
+    assert.equal(checkBefore.status, 200);
+
+    // Update role (Member -> Leader), password, and member details simultaneously
+    const newSecretPassword = 'SecurePass99!';
+    const updateRes = await fetch(`${baseUrl}/api/users/4`, {
+        method: 'PUT',
+        headers: {
+            Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            username: 'Akuraki',
+            email: 'akuraki.saved@cogimus.local',
+            first_name: 'JairoSaved',
+            last_name: 'CardelSaved',
+            role_id: 2, // Changes to Church Leader
+            role_name: 'Church Leader',
+            password: newSecretPassword,
+            is_active: 1
+        })
+    });
+    assert.equal(updateRes.status, 200);
+
+    // 1. Verify user changes were committed to MySQL
+    const [userRows] = await pool.query('SELECT user_id, role_id, email, password_hash, current_session_token FROM users WHERE user_id = 4');
+    assert.equal(userRows.length, 1);
+    assert.equal(userRows[0].role_id, 2);
+    assert.equal(userRows[0].email, 'akuraki.saved@cogimus.local');
+    assert.equal(userRows[0].current_session_token, null); // Session terminated after save
+
+    // Verify password hash matches the submitted password
+    const passwordMatch = await bcrypt.compare(newSecretPassword, userRows[0].password_hash);
+    assert.equal(passwordMatch, true, 'New password hash must match the submitted password');
+
+    // 2. Verify synchronized member record was committed to MySQL
+    const [memberRows] = await pool.query('SELECT member_id, first_name, last_name, church_role, email FROM members WHERE user_id = 4');
+    assert.equal(memberRows.length, 1);
+    assert.equal(memberRows[0].church_role, 'Leader');
+    assert.equal(memberRows[0].first_name, 'JairoSaved');
+    assert.equal(memberRows[0].last_name, 'CardelSaved');
+    assert.equal(memberRows[0].email, 'akuraki.saved@cogimus.local');
+
+    // 3. Verify session was properly terminated for the old token
+    const checkAfter = await fetch(`${baseUrl}/api/auth/check-session`, {
+        headers: { Authorization: `Bearer ${memberToken}` }
+    });
+    assert.equal(checkAfter.status, 401);
 });

@@ -436,18 +436,19 @@ exports.updatePassword = async (req, res) => {
         const newHash = await bcrypt.hash(newPassword, salt);
 
         await userModel.updatePassword(req.user.id, newHash);
-        const { pool } = require('../config/database');
-        await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [req.user.id]);
-        realtimeBus.broadcast('force_logout', {
-            user_id: req.user.id,
-            reason: 'password_changed'
-        });
 
         await userModel.logAudit(
             req.user.id, 'UPDATE_PASSWORD', 'Auth', req.user.id,
             { message: 'Password updated' }, null,
             req.ip, req.headers['user-agent']
         );
+
+        const { pool } = require('../config/database');
+        await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [req.user.id]);
+        realtimeBus.broadcast('force_logout', {
+            user_id: req.user.id,
+            reason: 'password_changed'
+        });
 
         return successResponse(res, null, 'Password updated successfully.');
     } catch (error) {

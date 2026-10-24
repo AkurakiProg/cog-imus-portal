@@ -1132,13 +1132,21 @@ async function saveUser() {
             const res = await api.users.update(id, formData);
             showToast(res && res.message ? res.message : 'User account updated successfully!');
             
-            // Check if current logged-in user changed credentials
+            // Check if current logged-in user changed credentials, role, or active status
             const currentUser = JSON.parse(sessionStorage.getItem('church_user') || '{}');
-            if (currentUser && (currentUser.user_id == id || currentUser.id == id) && password) {
+            const isSelf = currentUser && (currentUser.user_id == id || currentUser.id == id);
+            const selectedRoleId = parseInt(document.getElementById('user_role_id').value, 10);
+            const selectedStatus = document.getElementById('user_is_active').value;
+            const roleChanged = currentUser.role_id !== undefined && selectedRoleId !== currentUser.role_id;
+            const deactivated = selectedStatus === '0';
+
+            if (isSelf && (password || roleChanged || deactivated)) {
+                closeUserModal();
+                const reason = password ? 'password_changed' : (roleChanged ? 'role_changed' : 'account_deactivated');
                 if (typeof triggerConcurrentLogout === 'function') {
-                    triggerConcurrentLogout('password_changed');
+                    triggerConcurrentLogout(reason);
                 } else {
-                    sessionStorage.setItem('auth_logout_reason', 'password_changed');
+                    sessionStorage.setItem('auth_logout_reason', reason);
                     window.location.href = '/views/login.html';
                 }
                 return;
@@ -1574,14 +1582,47 @@ async function saveMember() {
     }
 
     try {
+        let isSelf = false;
+        let selfReason = 'role_changed';
+        const currentUser = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+        const currentUserId = currentUser.user_id || currentUser.id;
+        const currentMemberId = currentUser.member_id;
+
         if (id) {
             const res = await api.members.update(id, data);
             showToast(res && res.message ? res.message : 'Member record updated successfully!');
+
+            const selectedRole = data.church_role;
+            const selectedStatus = data.status;
+            const roleChanged = currentUser.role_name && (
+                (selectedRole === 'Admin' && currentUser.role_id !== 1) ||
+                (selectedRole === 'Leader' && currentUser.role_id !== 2) ||
+                (selectedRole === 'Member' && currentUser.role_id !== 3)
+            );
+            const deactivated = selectedStatus === 'Inactive' || selectedStatus === 'Deceased';
+
+            if (currentUserId && (data.user_id == currentUserId || (currentMemberId && currentMemberId == id))) {
+                if (data.password || roleChanged || deactivated) {
+                    isSelf = true;
+                    selfReason = data.password ? 'password_changed' : (roleChanged ? 'role_changed' : 'account_deactivated');
+                }
+            }
         } else {
             const res = await api.members.create(data);
             showToast(res && res.message ? res.message : 'Member record added successfully!');
         }
         closeMemberModal();
+
+        if (isSelf) {
+            if (typeof triggerConcurrentLogout === 'function') {
+                triggerConcurrentLogout(selfReason);
+            } else {
+                sessionStorage.setItem('auth_logout_reason', selfReason);
+                window.location.href = '/views/login.html';
+            }
+            return;
+        }
+
         await loadMembers();
         await loadUsers(); // Keep users table in sync
         if (typeof loadMinistries === 'function') {

@@ -30,17 +30,21 @@ function detectThemeIsDark() {
 }
 
 let _isLoggingOut = false;
-function triggerConcurrentLogout(reason = 'concurrent_login') {
+let _activeRequestsCount = 0;
+
+async function triggerConcurrentLogout(reason = 'concurrent_login') {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
 
     sessionStorage.setItem('auth_logout_reason', reason);
-    sessionStorage.removeItem('church_token');
-    sessionStorage.removeItem('church_user');
-    localStorage.removeItem('church_token');
-    localStorage.removeItem('church_user');
 
-    if (window.location.href.includes('login.html')) return;
+    if (window.location.href.includes('login.html')) {
+        sessionStorage.removeItem('church_token');
+        sessionStorage.removeItem('church_user');
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
+        return;
+    }
 
     const isDark = detectThemeIsDark();
 
@@ -116,6 +120,24 @@ function triggerConcurrentLogout(reason = 'concurrent_login') {
         `;
         document.body.appendChild(overlay);
     }
+
+    // If an in-flight mutation/save request is running, wait for it to finish committing to the database
+    if (_activeRequestsCount > 0) {
+        await new Promise(resolve => {
+            const startWait = Date.now();
+            const checkTimer = setInterval(() => {
+                if (_activeRequestsCount <= 0 || Date.now() - startWait > 3000) {
+                    clearInterval(checkTimer);
+                    resolve();
+                }
+            }, 50);
+        });
+    }
+
+    sessionStorage.removeItem('church_token');
+    sessionStorage.removeItem('church_user');
+    localStorage.removeItem('church_token');
+    localStorage.removeItem('church_user');
 
     setTimeout(() => {
         window.location.href = '/views/login.html';
@@ -299,6 +321,7 @@ const api = {
         const config = { method, headers };
         if (body) config.body = JSON.stringify(body);
         
+        _activeRequestsCount++;
         let response;
         try {
             response = await fetch(`${API_BASE_URL}${endpoint}`, config);
@@ -324,6 +347,8 @@ const api = {
                 }
             }
             throw error;
+        } finally {
+            _activeRequestsCount = Math.max(0, _activeRequestsCount - 1);
         }
     },
 
@@ -336,6 +361,7 @@ const api = {
             else { window.location.href = '/views/login.html'; return; }
         }
 
+        _activeRequestsCount++;
         let response;
         try {
             response = await fetch(`${API_BASE_URL}${endpoint}`, { method, headers, body: formData });
@@ -361,6 +387,8 @@ const api = {
                 }
             }
             throw error;
+        } finally {
+            _activeRequestsCount = Math.max(0, _activeRequestsCount - 1);
         }
     },
 

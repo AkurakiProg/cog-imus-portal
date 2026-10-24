@@ -373,7 +373,14 @@ exports.updateMember = async (req, res) => {
             }
         }
 
-        // Automatically log out user if their role has changed, account was deactivated, or password was updated
+        const freshMember = await memberModel.getById(id);
+
+        await userModel.logAudit(
+            req.user.id, 'UPDATE', 'Members', id,
+            oldMember, freshMember, req.ip, req.headers['user-agent']
+        );
+
+        // Invalidate session and broadcast ONLY AFTER member, linked user, and audit logs are 100% saved
         const roleChanged = oldMember && updatedMember.church_role && oldMember.church_role !== updatedMember.church_role;
         const wasDeactivated = oldMember && oldMember.status === 'Active' && (updatedMember.status === 'Inactive' || updatedMember.status === 'Deceased');
         const passwordChanged = Boolean(password && password.length > 0);
@@ -389,13 +396,6 @@ exports.updateMember = async (req, res) => {
                 new_role: updatedMember.church_role
             });
         }
-
-        const freshMember = await memberModel.getById(id);
-
-        await userModel.logAudit(
-            req.user.id, 'UPDATE', 'Members', id,
-            oldMember, freshMember, req.ip, req.headers['user-agent']
-        );
 
         let msg = 'Member record and credentials updated successfully';
         if (unassignedCount > 0) {
