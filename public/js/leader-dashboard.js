@@ -1784,7 +1784,10 @@ function renderLeaderEventsTable(events) {
         return `
         <tr>
             <td class="p-4 font-medium text-navy">
-                <div style="font-weight: 600; font-size: 0.95rem;">${escapeHtml(e.title)}</div>
+                <div style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+                    ${escapeHtml(e.title)}
+                    ${e.is_featured == 1 ? '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-star text-2xs"></i>Featured</span>' : ''}
+                </div>
                 ${e.venue || e.location ? `<div style="font-size: 0.75rem; color: var(--text-light);"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(e.venue || e.location)}</div>` : ''}
             </td>
             <td class="p-4"><span class="badge ${getDeptBadgeClass(e.department)}">${escapeHtml(e.department || 'General')}</span></td>
@@ -1858,6 +1861,11 @@ async function viewLeaderEvent(id) {
         enrollBadge.innerHTML = event.is_enrollment_open == 1
             ? '<span class="badge" style="background: #10b981; color: #fff; font-size: 0.72rem; padding: 3px 8px; border-radius: 9999px;"><i class="fa-solid fa-circle-check mr-1"></i> Open</span>'
             : '<span class="badge" style="background: #64748b; color: #fff; font-size: 0.72rem; padding: 3px 8px; border-radius: 9999px;">Closed</span>';
+    }
+
+    const featBadge = document.getElementById('modalEventFeaturedBadge');
+    if (featBadge) {
+        featBadge.style.display = (event.is_featured == 1) ? 'inline-flex' : 'none';
     }
 
     document.getElementById('modalEventTitle').textContent = event.title;
@@ -6342,7 +6350,7 @@ function renderSermonsTable(sermons) {
                 </td>
                 <td class="p-4 text-xs" style="vertical-align: middle;">
                     ${s.is_published == 1 ? '<span class="badge badge-active text-2xs">Published</span>' : '<span class="badge badge-inactive text-2xs">Draft</span>'}
-                    ${s.is_featured == 1 ? '<span class="badge badge-info text-2xs ml-1 font-semibold">Featured</span>' : ''}
+                    ${s.is_featured == 1 ? '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; margin-left: 4px;"><i class="fa-solid fa-star text-2xs"></i>Featured</span>' : ''}
                 </td>
                 <td class="p-4 text-right" style="vertical-align: middle;">
                     <div class="action-btns-wrap" style="justify-content: flex-end;">

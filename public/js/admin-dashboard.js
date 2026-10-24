@@ -4371,7 +4371,10 @@ function renderEventsTable(events) {
         const canArchive = e.status === 'Completed' || e.status === 'Cancelled';
         return `
         <tr>
-            <td class="p-4 font-medium text-navy">${escapeHtml(e.title)}</td>
+            <td class="p-4 font-medium text-navy">
+                ${escapeHtml(e.title)}
+                ${e.is_featured == 1 ? '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;"><i class="fa-solid fa-star text-2xs"></i>Featured</span>' : ''}
+            </td>
             <td class="p-4"><span class="badge ${getDeptBadgeClass(e.department)}">${escapeHtml(e.department || 'General')}</span></td>
             <td class="p-4"><span class="badge ${e.ministry_name ? 'badge-ministry-pill' : 'badge-inactive'}">${escapeHtml(e.ministry_name || 'General Church')}</span></td>
             <td class="p-4"><span class="badge ${e.event_type === 'Seminary' ? 'badge-active' : 'badge-income'}">${escapeHtml(e.event_type)}</span></td>
@@ -6995,7 +6998,7 @@ function renderSermonsTable(sermons) {
                 </td>
                 <td class="p-4 text-xs" style="vertical-align: middle;">
                     ${s.is_published == 1 ? '<span class="badge badge-active text-2xs">Published</span>' : '<span class="badge badge-inactive text-2xs">Draft</span>'}
-                    ${s.is_featured == 1 ? '<span class="badge badge-info text-2xs ml-1 font-semibold">Featured</span>' : ''}
+                    ${s.is_featured == 1 ? '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; margin-left: 4px;"><i class="fa-solid fa-star text-2xs"></i>Featured</span>' : ''}
                 </td>
                 <td class="p-4 text-right" style="vertical-align: middle;">
                     <div class="action-btns-wrap" style="justify-content: flex-end;">
@@ -7641,6 +7644,8 @@ function viewEvent(id) {
             <li><span class="label">Venue</span> <span class="value">${escapeHtml(event.venue || 'N/A')}</span></li>
             <li><span class="label">Organizer</span> <span class="value">${escapeHtml(event.organizer || 'N/A')}</span></li>
             <li><span class="label">Capacity</span> <span class="value">${event.capacity || 'Unlimited'}</span></li>
+            <li><span class="label">Featured Event?</span> <span class="value">${event.is_featured == 1 ? '<span style="color: #d97706; font-weight: 700;"><i class="fa-solid fa-star mr-1"></i>Yes (Featured)</span>' : 'No'}</span></li>
+            <li><span class="label">Public Event?</span> <span class="value">${event.is_public == 1 ? 'Yes' : 'No'}</span></li>
             <li><span class="label">Enrollment Open?</span> <span class="value">${event.is_enrollment_open == 1 ? 'Yes' : 'No'}</span></li>
             <li><span class="label">Description</span> <span class="value" style="max-width: 300px; white-space: pre-wrap;">${escapeHtml(event.description || 'N/A')}</span></li>
         </ul>

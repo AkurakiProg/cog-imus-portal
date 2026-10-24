@@ -559,16 +559,26 @@
             }
 
             grid.classList.add('active');
-            window._publicSermonsList = sermons;
 
-            grid.innerHTML = sermons.map((s, idx) => {
+            // Prioritize featured sermons first, then sermon date
+            const sortedSermons = [...sermons].sort((a, b) => {
+                const featA = a.is_featured == 1 ? 1 : 0;
+                const featB = b.is_featured == 1 ? 1 : 0;
+                if (featB !== featA) return featB - featA;
+                return new Date(b.sermon_date) - new Date(a.sermon_date);
+            });
+
+            window._publicSermonsList = sortedSermons;
+
+            grid.innerHTML = sortedSermons.map((s, idx) => {
+                const isFeatured = s.is_featured == 1;
                 const videoId = extractYouTubeId(s.youtube_video_id || s.video_url || '');
                 const dateStr = s.sermon_date ? new Date(s.sermon_date).toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'}) : 'Date not set';
                 const thumbUrl = videoId ? `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=600&auto=format&fit=crop';
                 const ytWatchUrl = videoId ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}` : '#';
 
                 return `
-                <div class="card-public" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="card-public ${isFeatured ? 'is-featured-card' : ''}" style="display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <!-- Past Sermon Video Card: Clicking opens Pop-up Video Player -->
                         <div class="card-public-img-wrapper" onclick="openPublicSermonByIndex(${idx})" style="cursor: pointer;" title="Click to play sermon in pop-up video player">
@@ -578,10 +588,18 @@
                                     <i class="fa-solid fa-play" style="font-size: 1.6rem; color: #ffffff; margin-left: 3px;"></i>
                                 </div>
                             </div>
+                            ${isFeatured ? `
+                            <div style="position: absolute; top: 1rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; z-index: 10;">
+                                <span class="card-badge-pill badge-featured" style="position: static;"><i class="fa-solid fa-star"></i> Featured on Homepage</span>
+                                <span class="card-badge-pill badge-youtube" style="position: static;"><i class="fa-brands fa-youtube"></i> Past Sermon</span>
+                            </div>
+                            ` : `
                             <span class="card-badge-pill badge-youtube"><i class="fa-brands fa-youtube"></i> Past Sermon</span>
+                            `}
                         </div>
                         <div class="card-body">
                             <div class="card-meta" style="border-top: none; padding-top: 0; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem 1rem;">
+                                ${isFeatured ? `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px;"><i class="fa-solid fa-star text-2xs mr-1"></i>Featured on Homepage</span>` : ''}
                                 <span><i class="fa-solid fa-calendar-day" style="color: var(--gold);"></i> ${dateStr}</span>
                                 <span><i class="fa-solid fa-user-tie" style="color: var(--gold);"></i> ${escapeHtml(s.preacher || 'Pastor')}</span>
                                 ${s.scripture_reference ? `<span style="background: var(--surface-bg); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;"><i class="fa-solid fa-book-bible"></i> ${escapeHtml(s.scripture_reference)}</span>` : ''}

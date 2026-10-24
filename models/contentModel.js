@@ -64,10 +64,13 @@ const ContentModel = {
         const rawInput = video_url || youtube_video_id || '';
         const extractedId = extractYouTubeId(rawInput);
         const fullUrl = (rawInput && rawInput.includes('http')) ? rawInput : (extractedId ? `https://www.youtube.com/watch?v=${extractedId}` : '');
+        const cleanLive = (is_live === 1 || is_live === '1' || is_live === true || is_live === 'true') ? 1 : 0;
+        const cleanFeatured = (is_featured === 1 || is_featured === '1' || is_featured === true || is_featured === 'true') ? 1 : 0;
+        const cleanPublished = (is_published === 1 || is_published === '1' || is_published === true || is_published === 'true') ? 1 : 0;
         const [result] = await pool.execute(
             `INSERT INTO sermons (title, description, youtube_video_id, video_url, preacher, sermon_date, scripture_reference, series_name, is_live, is_featured, is_published) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [title, description || null, extractedId, fullUrl || null, preacher, sermon_date, scripture_reference || null, series_name || null, is_live ? 1 : 0, is_featured ? 1 : 0, is_published ? 1 : 0]
+            [title, description || null, extractedId, fullUrl || null, preacher, sermon_date, scripture_reference || null, series_name || null, cleanLive, cleanFeatured, cleanPublished]
         );
         return result.insertId;
     },
@@ -77,9 +80,12 @@ const ContentModel = {
         const rawInput = video_url || youtube_video_id || '';
         const extractedId = extractYouTubeId(rawInput);
         const fullUrl = (rawInput && rawInput.includes('http')) ? rawInput : (extractedId ? `https://www.youtube.com/watch?v=${extractedId}` : '');
+        const cleanLive = (is_live === 1 || is_live === '1' || is_live === true || is_live === 'true') ? 1 : 0;
+        const cleanFeatured = (is_featured === 1 || is_featured === '1' || is_featured === true || is_featured === 'true') ? 1 : 0;
+        const cleanPublished = (is_published === 1 || is_published === '1' || is_published === true || is_published === 'true') ? 1 : 0;
         await pool.execute(
             `UPDATE sermons SET title = ?, description = ?, youtube_video_id = ?, video_url = ?, preacher = ?, sermon_date = ?, scripture_reference = ?, series_name = ?, is_live = ?, is_featured = ?, is_published = ? WHERE sermon_id = ?`,
-            [title, description || null, extractedId, fullUrl || null, preacher, sermon_date, scripture_reference || null, series_name || null, is_live ? 1 : 0, is_featured ? 1 : 0, is_published ? 1 : 0, id]
+            [title, description || null, extractedId, fullUrl || null, preacher, sermon_date, scripture_reference || null, series_name || null, cleanLive, cleanFeatured, cleanPublished, id]
         );
     },
 

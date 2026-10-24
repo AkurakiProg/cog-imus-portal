@@ -153,26 +153,43 @@
 
             grid.classList.add('active');
 
-            grid.innerHTML = events.map(e => {
+            // Prioritize featured events first, then start datetime
+            const sortedEvents = [...events].sort((a, b) => {
+                const featA = a.is_featured == 1 ? 1 : 0;
+                const featB = b.is_featured == 1 ? 1 : 0;
+                if (featB !== featA) return featB - featA;
+                return new Date(a.start_datetime) - new Date(b.start_datetime);
+            });
+
+            grid.innerHTML = sortedEvents.map(e => {
+                const isFeatured = e.is_featured == 1;
                 const d = new Date(e.start_datetime);
                 const mStr = monthNames[d.getMonth()] || 'EVT';
                 const dStr = d.getDate() || '1';
                 const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 return `
-                <div class="card-public" onclick="openEventDetailsModal(${e.event_id})" style="cursor: pointer;" title="Click to view event details">
+                <div class="card-public ${isFeatured ? 'is-featured-card' : ''}" onclick="openEventDetailsModal(${e.event_id})" style="cursor: pointer;" title="Click to view event details">
                     <div class="card-public-img-wrapper" style="${e.banner_image ? `background-image: linear-gradient(to bottom, rgba(6, 23, 48, 0.35), rgba(6, 23, 48, 0.65)), url('${escapeHtml(e.banner_image)}'); background-size: cover; background-position: center;` : 'background: linear-gradient(135deg, var(--navy) 0%, #1c456f 100%);'} display: flex; align-items: center; justify-content: center; position: relative;">
                         <div class="event-date-block">
                             <div class="month">${mStr}</div>
                             <div class="day">${dStr}</div>
                         </div>
                         ${!e.banner_image ? '<i class="fa-solid fa-church" style="font-size: 4rem; color: rgba(201, 169, 97, 0.35);"></i>' : ''}
+                        ${isFeatured ? `
+                        <div style="position: absolute; top: 1rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; z-index: 10;">
+                            <span class="card-badge-pill badge-featured" style="position: static;"><i class="fa-solid fa-star"></i> Featured Event</span>
+                            <span class="card-badge-pill" style="position: static; font-size: 0.7rem; padding: 0.25rem 0.65rem;">${escapeHtml(e.event_type || 'Gathering')}</span>
+                        </div>
+                        ` : `
                         <span class="card-badge-pill">${escapeHtml(e.event_type || 'Gathering')}</span>
+                        `}
                     </div>
                     <div class="card-body">
                         <h3>${escapeHtml(e.title)}</h3>
                         <p>${escapeHtml(e.description) || 'Join us for this church gathering and fellowship.'}</p>
                         <div class="card-meta">
+                            ${isFeatured ? `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px;"><i class="fa-solid fa-star text-2xs mr-1"></i>Featured</span>` : ''}
                             <span><i class="fa-solid fa-clock"></i> ${timeStr}</span>
                             <span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(e.venue || 'COG Imus Sanctuary')}</span>
                         </div>
@@ -223,6 +240,10 @@
             // Populate Modal Content
             document.getElementById('evtModalTitle').textContent = e.title || 'Church Event';
             document.getElementById('evtModalType').textContent = e.event_type || 'Gathering';
+            const featBadge = document.getElementById('evtModalFeaturedBadge');
+            if (featBadge) {
+                featBadge.style.display = (e.is_featured == 1) ? 'inline-flex' : 'none';
+            }
             document.getElementById('evtModalDate').textContent = dateStr;
             document.getElementById('evtModalTime').textContent = timeRange;
             document.getElementById('evtModalVenue').textContent = e.venue || 'COG Imus Main Sanctuary';
@@ -299,6 +320,7 @@
                 <button type="button" class="btn-close-modal" onclick="closeEventDetailsModal()" style="position: absolute; top: 1rem; right: 1rem; width: 34px; height: 34px; border-radius: 50%; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.25); color: #ffffff; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Close Details">&times;</button>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     <span id="evtModalType" style="background: var(--gold, #c9a961); color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">Gathering</span>
+                    <span id="evtModalFeaturedBadge" style="display: none; background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 9999px; letter-spacing: 0.5px;"><i class="fa-solid fa-star mr-1"></i> Featured Event</span>
                     <span id="evtModalEnrollBadge" style="display: none; background: #10b981; color: #ffffff; font-size: 0.75rem; font-weight: 600; padding: 0.3rem 0.75rem; border-radius: 9999px;">Registration Open</span>
                 </div>
             </div>

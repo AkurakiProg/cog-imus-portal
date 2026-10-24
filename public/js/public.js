@@ -286,10 +286,10 @@ function openPublicSermonByIndex(index) {
     if (!s) return;
     const videoId = extractYouTubeId(s.youtube_video_id || s.video_url || '');
     const dateStr = s.sermon_date ? new Date(s.sermon_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : 'Recent';
-    openPublicVideoModal(videoId, s.title, s.preacher || 'Pastor', dateStr, s.scripture_reference || '', s.description || '');
+    openPublicVideoModal(videoId, s.title, s.preacher || 'Pastor', dateStr, s.scripture_reference || '', s.description || '', s.is_featured == 1);
 }
 
-function openPublicVideoModal(videoId, title, preacher, dateStr, scripture, description) {
+function openPublicVideoModal(videoId, title, preacher, dateStr, scripture, description, isFeatured = false) {
     if (!videoId) return;
     let modal = document.getElementById('publicVideoModal');
     if (!modal) {
@@ -340,6 +340,7 @@ function openPublicVideoModal(videoId, title, preacher, dateStr, scripture, desc
 
     if (metaEl) {
         metaEl.innerHTML = `
+            ${isFeatured ? `<span style="background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); padding: 1px 8px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-star text-2xs"></i> Featured on Homepage</span>` : ''}
             ${dateStr ? `<span><i class="fa-solid fa-calendar-day" style="color: var(--gold);"></i> ${escapeHtml(dateStr)}</span>` : ''}
             ${preacher ? `<span><i class="fa-solid fa-user-tie" style="color: var(--gold);"></i> ${escapeHtml(preacher)}</span>` : ''}
             ${scripture ? `<span style="background: rgba(255,255,255,0.1); padding: 1px 8px; border-radius: 4px; font-weight: 600;"><i class="fa-solid fa-book-bible"></i> ${escapeHtml(scripture)}</span>` : ''}
@@ -389,15 +390,24 @@ async function loadHomeSermons() {
             grid.innerHTML = '<div style="text-align: center; grid-column: 1/-1; padding: 3rem; background: var(--white); border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted);"><i class="fa-solid fa-video" style="font-size: 2.5rem; color: var(--gold); margin-bottom: 1rem; display: block;"></i>No past sermons available at this time. Check back soon!</div>'; 
             return; 
         }
-        
-        window._publicSermonsList = res.data.slice(0, 3);
+
+        // Prioritize featured sermons first, then newest sermon_date
+        const sorted = [...res.data].sort((a, b) => {
+            const featA = a.is_featured == 1 ? 1 : 0;
+            const featB = b.is_featured == 1 ? 1 : 0;
+            if (featB !== featA) return featB - featA;
+            return new Date(b.sermon_date) - new Date(a.sermon_date);
+        });
+
+        window._publicSermonsList = sorted.slice(0, 3);
         grid.innerHTML = window._publicSermonsList.map((s, idx) => {
+            const isFeatured = s.is_featured == 1;
             const videoId = extractYouTubeId(s.youtube_video_id || s.video_url || '');
             const dateStr = s.sermon_date ? new Date(s.sermon_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : 'Recent';
             const thumbUrl = videoId ? `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=600&auto=format&fit=crop';
             const ytWatchUrl = videoId ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}` : '#';
             return `
-            <div class="card-public" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-public ${isFeatured ? 'is-featured-card' : ''}" style="display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
                     <div class="card-public-img-wrapper" onclick="openPublicSermonByIndex(${idx})" style="cursor: pointer;" title="Play Sermon Video">
                         <img src="${thumbUrl}" alt="${escapeHtml(s.title)}" onerror="this.src='https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=600&auto=format&fit=crop'">
@@ -406,10 +416,18 @@ async function loadHomeSermons() {
                                 <i class="fa-solid fa-play" style="font-size: 1.6rem; color: #ffffff; margin-left: 3px;"></i>
                             </div>
                         </div>
+                        ${isFeatured ? `
+                        <div style="position: absolute; top: 1rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; z-index: 10;">
+                            <span class="card-badge-pill badge-featured" style="position: static;"><i class="fa-solid fa-star"></i> Featured on Homepage</span>
+                            <span class="card-badge-pill badge-youtube" style="position: static;"><i class="fa-brands fa-youtube"></i> Past Sermon</span>
+                        </div>
+                        ` : `
                         <span class="card-badge-pill badge-youtube"><i class="fa-brands fa-youtube"></i> Past Sermon</span>
+                        `}
                     </div>
                     <div class="card-body">
                         <div class="card-meta" style="border-top: none; padding-top: 0; margin-bottom: 0.75rem;">
+                            ${isFeatured ? `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px;"><i class="fa-solid fa-star text-2xs mr-1"></i>Featured</span>` : ''}
                             <span><i class="fa-solid fa-calendar-day"></i> ${dateStr}</span>
                             <span><i class="fa-solid fa-user-tie"></i> ${escapeHtml(s.preacher || 'Pastor')}</span>
                         </div>
@@ -446,29 +464,46 @@ async function loadHomeEvents() {
             grid.innerHTML = '<div style="text-align: center; grid-column: 1/-1; padding: 3rem; background: var(--white); border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted);"><i class="fa-solid fa-calendar-xmark" style="font-size: 2.5rem; color: var(--gold); margin-bottom: 1rem; display: block;"></i>No upcoming events scheduled right now. Check back soon!</div>'; 
             return; 
         }
+
+        // Prioritize featured events first, then upcoming dates
+        homeEventsCache.sort((a, b) => {
+            const featA = a.is_featured == 1 ? 1 : 0;
+            const featB = b.is_featured == 1 ? 1 : 0;
+            if (featB !== featA) return featB - featA;
+            return new Date(a.start_datetime) - new Date(b.start_datetime);
+        });
         
         const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
         grid.innerHTML = homeEventsCache.slice(0, 3).map(e => {
+            const isFeatured = e.is_featured == 1;
             const d = new Date(e.start_datetime);
             const mStr = monthNames[d.getMonth()] || 'EVT';
             const dStr = d.getDate() || '1';
             const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             return `
-            <div class="card-public card-clickable" onclick="openHomeEventModal(${e.event_id})" role="button" tabindex="0" title="Click to view details for ${escapeHtml(e.title)}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openHomeEventModal(${e.event_id});}">
+            <div class="card-public card-clickable ${isFeatured ? 'is-featured-card' : ''}" onclick="openHomeEventModal(${e.event_id})" role="button" tabindex="0" title="Click to view details for ${escapeHtml(e.title)}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openHomeEventModal(${e.event_id});}">
                 <div class="card-public-img-wrapper" style="${e.banner_image ? `background-image: linear-gradient(to bottom, rgba(6, 23, 48, 0.35), rgba(6, 23, 48, 0.65)), url('${escapeHtml(e.banner_image)}'); background-size: cover; background-position: center;` : 'background: linear-gradient(135deg, var(--navy) 0%, #1e4976 100%);'} display: flex; align-items: center; justify-content: center; position: relative;">
                     <div class="event-date-block">
                         <div class="month">${mStr}</div>
                         <div class="day">${dStr}</div>
                     </div>
                     ${!e.banner_image ? '<i class="fa-solid fa-church" style="font-size: 4rem; color: rgba(201, 169, 97, 0.35);"></i>' : ''}
+                    ${isFeatured ? `
+                    <div style="position: absolute; top: 1rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; z-index: 10;">
+                        <span class="card-badge-pill badge-featured" style="position: static;"><i class="fa-solid fa-star"></i> Featured Event</span>
+                        <span class="card-badge-pill" style="position: static; font-size: 0.7rem; padding: 0.25rem 0.65rem;">${escapeHtml(e.event_type || 'Event')}</span>
+                    </div>
+                    ` : `
                     <span class="card-badge-pill">${escapeHtml(e.event_type || 'Event')}</span>
+                    `}
                 </div>
                 <div class="card-body">
                     <h3>${escapeHtml(e.title)}</h3>
                     <p>${escapeHtml(e.description) || 'Join us for this special church event. Everyone is welcome!'}</p>
                     <div class="card-meta">
+                        ${isFeatured ? `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px;"><i class="fa-solid fa-star text-2xs mr-1"></i>Featured</span>` : ''}
                         <span><i class="fa-solid fa-clock"></i> ${timeStr}</span>
                         <span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(e.venue || 'COG Imus Sanctuary')}</span>
                     </div>
@@ -514,6 +549,11 @@ function openHomeEventModal(eventId) {
 
     const typeEl = document.getElementById('evtModalType');
     if (typeEl) typeEl.textContent = e.event_type || 'Gathering';
+
+    const featBadge = document.getElementById('evtModalFeaturedBadge');
+    if (featBadge) {
+        featBadge.style.display = (e.is_featured == 1) ? 'inline-flex' : 'none';
+    }
 
     const dateEl = document.getElementById('evtModalDate');
     if (dateEl) dateEl.textContent = dateStr;

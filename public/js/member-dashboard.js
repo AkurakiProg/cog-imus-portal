@@ -583,6 +583,7 @@ function renderDashboardEventsSpotlight(events) {
                     <div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2px;">
                             <strong style="color: var(--navy); font-size: 0.95rem;">${escapeHtml(e.title)}</strong>
+                            ${e.is_featured == 1 ? '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.65rem; font-weight: 600; padding: 1px 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-star text-2xs"></i>Featured</span>' : ''}
                             <span class="badge" style="font-size: 0.65rem; background: ${isSeminary ? '#fffbeb' : '#f1f5f9'}; color: ${isSeminary ? '#b45309' : '#1e293b'}; border: 1px solid ${isSeminary ? '#fde68a' : '#cbd5e1'};">
                                 ${escapeHtml(e.event_type || 'Event')}
                             </span>
@@ -1891,7 +1892,10 @@ function renderMemberEvents(events) {
                             <i class="fa-solid ${isSeminary ? 'fa-graduation-cap' : 'fa-calendar-day'}"></i>
                         </div>
                         <div>
-                            <span style="color: var(--navy); font-size: 0.95rem; font-weight: 700; display: block;">${escapeHtml(e.title)}</span>
+                            <span style="color: var(--navy); font-size: 0.95rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+                                ${escapeHtml(e.title)}
+                                ${e.is_featured == 1 ? '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.65rem; font-weight: 600; padding: 1px 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-star text-2xs"></i>Featured</span>' : ''}
+                            </span>
                             ${e.speaker ? `<span class="text-xs text-slate-500"><i class="fa-solid fa-user-tie mr-1 text-slate-400"></i>${escapeHtml(e.speaker)}</span>` : ''}
                         </div>
                     </div>
@@ -1965,6 +1969,11 @@ function openMemberEventDetailModal(eventId) {
         enrollBadge.innerHTML = e.is_enrollment_open == 1
             ? '<span class="badge" style="background: #10b981; color: #fff; font-size: 0.72rem; padding: 3px 8px; border-radius: 9999px;"><i class="fa-solid fa-circle-check mr-1"></i> Open</span>'
             : '<span class="badge" style="background: #64748b; color: #fff; font-size: 0.72rem; padding: 3px 8px; border-radius: 9999px;">Closed</span>';
+    }
+
+    const featBadge = document.getElementById('memberModalEventFeaturedBadge');
+    if (featBadge) {
+        featBadge.style.display = (e.is_featured == 1) ? 'inline-flex' : 'none';
     }
 
     const titleEl = document.getElementById('memberModalEventTitle');

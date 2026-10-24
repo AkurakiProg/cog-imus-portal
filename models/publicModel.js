@@ -11,13 +11,13 @@ const PublicModel = {
     async getSermons(limit = 50) {
         if (limit) {
             const [rows] = await pool.execute(
-                `SELECT * FROM sermons WHERE is_published = 1 ORDER BY sermon_date DESC LIMIT ?`,
+                `SELECT * FROM sermons WHERE is_published = 1 ORDER BY is_featured DESC, sermon_date DESC LIMIT ?`,
                 [String(limit)]
             );
             return rows;
         }
         const [rows] = await pool.execute(
-            `SELECT * FROM sermons WHERE is_published = 1 ORDER BY sermon_date DESC`
+            `SELECT * FROM sermons WHERE is_published = 1 ORDER BY is_featured DESC, sermon_date DESC`
         );
         return rows;
     },
@@ -33,7 +33,7 @@ const PublicModel = {
 
     async getEvents(limit = 100) {
         const [rows] = await pool.execute(
-            `SELECT * FROM events WHERE is_public = 1 AND status IN ('Upcoming', 'Ongoing') ORDER BY start_datetime ASC LIMIT ?`,
+            `SELECT * FROM events WHERE is_public = 1 AND status IN ('Upcoming', 'Ongoing') ORDER BY is_featured DESC, start_datetime ASC LIMIT ?`,
             [String(limit)]
         );
         return rows;
