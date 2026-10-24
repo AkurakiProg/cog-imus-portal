@@ -340,7 +340,7 @@ function openPublicVideoModal(videoId, title, preacher, dateStr, scripture, desc
 
     if (metaEl) {
         metaEl.innerHTML = `
-            ${isFeatured ? `<span style="background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); padding: 1px 8px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-star text-2xs"></i> Featured on Homepage</span>` : ''}
+            ${isFeatured ? `<span style="background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); padding: 1px 8px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-star text-2xs"></i> Featured </span>` : ''}
             ${dateStr ? `<span><i class="fa-solid fa-calendar-day" style="color: var(--gold);"></i> ${escapeHtml(dateStr)}</span>` : ''}
             ${preacher ? `<span><i class="fa-solid fa-user-tie" style="color: var(--gold);"></i> ${escapeHtml(preacher)}</span>` : ''}
             ${scripture ? `<span style="background: rgba(255,255,255,0.1); padding: 1px 8px; border-radius: 4px; font-weight: 600;"><i class="fa-solid fa-book-bible"></i> ${escapeHtml(scripture)}</span>` : ''}
@@ -418,7 +418,7 @@ async function loadHomeSermons() {
                         </div>
                         ${isFeatured ? `
                         <div style="position: absolute; top: 1rem; right: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; z-index: 10;">
-                            <span class="card-badge-pill badge-featured" style="position: static;"><i class="fa-solid fa-star"></i> Featured on Homepage</span>
+                            <span class="card-badge-pill badge-featured" style="position: static;"><i class="fa-solid fa-star"></i> Featured </span>
                             <span class="card-badge-pill badge-youtube" style="position: static;"><i class="fa-brands fa-youtube"></i> Past Sermon</span>
                         </div>
                         ` : `
