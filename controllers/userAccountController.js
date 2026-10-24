@@ -31,7 +31,7 @@ exports.generateActivationLink = async (req, res) => {
 
 exports.activateAccount = async (req, res) => {
     try {
-        const token = req.params.token;
+        const token = (req.params.token || '').trim();
         if (!token) {
             return res.redirect('/views/login.html?verified=invalid');
         }
@@ -40,6 +40,12 @@ exports.activateAccount = async (req, res) => {
         
         if (!user) {
             return res.redirect('/views/login.html?verified=invalid');
+        }
+
+        // If user is already active and verified (e.g. iOS Safari preview, email scanner, or double-click),
+        // redirect straight to success so the user sees a confirmation rather than an invalid link error.
+        if (user.is_verified === 1 && user.is_active === 1) {
+            return res.redirect('/views/login.html?verified=success');
         }
 
         if (user.activation_token_expires && new Date(user.activation_token_expires) < new Date()) {

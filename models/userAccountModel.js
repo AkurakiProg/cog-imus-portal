@@ -129,7 +129,7 @@ const UserAccountModel = {
     async activateUserByToken(token) {
         const [result] = await pool.execute(
             `UPDATE users 
-             SET is_verified = 1, is_active = 1, activation_token = NULL, activation_token_expires = NULL 
+             SET is_verified = 1, is_active = 1 
              WHERE activation_token = ?`,
             [token]
         );

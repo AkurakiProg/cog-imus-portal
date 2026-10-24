@@ -37,7 +37,7 @@ const UserModel = {
 
     async updateSessionToken(userId, sessionToken) {
         await pool.execute(
-            `UPDATE users SET current_session_token = ? WHERE user_id = ?`,
+            `UPDATE users SET current_session_token = ?, activation_token = NULL, activation_token_expires = NULL WHERE user_id = ?`,
             [sessionToken, userId]
         );
     },

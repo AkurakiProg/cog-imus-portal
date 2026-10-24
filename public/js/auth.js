@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showAlert('⚠️ This verification link has expired (valid for 24 hours). Please request a new activation link.', 'error');
         window.history.replaceState({}, document.title, window.location.pathname);
     } else if (verifiedStatus === 'invalid') {
-        showAlert('❌ Invalid activation link. Please ensure you used the correct link or contact the administrator.', 'error');
+        showAlert('ℹ️ This activation link is invalid or has already been used. If your account is already active, please sign in below.', 'error');
         window.history.replaceState({}, document.title, window.location.pathname);
     } else if (verifiedStatus === 'error') {
         showAlert('❌ An error occurred during account activation. Please try again or contact the administrator.', 'error');
