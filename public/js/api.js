@@ -25,6 +25,12 @@ function triggerConcurrentLogout(reason = 'concurrent_login') {
         icon = '<i class="fa-solid fa-power-off"></i>';
         iconBg = '#fef3c7';
         iconColor = '#d97706';
+    } else if (reason === 'role_changed') {
+        title = 'Account Role Updated';
+        message = 'Your account role has been changed by Church Administration (e.g. Member to Leader). Please log in again to access your updated dashboard and permissions.';
+        icon = '<i class="fa-solid fa-user-shield"></i>';
+        iconBg = '#eff6ff';
+        iconColor = '#2563eb';
     } else if (reason === 'unauthorized') {
         title = 'Session Expired';
         message = 'Your session has expired or is invalid. Please log in again to continue.';
@@ -35,17 +41,21 @@ function triggerConcurrentLogout(reason = 'concurrent_login') {
 
     let existingOverlay = document.getElementById('session-terminated-overlay');
     if (!existingOverlay) {
+        const isDark = document.body && document.body.classList.contains('dark-mode');
+        const modalBg = isDark ? '#1e293b' : 'white';
+        const titleColor = isDark ? '#f8fafc' : '#0f172a';
+        const descColor = isDark ? '#94a3b8' : '#64748b';
         const overlay = document.createElement('div');
         overlay.id = 'session-terminated-overlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.88);z-index:9999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);font-family:Inter,system-ui,-apple-system,sans-serif;';
         overlay.innerHTML = `
-            <div style="background:white;padding:32px;border-radius:14px;max-width:440px;width:90%;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
+            <div style="background:${modalBg};padding:32px;border-radius:14px;max-width:440px;width:90%;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);border:1px solid ${isDark ? '#334155' : 'transparent'};">
                 <div style="width:64px;height:64px;background:${iconBg};color:${iconColor};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">
                     ${icon}
                 </div>
-                <h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:#0f172a;">${title}</h3>
-                <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.5;">${message}</p>
-                <div style="display:inline-block;padding:10px 20px;background:#0f172a;color:white;font-weight:600;font-size:14px;border-radius:8px;">Redirecting to Login...</div>
+                <h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:${titleColor};">${title}</h3>
+                <p style="margin:0 0 20px;color:${descColor};font-size:14px;line-height:1.5;">${message}</p>
+                <div style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;font-weight:600;font-size:14px;border-radius:8px;">Redirecting to Login...</div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -75,7 +85,9 @@ async function checkSessionStatus() {
         if (res.status === 401) {
             const data = await res.json().catch(() => ({}));
             const msg = data.message || '';
-            if (msg.includes('another browser') || msg.includes('Session terminated')) {
+            if (msg.toLowerCase().includes('role')) {
+                triggerConcurrentLogout('role_changed');
+            } else if (msg.includes('another browser') || msg.includes('Session terminated')) {
                 triggerConcurrentLogout('concurrent_login');
             } else {
                 triggerConcurrentLogout('unauthorized');
@@ -129,6 +141,50 @@ function startSessionWatchdog() {
             triggerConcurrentLogout('unauthorized');
         }
     });
+
+    // 5. Instant realtime force_logout listener for role changes or deactivations
+    const handleForceLogoutEvent = (payload) => {
+        if (!payload) return;
+        const type = payload.type;
+        const data = payload.data || payload;
+        if (type === 'force_logout') {
+            const targetUserId = data.user_id || payload.user_id;
+            let currentUserId = null;
+            try {
+                const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+                currentUserId = u.user_id || u.id;
+            } catch (err) {}
+            if (currentUserId && targetUserId && String(currentUserId) === String(targetUserId)) {
+                triggerConcurrentLogout(data.reason || 'role_changed');
+            }
+        }
+    };
+
+    if (typeof BroadcastChannel !== 'undefined') {
+        try {
+            const bc = new BroadcastChannel('church_realtime_channel');
+            bc.onmessage = (e) => handleForceLogoutEvent(e.data);
+        } catch (bcErr) {}
+    }
+
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'church_realtime_ping' && e.newValue) {
+            try {
+                handleForceLogoutEvent(JSON.parse(e.newValue));
+            } catch (err) {}
+        }
+    });
+
+    if (typeof EventSource !== 'undefined') {
+        try {
+            const es = new EventSource('/api/realtime/stream');
+            es.onmessage = (e) => {
+                try {
+                    handleForceLogoutEvent(JSON.parse(e.data));
+                } catch (err) {}
+            };
+        } catch (esErr) {}
+    }
 
     checkSessionStatus();
 }
@@ -199,7 +255,9 @@ const api = {
                     triggerConcurrentLogout('server_offline');
                 }
             } else if (response.status === 401) {
-                if (error.message && (error.message.includes('another browser or device') || error.message.includes('Session terminated'))) {
+                if (error.message && error.message.toLowerCase().includes('role')) {
+                    triggerConcurrentLogout('role_changed');
+                } else if (error.message && (error.message.includes('another browser or device') || error.message.includes('Session terminated'))) {
                     triggerConcurrentLogout('concurrent_login');
                 } else {
                     triggerConcurrentLogout('unauthorized');
@@ -232,7 +290,9 @@ const api = {
                     triggerConcurrentLogout('server_offline');
                 }
             } else if (response.status === 401) {
-                if (error.message && (error.message.includes('another browser or device') || error.message.includes('Session terminated'))) {
+                if (error.message && error.message.toLowerCase().includes('role')) {
+                    triggerConcurrentLogout('role_changed');
+                } else if (error.message && (error.message.includes('another browser or device') || error.message.includes('Session terminated'))) {
                     triggerConcurrentLogout('concurrent_login');
                 } else {
                     triggerConcurrentLogout('unauthorized');

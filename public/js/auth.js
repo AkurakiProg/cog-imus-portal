@@ -47,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (logoutReason === 'server_offline') {
         sessionStorage.removeItem('auth_logout_reason');
         showAlert('Notice: You were automatically logged out because the server was turned off or disconnected.', 'error');
+    } else if (logoutReason === 'role_changed') {
+        sessionStorage.removeItem('auth_logout_reason');
+        showAlert('Security Notice: Your account role was updated by Church Administration. Please log in again to access your updated dashboard.', 'info');
     } else if (logoutReason === 'unauthorized') {
         sessionStorage.removeItem('auth_logout_reason');
         showAlert('Notice: Your session has expired. Please log in again.', 'error');

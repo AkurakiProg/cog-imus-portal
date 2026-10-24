@@ -305,6 +305,26 @@ window.broadcastLocalMutation = broadcastLocalMutation;
 function handleRealtimeMemberUpdate(payload) {
     if (!payload || !payload.type || payload.type === 'connected') return;
     const type = payload.type;
+
+    if (type === 'force_logout') {
+        const data = payload.data || payload;
+        const targetUserId = data.user_id || payload.user_id;
+        let currentUserId = null;
+        try {
+            const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+            currentUserId = u.user_id || u.id;
+        } catch (err) {}
+        if (currentUserId && targetUserId && String(currentUserId) === String(targetUserId)) {
+            if (typeof triggerConcurrentLogout === 'function') {
+                triggerConcurrentLogout(data.reason || 'role_changed');
+            } else {
+                sessionStorage.setItem('auth_logout_reason', data.reason || 'role_changed');
+                window.location.href = '/views/login.html';
+            }
+            return;
+        }
+    }
+
     const activeView = document.querySelector('.view.active')?.id?.replace('view-', '') || 'dashboard';
 
     // Refresh member overview metrics

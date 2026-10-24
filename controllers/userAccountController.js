@@ -4,6 +4,7 @@ const userModel = require('../models/userModel');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseFormatter');
 const emailService = require('../utils/emailService');
 const crypto = require('crypto');
+const realtimeBus = require('../utils/realtimeBus');
 
 exports.generateActivationLink = async (req, res) => {
     try {
@@ -303,13 +304,19 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        const { pool } = require('../config/database');
+
+        const [existingUserRows] = await pool.execute('SELECT user_id, role_id, is_active, full_name, first_name, middle_name, last_name, suffix, username, email FROM users WHERE user_id = ?', [id]);
+        const existingUser = existingUserRows[0];
+        const oldRoleId = existingUser ? existingUser.role_id : null;
+        const oldIsActive = existingUser ? existingUser.is_active : 1;
         
-        const username = req.body.username ? req.body.username.trim() : null;
-        const email = req.body.email ? req.body.email.trim().toLowerCase() : null;
-        let first_name = req.body.first_name !== undefined ? (req.body.first_name ? req.body.first_name.trim() : null) : undefined;
-        let middle_name = req.body.middle_name !== undefined ? (req.body.middle_name ? req.body.middle_name.trim() : null) : undefined;
-        let last_name = req.body.last_name !== undefined ? (req.body.last_name ? req.body.last_name.trim() : null) : undefined;
-        let suffix = req.body.suffix !== undefined ? (req.body.suffix ? req.body.suffix.trim() : null) : undefined;
+        let username = req.body.username ? req.body.username.trim() : (existingUser ? existingUser.username : null);
+        let email = req.body.email ? req.body.email.trim().toLowerCase() : (existingUser ? existingUser.email : null);
+        let first_name = req.body.first_name !== undefined ? (req.body.first_name ? req.body.first_name.trim() : null) : (existingUser ? existingUser.first_name : undefined);
+        let middle_name = req.body.middle_name !== undefined ? (req.body.middle_name ? req.body.middle_name.trim() : null) : (existingUser ? existingUser.middle_name : undefined);
+        let last_name = req.body.last_name !== undefined ? (req.body.last_name ? req.body.last_name.trim() : null) : (existingUser ? existingUser.last_name : undefined);
+        let suffix = req.body.suffix !== undefined ? (req.body.suffix ? req.body.suffix.trim() : null) : (existingUser ? existingUser.suffix : undefined);
 
         let full_name = req.body.full_name ? req.body.full_name.trim() : null;
         if ((first_name || last_name) && !full_name) {
@@ -318,9 +325,21 @@ exports.update = async (req, res) => {
             const parts = full_name.split(/\s+/);
             first_name = parts[0] || '';
             last_name = parts.length > 1 ? parts.slice(1).join(' ') : parts[0] || '';
+        } else if (!full_name && existingUser) {
+            full_name = existingUser.full_name;
         }
 
-        const role_name = req.body.role_name || 'Church Member';
+        let role_name = req.body.role_name;
+        if (!role_name && req.body.role_id !== undefined) {
+            const rid = parseInt(req.body.role_id);
+            if (rid === 1) role_name = 'Admin';
+            else if (rid === 2) role_name = 'Church Leader';
+            else role_name = 'Church Member';
+        }
+        if (!role_name) {
+            role_name = oldRoleId === 1 ? 'Admin' : (oldRoleId === 2 ? 'Church Leader' : 'Church Member');
+        }
+
         const contact_number = normalizePhilippinePhone(req.body.contact_number);
         
         let is_active = 1;
@@ -338,9 +357,9 @@ exports.update = async (req, res) => {
 
         let role_id = 3;
         let church_role = 'Member';
-        if (role_name === 'Admin') { role_id = 1; church_role = 'Admin'; }
-        else if (role_name === 'Church Leader') { role_id = 2; church_role = 'Leader'; }
-        else if (role_name === 'Church Member') { role_id = 3; church_role = 'Member'; }
+        if (role_name === 'Admin' || req.body.role_id == 1) { role_id = 1; church_role = 'Admin'; }
+        else if (role_name === 'Church Leader' || req.body.role_id == 2) { role_id = 2; church_role = 'Leader'; }
+        else if (role_name === 'Church Member' || req.body.role_id == 3) { role_id = 3; church_role = 'Member'; }
 
         await userAccountModel.update(id, { 
             username, 
@@ -356,9 +375,21 @@ exports.update = async (req, res) => {
             profile_image 
         });
 
-        // Synchronize with linked member record
-        const { pool } = require('../config/database');
+        // Automatically log out user if their role has changed or their account was deactivated
+        const roleChanged = oldRoleId !== null && oldRoleId !== role_id;
+        const wasDeactivated = oldIsActive === 1 && is_active === 0;
+        if (roleChanged || wasDeactivated) {
+            await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [id]);
+            realtimeBus.broadcast('force_logout', {
+                user_id: id,
+                reason: roleChanged ? 'role_changed' : 'account_deactivated',
+                old_role_id: oldRoleId,
+                new_role_id: role_id,
+                role_name: role_name
+            });
+        }
 
+        // Synchronize with linked member record
         await pool.execute(
             `UPDATE members SET 
                 church_role = ?, 

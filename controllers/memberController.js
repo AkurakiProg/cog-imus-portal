@@ -1,6 +1,7 @@
 const memberModel = require('../models/memberModel');
 const userModel = require('../models/userModel');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseFormatter');
+const realtimeBus = require('../utils/realtimeBus');
 
 exports.getAllMembers = async (req, res) => {
     try {
@@ -246,7 +247,19 @@ exports.updateMember = async (req, res) => {
             await validateEmailUniqueness(pool, email, oldMember.user_id);
         }
 
-        await memberModel.update(id, req.body);
+        const mergedData = {
+            ...oldMember,
+            ...req.body,
+            user_id: req.body.user_id !== undefined ? req.body.user_id : oldMember.user_id,
+            first_name: req.body.first_name || oldMember.first_name,
+            last_name: req.body.last_name || oldMember.last_name,
+            middle_name: req.body.middle_name !== undefined ? req.body.middle_name : oldMember.middle_name,
+            suffix: req.body.suffix !== undefined ? req.body.suffix : oldMember.suffix,
+            church_role: req.body.church_role || oldMember.church_role,
+            status: req.body.status || oldMember.status
+        };
+
+        await memberModel.update(id, mergedData);
         const updatedMember = await memberModel.getById(id);
 
         // Automatically remove member from all ministry rosters if church role changed to non-Member (e.g. Member to Leader/Admin)
@@ -358,6 +371,21 @@ exports.updateMember = async (req, res) => {
                 targetUserId = newUserInsert.insertId;
                 await pool.execute('UPDATE members SET user_id = ? WHERE member_id = ?', [targetUserId, id]);
             }
+        }
+
+        // Automatically log out user if their role has changed or their account was deactivated
+        const roleChanged = oldMember && updatedMember.church_role && oldMember.church_role !== updatedMember.church_role;
+        const wasDeactivated = oldMember && oldMember.status === 'Active' && (updatedMember.status === 'Inactive' || updatedMember.status === 'Deceased');
+
+        if (targetUserId && (roleChanged || wasDeactivated)) {
+            await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [targetUserId]);
+            realtimeBus.broadcast('force_logout', {
+                user_id: targetUserId,
+                member_id: id,
+                reason: roleChanged ? 'role_changed' : 'account_deactivated',
+                old_role: oldMember.church_role,
+                new_role: updatedMember.church_role
+            });
         }
 
         const freshMember = await memberModel.getById(id);
