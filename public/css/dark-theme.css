@@ -4965,4 +4965,16 @@ html.dark-mode .sidebar-overlay {
     background: rgba(3, 7, 18, 0.75) !important;
 }
 
+/* Explicitly preserve Font Awesome icon font-family in dark mode */
+body.dark-mode .fa, body.dark-mode .fas, body.dark-mode .fa-solid, 
+body.dark-mode .far, body.dark-mode .fa-regular, body.dark-mode .fab, body.dark-mode .fa-brands,
+html.dark-mode .fa, html.dark-mode .fas, html.dark-mode .fa-solid, 
+html.dark-mode .far, html.dark-mode .fa-regular, html.dark-mode .fab, html.dark-mode .fa-brands {
+    font-family: var(--fa-style-family, "Font Awesome 6 Free") !important;
+}
+body.dark-mode .fa-brands, body.dark-mode .fab,
+html.dark-mode .fa-brands, html.dark-mode .fab {
+    font-family: "Font Awesome 6 Brands" !important;
+}
+
 

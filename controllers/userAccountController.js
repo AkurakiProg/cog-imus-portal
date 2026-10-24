@@ -363,9 +363,22 @@ exports.update = async (req, res) => {
 
         let role_id = 3;
         let church_role = 'Member';
-        if (role_name === 'Admin' || req.body.role_id == 1) { role_id = 1; church_role = 'Admin'; }
-        else if (role_name === 'Church Leader' || req.body.role_id == 2) { role_id = 2; church_role = 'Leader'; }
-        else if (role_name === 'Church Member' || req.body.role_id == 3) { role_id = 3; church_role = 'Member'; }
+        const normRole = (role_name || '').toLowerCase().trim();
+        const reqRoleId = req.body.role_id ? parseInt(req.body.role_id, 10) : null;
+
+        if (normRole === 'admin' || normRole === 'super admin' || normRole === 'administrator' || reqRoleId === 1) {
+            role_id = 1;
+            church_role = 'Admin';
+            role_name = 'Admin';
+        } else if (normRole === 'church leader' || normRole === 'leader' || reqRoleId === 2) {
+            role_id = 2;
+            church_role = 'Leader';
+            role_name = 'Church Leader';
+        } else {
+            role_id = 3;
+            church_role = 'Member';
+            role_name = 'Church Member';
+        }
 
         await userAccountModel.update(id, { 
             username, 

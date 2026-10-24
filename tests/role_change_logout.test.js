@@ -11,6 +11,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 let server;
 let baseUrl;
 let adminToken;
+let originalAdminSessionToken;
+let originalUser4;
 
 test.before(async () => {
     await new Promise((resolve) => {
@@ -22,6 +24,16 @@ test.before(async () => {
         });
     });
 
+    const [adminRows] = await pool.query('SELECT current_session_token FROM users WHERE user_id = 1');
+    if (adminRows.length > 0) {
+        originalAdminSessionToken = adminRows[0].current_session_token;
+    }
+
+    const [u4Rows] = await pool.query('SELECT username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id = 4');
+    if (u4Rows.length > 0) {
+        originalUser4 = u4Rows[0];
+    }
+
     const adminSessionToken = uuidv4();
     await pool.query('UPDATE users SET current_session_token = ? WHERE user_id = 1', [adminSessionToken]);
     adminToken = jwt.sign(
@@ -32,8 +44,27 @@ test.before(async () => {
 });
 
 test.after(async () => {
-    // Restore user 4's role back to 3 (Member)
-    await pool.query('UPDATE users SET role_id = 3 WHERE user_id = 4');
+    try {
+        // Restore user 1's live session token so running tests does not disrupt human sessions
+        if (originalAdminSessionToken !== undefined) {
+            await pool.query('UPDATE users SET current_session_token = ? WHERE user_id = 1', [originalAdminSessionToken]);
+        }
+        // Restore user 4's original credentials, role, and details
+        if (originalUser4) {
+            await pool.query(
+                'UPDATE users SET username = ?, email = ?, password_hash = ?, first_name = ?, last_name = ?, role_id = ?, current_session_token = ? WHERE user_id = 4',
+                [originalUser4.username, originalUser4.email, originalUser4.password_hash, originalUser4.first_name, originalUser4.last_name, originalUser4.role_id, originalUser4.current_session_token]
+            );
+            await pool.query(
+                'UPDATE members SET first_name = ?, last_name = ?, church_role = ?, email = ? WHERE user_id = 4',
+                [originalUser4.first_name, originalUser4.last_name, 'Member', originalUser4.email]
+            );
+        } else {
+            await pool.query('UPDATE users SET role_id = 3 WHERE user_id = 4');
+        }
+    } catch (cleanupErr) {
+        console.error('Error during cleanup in test.after:', cleanupErr);
+    }
     await new Promise((resolve) => server.close(resolve));
     await pool.end();
 });

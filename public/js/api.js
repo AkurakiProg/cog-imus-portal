@@ -174,18 +174,8 @@ async function checkSessionStatus() {
             }
         }
     } catch (e) {
-        // Network error / Connection refused (Node.js server is off or down)
-        try {
-            await new Promise(r => setTimeout(r, 400));
-            const retryRes = await fetch('/api/auth/check-session', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (retryRes.status === 401) {
-                triggerConcurrentLogout('unauthorized');
-            }
-        } catch (err2) {
-            triggerConcurrentLogout('server_offline');
-        }
+        // Transient network glitch or connection drop - do not destroy session or wipe user's input
+        console.warn('[SessionWatchdog] Transient network glitch during session check:', e.message);
     }
 }
 
@@ -330,12 +320,7 @@ const api = {
             return data;
         } catch (error) {
             console.error(`[API Error] ${method} ${endpoint}:`, error.message);
-            if (!response) {
-                // Network error / Connection refused (Node.js server is off or down)
-                if (requiresAuth) {
-                    triggerConcurrentLogout('server_offline');
-                }
-            } else if (response.status === 401) {
+            if (response && response.status === 401) {
                 if (error.message && error.message.toLowerCase().includes('password')) {
                     triggerConcurrentLogout('password_changed');
                 } else if (error.message && error.message.toLowerCase().includes('role')) {
@@ -370,12 +355,7 @@ const api = {
             return data;
         } catch (error) {
             console.error(`[API Error] ${method} ${endpoint}:`, error.message);
-            if (!response) {
-                // Network error / Connection refused (Node.js server is off or down)
-                if (requiresAuth) {
-                    triggerConcurrentLogout('server_offline');
-                }
-            } else if (response.status === 401) {
+            if (response && response.status === 401) {
                 if (error.message && error.message.toLowerCase().includes('password')) {
                     triggerConcurrentLogout('password_changed');
                 } else if (error.message && error.message.toLowerCase().includes('role')) {

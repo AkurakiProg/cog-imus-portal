@@ -3,6 +3,22 @@
    Church of God World Missions Philippines - Imus
    ============================================================ */
 
+/* Explicitly preserve Font Awesome icon font-family against any CSS resets or overrides */
+.fa, .fas, .fa-solid, .far, .fa-regular, .fab, .fa-brands, [class*=" fa-"], [class^="fa-"] {
+    font-family: var(--fa-style-family, "Font Awesome 6 Free") !important;
+}
+.fa-brands, .fab {
+    font-family: "Font Awesome 6 Brands" !important;
+}
+.fa-regular, .far {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 400 !important;
+}
+.fa-solid, .fas {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+}
+
 /* Animations */
 @keyframes memberFadeIn {
     from { opacity: 0; transform: translateY(12px); }

@@ -1085,7 +1085,13 @@ async function editUser(id) {
         document.getElementById('user_username').value = user.username || '';
         document.getElementById('user_email').value = user.email || '';
         document.getElementById('user_contact_number').value = user.contact_number || '';
-        document.getElementById('user_role').value = user.role_name || 'Church Member';
+        let mappedRole = user.role_name || 'Church Member';
+        if (mappedRole === 'Leader') mappedRole = 'Church Leader';
+        else if (mappedRole === 'Member') mappedRole = 'Church Member';
+        if (user.role_id === 1) mappedRole = 'Admin';
+        else if (user.role_id === 2) mappedRole = 'Church Leader';
+        else if (user.role_id === 3) mappedRole = 'Church Member';
+        document.getElementById('user_role').value = mappedRole;
         document.getElementById('user_is_active').value = user.is_active;
         document.getElementById('user_password').value = '';
         
@@ -1125,7 +1131,13 @@ async function saveUser() {
     formData.append('username', document.getElementById('user_username').value.trim());
     formData.append('email', document.getElementById('user_email').value.trim());
     formData.append('contact_number', document.getElementById('user_contact_number').value.trim());
-    formData.append('role_name', document.getElementById('user_role').value);
+    const selectedRoleName = document.getElementById('user_role')?.value || 'Church Member';
+    let selectedRoleId = 3;
+    if (selectedRoleName === 'Admin') selectedRoleId = 1;
+    else if (selectedRoleName === 'Church Leader' || selectedRoleName === 'Leader') selectedRoleId = 2;
+
+    formData.append('role_name', selectedRoleName);
+    formData.append('role_id', selectedRoleId);
     formData.append('is_active', document.getElementById('user_is_active').value);
 
     const password = document.getElementById('user_password').value;

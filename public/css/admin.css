@@ -18,7 +18,27 @@
     --transition-speed: 0.3s;
 }
 
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Explicitly preserve Font Awesome icon font-family against any CSS resets or overrides */
+.fa, .fas, .fa-solid, .far, .fa-regular, .fab, .fa-brands, [class*=" fa-"], [class^="fa-"] {
+    font-family: var(--fa-style-family, "Font Awesome 6 Free") !important;
+}
+.fa-brands, .fab {
+    font-family: "Font Awesome 6 Brands" !important;
+}
+.fa-regular, .far {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 400 !important;
+}
+.fa-solid, .fas {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+}
 
 html, body {
     width: 100%;
@@ -27,6 +47,7 @@ html, body {
 }
 
 body {
+    font-family: 'Inter', sans-serif;
     background: var(--bg-color);
     display: flex;
     min-height: 100vh;

@@ -292,8 +292,17 @@ exports.updateMember = async (req, res) => {
         }
 
         let role_id = 3;
-        if (updatedMember.church_role === 'Admin') role_id = 1;
-        else if (updatedMember.church_role === 'Leader') role_id = 2;
+        const normChurchRole = (updatedMember.church_role || '').toLowerCase().trim();
+        if (normChurchRole === 'admin' || normChurchRole === 'super admin' || normChurchRole === 'administrator') {
+            role_id = 1;
+            updatedMember.church_role = 'Admin';
+        } else if (normChurchRole === 'leader' || normChurchRole === 'church leader') {
+            role_id = 2;
+            updatedMember.church_role = 'Leader';
+        } else {
+            role_id = 3;
+            updatedMember.church_role = 'Member';
+        }
 
         const fullName = [updatedMember.first_name, updatedMember.middle_name, updatedMember.last_name, updatedMember.suffix].filter(Boolean).join(' ');
         const isActive = (updatedMember.status === 'Inactive' || updatedMember.status === 'Deceased') ? 0 : 1;
