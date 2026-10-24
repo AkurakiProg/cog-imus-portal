@@ -176,8 +176,57 @@ const UserAccountModel = {
         await pool.execute(`UPDATE users SET password_hash = ? WHERE user_id = ?`, [passwordHash, id]);
     },
 
-    async delete(id) {
-        await pool.execute(`DELETE FROM users WHERE user_id = ?`, [id]);
+    async delete(id, fallbackAdminId = 1) {
+        const conn = await pool.getConnection();
+        try {
+            await conn.beginTransaction();
+
+            // 1. Verify user exists
+            const [users] = await conn.execute('SELECT user_id, username, email FROM users WHERE user_id = ?', [id]);
+            if (users.length === 0) {
+                await conn.rollback();
+                return false;
+            }
+
+            // Ensure fallbackAdminId is valid and not the user being deleted
+            let safeAdminId = parseInt(fallbackAdminId, 10);
+            if (!safeAdminId || safeAdminId === id) {
+                const [admins] = await conn.execute('SELECT user_id FROM users WHERE user_id != ? AND role_id = 1 LIMIT 1', [id]);
+                safeAdminId = admins.length > 0 ? admins[0].user_id : 1;
+            }
+
+            // 2. Reassign historical records to preserve financial and attendance tallies without violating foreign keys
+            await conn.execute('UPDATE ministry_attendance SET recorded_by = ? WHERE recorded_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE attendance_tallies SET recorded_by = ? WHERE recorded_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE announcements SET created_by = ? WHERE created_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE banners SET created_by = ? WHERE created_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE finance_transactions SET recorded_by = ? WHERE recorded_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE gallery_albums SET created_by = ? WHERE created_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE gallery_images SET uploaded_by = ? WHERE uploaded_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE sms_logs SET triggered_by = ? WHERE triggered_by = ?', [safeAdminId, id]);
+            await conn.execute('UPDATE content_pages SET updated_by = ? WHERE updated_by = ?', [safeAdminId, id]);
+
+            // 3. Unlink member records if linked
+            await conn.execute('UPDATE members SET user_id = NULL WHERE user_id = ?', [id]);
+
+            // 4. Clean user MFA challenges and recovery codes
+            await conn.execute('DELETE FROM user_mfa_recovery_codes WHERE user_id = ?', [id]);
+            await conn.execute('DELETE FROM mfa_login_challenges WHERE user_id = ?', [id]);
+
+            // 5. Nullify audit trail entries
+            await conn.execute('UPDATE audit_trail SET user_id = NULL WHERE user_id = ?', [id]);
+
+            // 6. Delete user account
+            await conn.execute('DELETE FROM users WHERE user_id = ?', [id]);
+
+            await conn.commit();
+            return true;
+        } catch (err) {
+            await conn.rollback();
+            throw err;
+        } finally {
+            conn.release();
+        }
     }
 };
 

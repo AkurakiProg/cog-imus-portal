@@ -29,9 +29,25 @@ test.before(async () => {
         originalAdminSessionToken = adminRows[0].current_session_token;
     }
 
-    const [u4Rows] = await pool.query('SELECT username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id = 4');
+    let [u4Rows] = await pool.query('SELECT username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id = 4');
     if (u4Rows.length > 0) {
         originalUser4 = u4Rows[0];
+    } else {
+        await pool.query(`
+            INSERT INTO users (user_id, role_id, username, email, password_hash, first_name, last_name, full_name, is_active, is_verified)
+            VALUES (4, 3, 'Akuraki', 'akuraki.test@cogimus.local', '$2b$10$wrO8AhAQsLltZIHR/VWWc.Ut7y3byhTHTtFPcAbLTWAMhBoTXA1r.', 'Jairo Andrei', 'Cardel', 'Jairo Andrei Ong Cardel', 1, 1)
+            ON DUPLICATE KEY UPDATE user_id = user_id
+        `);
+        const [recheck] = await pool.query('SELECT username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id = 4');
+        originalUser4 = recheck[0];
+    }
+
+    const [m4Rows] = await pool.query('SELECT member_id FROM members WHERE user_id = 4');
+    if (m4Rows.length === 0) {
+        await pool.query(`
+            INSERT INTO members (user_id, first_name, last_name, church_role, email, status)
+            VALUES (4, 'Jairo Andrei', 'Cardel', 'Member', 'akuraki.test@cogimus.local', 'Active')
+        `);
     }
 
     const adminSessionToken = uuidv4();
@@ -161,10 +177,20 @@ test('Role Change Auto-Logout: Changing role from Member to Leader automatically
 });
 
 test('Role Change Auto-Logout: Changing member church_role via member update automatically terminates active session', async () => {
+    // Find member for user 4
+    const [mRows] = await pool.query('SELECT member_id FROM members WHERE user_id = 4');
+    let targetMemberId;
+    if (mRows.length === 0) {
+        const [ins] = await pool.query("INSERT INTO members (user_id, first_name, last_name, church_role, email, status) VALUES (4, 'Jairo Andrei', 'Cardel', 'Leader', 'akuraki.test@cogimus.local', 'Active')");
+        targetMemberId = ins.insertId;
+    } else {
+        targetMemberId = mRows[0].member_id;
+    }
+
     // Set user 4 back to Leader (role_id 2, church_role 'Leader')
     const leaderSessionToken = uuidv4();
     await pool.query('UPDATE users SET current_session_token = ?, role_id = 2 WHERE user_id = 4', [leaderSessionToken]);
-    await pool.query('UPDATE members SET church_role = ? WHERE member_id = ?', ['Leader', 4]);
+    await pool.query('UPDATE members SET church_role = ? WHERE member_id = ?', ['Leader', targetMemberId]);
 
     const leaderToken = jwt.sign(
         { id: 4, user_id: 4, username: 'Akuraki', role_id: 2, role_name: 'Church Leader', sessionToken: leaderSessionToken },
@@ -179,7 +205,7 @@ test('Role Change Auto-Logout: Changing member church_role via member update aut
     assert.equal(checkBefore.status, 200);
 
     // Update member record to demote back to Member
-    const updateRes = await fetch(`${baseUrl}/api/members/4`, {
+    const updateRes = await fetch(`${baseUrl}/api/members/${targetMemberId}`, {
         method: 'PUT',
         headers: {
             Authorization: `Bearer ${adminToken}`,

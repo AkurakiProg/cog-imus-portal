@@ -481,14 +481,36 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-        await userAccountModel.delete(id);
-        await userModel.logAudit(req.user.id, 'DELETE', 'Users', id, null, null, req.ip, req.headers['user-agent']);
-        return successResponse(res, null, 'User account deleted');
-    } catch (error) {
-        if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.code === 'ER_NO_REFERENCED_ROW_2') {
-            return errorResponse(res, 'Cannot delete this user because they have linked records (like finance entries or announcements). Please set their status to "Inactive" instead.', 400);
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return errorResponse(res, 'Invalid user ID', 400);
         }
-        return errorResponse(res, 'Failed to delete user', 500);
+
+        if (id === 1) {
+            return errorResponse(res, 'The primary Super Admin account cannot be deleted.', 400);
+        }
+
+        if (req.user && (req.user.id === id || req.user.user_id === id)) {
+            return errorResponse(res, 'You cannot delete your own active administrator account.', 400);
+        }
+
+        const fallbackAdminId = (req.user && (req.user.id || req.user.user_id)) ? (req.user.id || req.user.user_id) : 1;
+
+        const deleted = await userAccountModel.delete(id, fallbackAdminId);
+        if (!deleted) {
+            return errorResponse(res, 'User account not found', 404);
+        }
+
+        // Broadcast force logout so any active session is immediately terminated
+        realtimeBus.broadcast('force_logout', {
+            user_id: id,
+            reason: 'account_deleted'
+        });
+
+        await userModel.logAudit(req.user.id, 'DELETE', 'Users', id, null, null, req.ip, req.headers['user-agent']);
+        return successResponse(res, null, 'User account deleted successfully');
+    } catch (error) {
+        console.error('Delete User Error:', error);
+        return errorResponse(res, error.message || 'Failed to delete user', 500);
     }
 };

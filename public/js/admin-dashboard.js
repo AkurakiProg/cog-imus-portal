@@ -1010,7 +1010,9 @@ function renderUsersTable(users) {
                         ${verifyButton}
                         <button class="btn-action btn-view" onclick="viewUser(${u.user_id})" title="View Details"><i class="fa-solid fa-eye"></i></button>
                         <button class="btn-action btn-edit" onclick="editUser(${u.user_id})" title="Edit Account"><i class="fa-solid fa-edit"></i></button>
-                        <button class="btn-action btn-delete" onclick="deleteUser(${u.user_id})" title="Delete Account"><i class="fa-solid fa-trash"></i></button>
+                        ${u.user_id === 1 
+                            ? '<button class="btn-action btn-delete" style="opacity:0.35;cursor:not-allowed;" title="Super Admin account cannot be deleted" disabled><i class="fa-solid fa-shield"></i></button>'
+                            : `<button class="btn-action btn-delete" onclick="deleteUser(${u.user_id})" title="Delete Account"><i class="fa-solid fa-trash"></i></button>`}
                     </div>
                 </td>
             </tr>
@@ -1206,16 +1208,24 @@ async function saveUser() {
 }
 
 async function deleteUser(id) {
+    if (id === 1) {
+        showToast('The primary Super Admin account cannot be deleted.');
+        return;
+    }
+    const user = (typeof allUsersCache !== 'undefined' && Array.isArray(allUsersCache))
+        ? allUsersCache.find(u => u.user_id == id)
+        : null;
+    const userName = user ? user.full_name : 'this user';
     const ok = await showDecisionModal({
         title: 'Delete User Account',
-        message: 'Are you sure you want to delete this user? If they have records, consider setting status to Inactive instead.',
+        message: `Are you sure you want to permanently delete the account for "${userName}"? Historical records (like attendance tallies) will be safely preserved under church administration.`,
         confirmText: 'Delete User',
         type: 'danger'
     });
     if (!ok) return;
     try {
-        await api.users.delete(id);
-        showToast('User deleted successfully.');
+        const res = await api.users.delete(id);
+        showToast((res && res.message) || 'User deleted successfully.');
         await loadUsers();
     } catch (error) {
         showToast('Error deleting user: ' + error.message);
