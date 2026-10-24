@@ -231,8 +231,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             showToast('Access Denied. Members only.');
-            sessionStorage.clear();
-            localStorage.clear();
+            sessionStorage.removeItem('church_token');
+            sessionStorage.removeItem('church_user');
+            localStorage.removeItem('church_token');
+            localStorage.removeItem('church_user');
             setTimeout(() => { window.location.href = '/views/login.html'; }, 500);
             return;
         }
@@ -279,8 +281,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         initMemberRealtimeSync();
     } catch (err) {
         console.error('Session error:', err);
-        sessionStorage.clear();
-        localStorage.clear();
+        sessionStorage.removeItem('church_token');
+        sessionStorage.removeItem('church_user');
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
         window.location.href = '/views/login.html';
     }
 });
@@ -367,8 +371,10 @@ async function logout() {
     try {
         if (api.auth && api.auth.logout) await api.auth.logout();
     } catch (e) {}
-    sessionStorage.clear();
-    localStorage.clear();
+    sessionStorage.removeItem('church_token');
+    sessionStorage.removeItem('church_user');
+    localStorage.removeItem('church_token');
+    localStorage.removeItem('church_user');
     window.location.href = '/views/login.html';
 }
 let toastTimeout = null;

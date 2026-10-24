@@ -60,24 +60,6 @@
 // Immediate execution in <head> to prevent Flash of Unstyled Content (FOUC)
 (function () {
     try {
-        function resolveStorageKey() {
-            try {
-                const uStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
-                if (uStr) {
-                    const u = JSON.parse(uStr);
-                    const uid = u.user_id || u.id || u.username;
-                    if (uid) {
-                        return `church_theme_user_${uid}`;
-                    }
-                }
-                const p = (window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
-                if (p.includes('admin-dashboard')) return 'church_theme_admin_guest';
-                if (p.includes('leader-dashboard')) return 'church_theme_leader_guest';
-                if (p.includes('member-dashboard')) return 'church_theme_member_guest';
-            } catch (e) {}
-            return 'church_theme_public';
-        }
-
         function getPhilippineIsDark() {
             try {
                 const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false });
@@ -89,8 +71,27 @@
             }
         }
 
-        const key = resolveStorageKey();
-        const saved = localStorage.getItem(key) || localStorage.getItem('church_theme') || 'system';
+        function resolveSavedTheme() {
+            try {
+                // 1. Check universal persistent theme preference first
+                const universal = localStorage.getItem('church_theme');
+                if (universal) return universal;
+
+                // 2. Check user-scoped preference if available
+                const uStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
+                if (uStr) {
+                    const u = JSON.parse(uStr);
+                    const uid = u.user_id || u.id || u.username;
+                    if (uid) {
+                        const userTheme = localStorage.getItem(`church_theme_user_${uid}`);
+                        if (userTheme) return userTheme;
+                    }
+                }
+            } catch (e) {}
+            return 'system';
+        }
+
+        const saved = resolveSavedTheme();
         const isDark = (saved === 'dark') || (saved === 'system' && getPhilippineIsDark());
         if (isDark) {
             document.documentElement.classList.add('dark-mode');
@@ -107,38 +108,32 @@
 })();
 
 /**
- * Returns isolated storage key scoped per dashboard / portal
+ * Returns saved theme preference: 'light' | 'dark' | 'system'
+ * Universal storage key persists across all pages, login, and logout.
  */
-function getThemeStorageKey() {
+function getThemePreference() {
     try {
+        const universal = localStorage.getItem('church_theme');
+        if (universal) return universal;
+
         const userStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
         if (userStr) {
             const u = JSON.parse(userStr);
             const uid = u.user_id || u.id || u.username;
             if (uid) {
-                return `church_theme_user_${uid}`;
+                const userTheme = localStorage.getItem(`church_theme_user_${uid}`);
+                if (userTheme) return userTheme;
             }
         }
-        const path = (window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
-        if (path.includes('admin-dashboard')) return 'church_theme_admin_guest';
-        if (path.includes('leader-dashboard')) return 'church_theme_leader_guest';
-        if (path.includes('member-dashboard')) return 'church_theme_member_guest';
     } catch (e) {}
-    return 'church_theme_public';
+    return 'system';
 }
 
 /**
- * Returns saved theme preference: 'light' | 'dark' | 'system'
+ * Returns isolated storage key scoped per dashboard / portal
  */
-function getThemePreference() {
-    try {
-        const key = getThemeStorageKey();
-        const scopedVal = localStorage.getItem(key);
-        if (scopedVal) return scopedVal;
-        return localStorage.getItem('church_theme') || 'system';
-    } catch (e) {
-        return 'system';
-    }
+function getThemeStorageKey() {
+    return 'church_theme';
 }
 
 /**
@@ -198,10 +193,17 @@ function setAppTheme(mode, e) {
     const storageVal = (mode === 'auto') ? 'system' : mode;
 
     try {
-        const key = getThemeStorageKey();
-        localStorage.setItem(key, storageVal);
-        if (key === 'church_theme_public') {
-            localStorage.setItem('church_theme', storageVal);
+        // 1. Universal persistence: guarantees theme persists across all pages, login, and logout
+        localStorage.setItem('church_theme', storageVal);
+
+        // 2. Also persist user-specific key if logged in
+        const userStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
+        if (userStr) {
+            const u = JSON.parse(userStr);
+            const uid = u.user_id || u.id || u.username;
+            if (uid) {
+                localStorage.setItem(`church_theme_user_${uid}`, storageVal);
+            }
         }
     } catch (err) {}
 

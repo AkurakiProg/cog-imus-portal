@@ -1114,8 +1114,10 @@ async function saveUser() {
             if (currentUser && currentUser.user_id == id && password) {
                 showToast('Password updated. Please log in with your new credentials.');
                 setTimeout(() => {
-                    sessionStorage.clear();
-                    localStorage.clear();
+                    sessionStorage.removeItem('church_token');
+                    sessionStorage.removeItem('church_user');
+                    localStorage.removeItem('church_token');
+                    localStorage.removeItem('church_user');
                     window.location.href = '/views/login.html';
                 }, 1500);
                 return;

@@ -457,8 +457,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!user || (user.role_name !== 'Church Leader' && user.role_name !== 'Admin')) {
             showToast('Access Denied. Leaders only.');
-            sessionStorage.clear();
-            localStorage.clear();
+            sessionStorage.removeItem('church_token');
+            sessionStorage.removeItem('church_user');
+            localStorage.removeItem('church_token');
+            localStorage.removeItem('church_user');
             setTimeout(() => { window.location.href = '/views/login.html'; }, 500);
             return;
         }
@@ -466,8 +468,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         sessionStorage.setItem('church_user', JSON.stringify(user));
     } catch (authErr) {
         console.error('Leader session validation failed:', authErr);
-        sessionStorage.clear();
-        localStorage.clear();
+        sessionStorage.removeItem('church_token');
+        sessionStorage.removeItem('church_user');
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
         window.location.href = '/views/login.html';
         return;
     }
@@ -635,8 +639,10 @@ async function logout() {
     try {
         if (api.auth && api.auth.logout) await api.auth.logout();
     } catch (e) {}
-    sessionStorage.clear();
-    localStorage.clear();
+    sessionStorage.removeItem('church_token');
+    sessionStorage.removeItem('church_user');
+    localStorage.removeItem('church_token');
+    localStorage.removeItem('church_user');
     window.location.href = '/views/login.html';
 }
 let toastTimeout = null;
