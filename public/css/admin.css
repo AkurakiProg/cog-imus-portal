@@ -197,7 +197,36 @@ h1, h2, h3, h4, h5 { font-family: 'Cormorant Garamond', serif; letter-spacing: -
     min-height: 65px;
 }
 
-.hamburger { display: none; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--navy); }
+.hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    border: 1px solid var(--border-color);
+    color: var(--navy);
+    cursor: pointer;
+    font-size: 1.15rem;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+.hamburger i {
+    font-family: var(--fa-style-family, "Font Awesome 6 Free") !important;
+    font-weight: 900 !important;
+    line-height: 1;
+    display: inline-block;
+}
+.hamburger:hover, .hamburger:focus-visible {
+    background: #e2e8f0;
+    color: var(--navy-light);
+    border-color: var(--gold);
+}
 .top-bar h1 { font-size: 1.6rem; color: var(--navy); }
 
 .user-info { display: flex; align-items: center; gap: 1rem; color: var(--text-light); font-size: 1.2rem; }
@@ -860,25 +889,69 @@ td.text-center, th.text-center {
 
     /* Top Bar */
     .top-bar {
-        padding: 0.75rem 1rem;
-        min-height: 58px;
-        gap: 0.5rem;
+        padding: 0.5rem 0.85rem !important;
+        min-height: 56px !important;
+        gap: 0.5rem !important;
     }
     .hamburger {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 6px;
-        font-size: 1.25rem;
-        flex-shrink: 0;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        border-radius: 8px !important;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        color: var(--navy);
+        font-size: 1.15rem !important;
+        flex-shrink: 0 !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+        cursor: pointer;
     }
     .top-bar h1 {
-        font-size: 1.35rem;
+        font-size: 1.25rem !important;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    .top-bar .badge {
+        display: none !important;
+    }
+    .topbar-user-text {
+        display: none !important;
+    }
+    .topbar-dropdown-chevron,
+    .topbar-profile-chevron,
+    .topbar-profile-chip i.fa-chevron-down {
+        display: none !important;
+    }
+    .topbar-profile-chip {
+        padding: 0 !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        border-radius: 50% !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0 !important;
+        flex-shrink: 0 !important;
+    }
+    .topbar-avatar-small {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        border-radius: 50% !important;
+        flex-shrink: 0 !important;
+        font-size: 0.9rem !important;
     }
 
     /* Content Area & Padding */
@@ -904,16 +977,66 @@ td.text-center, th.text-center {
 
     /* Filter Toolbars */
     .filter-toolbar {
-        padding: 0.75rem 1rem;
-        gap: 0.6rem;
+        padding: 0.75rem 1rem !important;
+        gap: 0.55rem !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .filter-toolbar > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+    .filter-group {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        position: relative !important;
+        margin: 0 !important;
+        flex: 0 0 auto !important;
+        height: auto !important;
+        min-height: 0 !important;
     }
     .filter-group.flex-1 {
-        flex: 1 1 100%;
-        width: 100%;
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
     }
     .filter-input {
-        min-width: 0;
-        width: 100%;
+        min-width: 0 !important;
+        width: 100% !important;
+        height: 40px !important;
+        margin: 0 !important;
+    }
+    .filter-label {
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        color: #64748b;
+        min-width: 95px !important;
+        width: 95px !important;
+        flex-shrink: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.35rem !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+    }
+    .filter-select, .filter-date {
+        flex: 1 1 auto !important;
+        width: calc(100% - 105px) !important;
+        min-width: 0 !important;
+        height: 40px !important;
+        margin: 0 !important;
+    }
+    .filter-toolbar .btn-sm {
+        width: 100% !important;
+        height: 40px !important;
+        justify-content: center !important;
+        margin-top: 0.25rem !important;
+        font-size: 0.85rem !important;
     }
 
     /* Forms */
@@ -978,59 +1101,24 @@ td.text-center, th.text-center {
     }
 }
 
-/* --- Breakpoint: Phablet & Large Phones (<= 640px) --- */
-@media (max-width: 640px) {
-    .filter-toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .filter-toolbar > * {
-        width: 100% !important;
-    }
-    .filter-group {
-        width: 100% !important;
-        display: flex;
-    }
-    .filter-select, .filter-date {
-        flex: 1 1 auto;
-        width: 100% !important;
-        min-width: 0 !important;
-    }
-    .filter-toolbar .btn-sm {
-        width: 100% !important;
-        justify-content: center;
-    }
-}
-
-/* --- Breakpoint: Standard Mobile (<= 576px) --- */
-@media (max-width: 576px) {
-    .top-bar {
-        padding: 0.5rem 0.75rem;
-        min-height: 54px;
-    }
-    .top-bar h1 {
-        font-size: 1.15rem;
-    }
-    .topbar-user-text {
-        display: none !important;
-    }
-    .topbar-profile-chip {
-        padding: 2px !important;
-        border-radius: 50% !important;
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-    }
-    .topbar-profile-chip i.fa-chevron-down {
-        display: none !important;
-    }
-    .top-bar .badge {
-        display: none !important;
-    }
-}
-
 /* --- Breakpoint: Compact Mobile & Small Phones (<= 480px) --- */
 @media (max-width: 480px) {
+    .filter-group:not(.flex-1) {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.25rem !important;
+    }
+    .filter-label {
+        min-width: 0 !important;
+        width: 100% !important;
+        margin-bottom: 0.15rem !important;
+    }
+    .filter-select, .filter-date {
+        width: 100% !important;
+    }
+    .top-bar h1 {
+        font-size: 1.15rem !important;
+    }
     .content-area {
         padding: 0.75rem 0.5rem;
     }

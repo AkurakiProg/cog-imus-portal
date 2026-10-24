@@ -349,24 +349,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem('church_user'); // Keep tabs isolated in sessionStorage
         document.querySelectorAll('#adminName, #adminTopName').forEach(el => el.textContent = user.full_name);
         
+        const renderSafeAvatar = (container, imgSrc, name, fallbackChar) => {
+            if (!container) return;
+            const initial = escapeHtml((name || fallbackChar || 'A').trim().charAt(0).toUpperCase());
+            if (!imgSrc || imgSrc === '/images/default-avatar.svg') {
+                container.innerHTML = `<span class="avatar-initial" style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-weight:700;">${initial}</span>`;
+                return;
+            }
+            container.innerHTML = `
+                <img src="${encodeURI(imgSrc)}" alt="${escapeHtml(name || 'User')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                <span class="avatar-initial" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-weight:700;">${initial}</span>
+            `;
+        };
+
         // Connect profile image to sidebar avatar
-        const avatarEl = document.getElementById('userAvatar');
-        if (avatarEl) {
-            if (user.profile_image) {
-                avatarEl.innerHTML = `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}" onerror="this.onerror=null; this.parentElement.textContent='${escapeHtml((user.full_name || 'A').charAt(0).toUpperCase())}';">`;
-            } else {
-                avatarEl.textContent = (user.full_name || 'A').charAt(0).toUpperCase();
-            }
-        }
+        renderSafeAvatar(document.getElementById('userAvatar'), user.profile_image, user.full_name, 'A');
         
-        const topbarAvatar = document.getElementById('topbarAvatar');
-        if (topbarAvatar) {
-            if (user.profile_image) {
-                topbarAvatar.innerHTML = `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.parentElement.textContent='${escapeHtml((user.full_name || 'A').charAt(0).toUpperCase())}';">`;
-            } else {
-                topbarAvatar.textContent = (user.full_name || 'A').charAt(0).toUpperCase();
-            }
-        }
+        // Connect profile image to topbar avatar
+        renderSafeAvatar(document.getElementById('topbarAvatar'), user.profile_image, user.full_name, 'A');
         const fnEl = document.getElementById('adminFirstName');
         if (fnEl) fnEl.textContent = user.worda_role || (user.full_name || 'Administrator').split(' ')[0];
         if (typeof updateDropdownUserInfo === 'function') updateDropdownUserInfo();

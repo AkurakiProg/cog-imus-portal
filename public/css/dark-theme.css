@@ -1402,9 +1402,75 @@ body.dark-mode .search-box i {
 /* Toolbars */
 body.dark-mode .filter-toolbar,
 body.dark-mode .toolbar,
-body.dark-mode .toolbar-actions {
+body.dark-mode .toolbar-actions,
+html.dark-mode .filter-toolbar,
+html.dark-mode .toolbar,
+html.dark-mode .toolbar-actions,
+[data-theme="dark"] .filter-toolbar,
+[data-theme="dark"] .toolbar,
+[data-theme="dark"] .toolbar-actions {
     background: #1A2230 !important;
     border: 1px solid #283548 !important;
+}
+
+body.dark-mode .filter-label,
+html.dark-mode .filter-label,
+[data-theme="dark"] .filter-label {
+    color: #94A3B8 !important;
+}
+
+body.dark-mode .filter-input,
+body.dark-mode .filter-select,
+body.dark-mode .filter-date,
+html.dark-mode .filter-input,
+html.dark-mode .filter-select,
+html.dark-mode .filter-date,
+[data-theme="dark"] .filter-input,
+[data-theme="dark"] .filter-select,
+[data-theme="dark"] .filter-date {
+    background: #141A24 !important;
+    border-color: #283548 !important;
+    color: #F8FAFC !important;
+}
+
+body.dark-mode .filter-input:focus,
+body.dark-mode .filter-select:focus,
+body.dark-mode .filter-date:focus,
+html.dark-mode .filter-input:focus,
+html.dark-mode .filter-select:focus,
+html.dark-mode .filter-date:focus,
+[data-theme="dark"] .filter-input:focus,
+[data-theme="dark"] .filter-select:focus,
+[data-theme="dark"] .filter-date:focus {
+    border-color: #C9A961 !important;
+    box-shadow: 0 0 0 2px rgba(201, 169, 97, 0.25) !important;
+}
+
+/* Mobile Hamburger Menu Icon in Dark Mode */
+body.dark-mode .hamburger,
+html.dark-mode .hamburger,
+[data-theme="dark"] .hamburger {
+    color: #F8FAFC !important;
+    background: #1A2230 !important;
+    border: 1px solid #283548 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.dark-mode .hamburger:hover,
+body.dark-mode .hamburger:active,
+html.dark-mode .hamburger:hover,
+html.dark-mode .hamburger:active,
+[data-theme="dark"] .hamburger:hover,
+[data-theme="dark"] .hamburger:active {
+    color: #E0BC6F !important;
+    background: #242F42 !important;
+    border-color: #E0BC6F !important;
+}
+
+body.dark-mode .hamburger i,
+html.dark-mode .hamburger i,
+[data-theme="dark"] .hamburger i {
+    color: inherit !important;
 }
 
 /* ============================================================

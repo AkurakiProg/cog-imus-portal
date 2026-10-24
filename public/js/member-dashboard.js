@@ -246,23 +246,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const topName = document.getElementById('memberTopName');
         if (topName) topName.textContent = currentUser.full_name;
 
-        const avatarEl = document.getElementById('userAvatar');
-        if (avatarEl) {
-            if (currentUser.profile_image) {
-                avatarEl.innerHTML = `<img src="${escapeHtml(currentUser.profile_image)}" alt="${escapeHtml(currentUser.full_name)}" onerror="this.onerror=null; this.parentElement.textContent='${escapeHtml(currentUser.full_name.charAt(0).toUpperCase())}';">`;
-            } else {
-                avatarEl.textContent = currentUser.full_name.charAt(0).toUpperCase();
+        const renderSafeAvatar = (container, imgSrc, name, fallbackChar) => {
+            if (!container) return;
+            const initial = escapeHtml((name || fallbackChar || 'M').trim().charAt(0).toUpperCase());
+            if (!imgSrc || imgSrc === '/images/default-avatar.svg') {
+                container.innerHTML = `<span class="avatar-initial" style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-weight:700;">${initial}</span>`;
+                return;
             }
-        }
-        
-        const topbarAvatar = document.getElementById('topbarAvatar');
-        if (topbarAvatar) {
-            if (currentUser.profile_image) {
-                topbarAvatar.innerHTML = `<img src="${escapeHtml(currentUser.profile_image)}" alt="${escapeHtml(currentUser.full_name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.parentElement.textContent='${escapeHtml(currentUser.full_name.charAt(0).toUpperCase())}';">`;
-            } else {
-                topbarAvatar.textContent = currentUser.full_name.charAt(0).toUpperCase();
-            }
-        }
+            container.innerHTML = `
+                <img src="${encodeURI(imgSrc)}" alt="${escapeHtml(name || 'Member')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                <span class="avatar-initial" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-weight:700;">${initial}</span>
+            `;
+        };
+
+        renderSafeAvatar(document.getElementById('userAvatar'), currentUser.profile_image, currentUser.full_name, 'M');
+        renderSafeAvatar(document.getElementById('topbarAvatar'), currentUser.profile_image, currentUser.full_name, 'M');
         if (typeof updateDropdownUserInfo === 'function') updateDropdownUserInfo();
         
         // Initial dashboard data load

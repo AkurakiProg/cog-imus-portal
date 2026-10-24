@@ -259,6 +259,12 @@ h1, h2, h3, h4 {
     background: rgba(255, 255, 255, 0.15);
     color: var(--gold-light);
 }
+.mobile-toggle i {
+    font-family: var(--fa-style-family, "Font Awesome 6 Free") !important;
+    font-weight: 900 !important;
+    line-height: 1;
+    display: inline-block;
+}
 
 /* ==================== HERO SECTION & CINEMATIC VIDEO ==================== */
 .hero {
