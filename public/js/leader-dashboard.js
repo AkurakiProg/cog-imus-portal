@@ -643,6 +643,8 @@ async function logout() {
     sessionStorage.removeItem('church_user');
     localStorage.removeItem('church_token');
     localStorage.removeItem('church_user');
+    localStorage.removeItem('church_active_user_theme');
+    localStorage.removeItem('church_active_user_id');
     window.location.href = '/views/login.html';
 }
 let toastTimeout = null;

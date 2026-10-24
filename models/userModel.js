@@ -4,7 +4,7 @@ const UserModel = {
     async findByUsernameOrEmail(identifier) {
         const [rows] = await pool.execute(
             `SELECT u.user_id, u.role_id, r.role_name, u.username, u.email, u.password_hash, u.full_name, 
-                    u.profile_image, u.is_active, u.is_verified,
+                    u.profile_image, u.is_active, u.is_verified, u.theme_preference,
                     u.mfa_enabled, u.mfa_secret, u.mfa_temp_secret, u.mfa_enrolled_at, u.mfa_last_timestep
              FROM users u
              JOIN roles r ON u.role_id = r.role_id
@@ -17,7 +17,7 @@ const UserModel = {
     async findById(userId) {
         const [rows] = await pool.execute(
             `SELECT u.user_id, u.role_id, r.role_name, u.username, u.email, u.full_name, 
-                    m.contact_number, u.profile_image, u.is_active, u.is_verified, u.last_login,
+                    m.contact_number, u.profile_image, u.is_active, u.is_verified, u.last_login, u.theme_preference,
                     u.mfa_enabled, u.mfa_enrolled_at, u.mfa_secret, u.mfa_temp_secret, u.mfa_last_timestep
              FROM users u
              JOIN roles r ON u.role_id = r.role_id
@@ -181,6 +181,14 @@ const UserModel = {
         await pool.execute(
             `DELETE FROM mfa_login_challenges WHERE challenge_id = ?`,
             [challengeId]
+        );
+    },
+
+    async updateThemePreference(userId, theme) {
+        const cleanTheme = ['light', 'dark', 'system'].includes(theme) ? theme : 'system';
+        await pool.execute(
+            `UPDATE users SET theme_preference = ? WHERE user_id = ?`,
+            [cleanTheme, userId]
         );
     },
 

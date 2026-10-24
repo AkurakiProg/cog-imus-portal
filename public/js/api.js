@@ -256,7 +256,8 @@ const api = {
         startMfaEnrollment: () => api.request('/auth/mfa/enroll/start', 'POST'),
         confirmMfaEnrollment: (token) => api.request('/auth/mfa/enroll/confirm', 'POST', { token }),
         disableMfa: (data) => api.request('/auth/mfa/disable', 'POST', data),
-        regenerateRecoveryCodes: (data) => api.request('/auth/mfa/recovery-codes/regenerate', 'POST', data)
+        regenerateRecoveryCodes: (data) => api.request('/auth/mfa/recovery-codes/regenerate', 'POST', data),
+        updateTheme: (theme) => api.request('/auth/theme', 'PUT', { theme })
     },
     public: {
         getBanners: () => api.request('/public/banners', 'GET', null, false),

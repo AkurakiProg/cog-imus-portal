@@ -60,6 +60,9 @@
 // Immediate execution in <head> to prevent Flash of Unstyled Content (FOUC)
 (function () {
     try {
+        // Clean up legacy global key so it never bleeds into other accounts
+        localStorage.removeItem('church_theme');
+
         function getPhilippineIsDark() {
             try {
                 const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false });
@@ -73,20 +76,36 @@
 
         function resolveSavedTheme() {
             try {
-                // 1. Check universal persistent theme preference first
-                const universal = localStorage.getItem('church_theme');
-                if (universal) return universal;
-
-                // 2. Check user-scoped preference if available
+                // 1. Check logged-in user in sessionStorage or localStorage
                 const uStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
                 if (uStr) {
                     const u = JSON.parse(uStr);
-                    const uid = u.user_id || u.id || u.username;
+                    const uid = u.user_id || u.id;
                     if (uid) {
-                        const userTheme = localStorage.getItem(`church_theme_user_${uid}`);
+                        const userTheme = localStorage.getItem(`church_theme_user_${uid}`) || u.theme_preference;
                         if (userTheme) return userTheme;
                     }
                 }
+
+                // 2. Check active user theme set upon login
+                const activeTheme = localStorage.getItem('church_active_user_theme');
+                if (activeTheme) return activeTheme;
+
+                // 3. Check portal-scoped preference
+                let portal = null;
+                const path = (typeof window !== 'undefined' && window.location ? window.location.pathname || '' : '').toLowerCase();
+                if (path.includes('admin-dashboard')) portal = 'admin';
+                else if (path.includes('leader-dashboard')) portal = 'leader';
+                else if (path.includes('member-dashboard')) portal = 'member';
+
+                if (portal) {
+                    const portalTheme = localStorage.getItem(`church_theme_portal_${portal}`);
+                    if (portalTheme) return portalTheme;
+                }
+
+                // 4. Public visitor preference
+                const pubTheme = localStorage.getItem('church_public_theme');
+                if (pubTheme) return pubTheme;
             } catch (e) {}
             return 'system';
         }
@@ -108,32 +127,70 @@
 })();
 
 /**
- * Returns saved theme preference: 'light' | 'dark' | 'system'
- * Universal storage key persists across all pages, login, and logout.
+ * Returns current logged-in user object if available
+ */
+function getLoggedInUser() {
+    try {
+        const uStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
+        if (uStr) return JSON.parse(uStr);
+    } catch (e) {}
+    return null;
+}
+
+/**
+ * Returns portal identifier based on current URL ('admin' | 'leader' | 'member' | null)
+ */
+function getPortalName() {
+    try {
+        if (typeof window === 'undefined' || !window.location) return null;
+        const p = (window.location.pathname || '').toLowerCase();
+        if (p.includes('admin-dashboard')) return 'admin';
+        if (p.includes('leader-dashboard')) return 'leader';
+        if (p.includes('member-dashboard')) return 'member';
+    } catch (e) {}
+    return null;
+}
+
+/**
+ * Returns saved theme preference for the current user or context: 'light' | 'dark' | 'system'
  */
 function getThemePreference() {
     try {
-        const universal = localStorage.getItem('church_theme');
-        if (universal) return universal;
-
-        const userStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
-        if (userStr) {
-            const u = JSON.parse(userStr);
-            const uid = u.user_id || u.id || u.username;
+        const u = getLoggedInUser();
+        if (u) {
+            const uid = u.user_id || u.id;
             if (uid) {
-                const userTheme = localStorage.getItem(`church_theme_user_${uid}`);
+                const userTheme = localStorage.getItem(`church_theme_user_${uid}`) || u.theme_preference;
                 if (userTheme) return userTheme;
             }
         }
+
+        const activeTheme = localStorage.getItem('church_active_user_theme');
+        if (activeTheme) return activeTheme;
+
+        const portal = getPortalName();
+        if (portal) {
+            const portalTheme = localStorage.getItem(`church_theme_portal_${portal}`);
+            if (portalTheme) return portalTheme;
+        }
+
+        const pubTheme = localStorage.getItem('church_public_theme');
+        if (pubTheme) return pubTheme;
     } catch (e) {}
     return 'system';
 }
 
 /**
- * Returns isolated storage key scoped per dashboard / portal
+ * Returns isolated storage key scoped per user / dashboard portal
  */
 function getThemeStorageKey() {
-    return 'church_theme';
+    const user = getLoggedInUser();
+    if (user && (user.user_id || user.id)) {
+        return `church_theme_user_${user.user_id || user.id}`;
+    }
+    const portal = getPortalName();
+    if (portal) return `church_theme_portal_${portal}`;
+    return 'church_public_theme';
 }
 
 /**
@@ -193,17 +250,42 @@ function setAppTheme(mode, e) {
     const storageVal = (mode === 'auto') ? 'system' : mode;
 
     try {
-        // 1. Universal persistence: guarantees theme persists across all pages, login, and logout
-        localStorage.setItem('church_theme', storageVal);
+        // Clean up legacy global key so it never bleeds into other accounts
+        localStorage.removeItem('church_theme');
 
-        // 2. Also persist user-specific key if logged in
-        const userStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
-        if (userStr) {
-            const u = JSON.parse(userStr);
-            const uid = u.user_id || u.id || u.username;
+        const user = getLoggedInUser();
+        if (user) {
+            const uid = user.user_id || user.id;
             if (uid) {
+                // 1. Save user-specific theme in localStorage
                 localStorage.setItem(`church_theme_user_${uid}`, storageVal);
+                localStorage.setItem('church_active_user_theme', storageVal);
+                localStorage.setItem('church_active_user_id', String(uid));
+
+                // 2. Update user object in sessionStorage
+                user.theme_preference = storageVal;
+                sessionStorage.setItem('church_user', JSON.stringify(user));
+
+                // 3. Persist to backend database for this user asynchronously
+                const token = sessionStorage.getItem('church_token');
+                if (token && typeof fetch !== 'undefined') {
+                    fetch('/api/auth/theme', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ theme: storageVal })
+                    }).catch(() => {});
+                }
             }
+        }
+
+        const portal = getPortalName();
+        if (portal) {
+            localStorage.setItem(`church_theme_portal_${portal}`, storageVal);
+        } else {
+            localStorage.setItem('church_public_theme', storageVal);
         }
     } catch (err) {}
 

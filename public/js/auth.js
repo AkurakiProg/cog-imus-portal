@@ -228,7 +228,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('church_token', response.data.token);
                 sessionStorage.setItem('church_user', JSON.stringify(response.data.user));
                 
-                // Purge localStorage
+                // Store user-scoped theme preference
+                const loggedInUser = response.data.user;
+                if (loggedInUser && loggedInUser.user_id) {
+                    const userTheme = loggedInUser.theme_preference || localStorage.getItem(`church_theme_user_${loggedInUser.user_id}`) || 'system';
+                    localStorage.setItem(`church_theme_user_${loggedInUser.user_id}`, userTheme);
+                    localStorage.setItem('church_active_user_theme', userTheme);
+                    localStorage.setItem('church_active_user_id', String(loggedInUser.user_id));
+                }
+
+                // Purge localStorage auth tokens
                 localStorage.removeItem('church_token');
                 localStorage.removeItem('church_user');
                 
@@ -283,6 +292,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 sessionStorage.setItem('church_token', response.data.token);
                 sessionStorage.setItem('church_user', JSON.stringify(response.data.user));
+
+                // Store user-scoped theme preference
+                const mfaUser = response.data.user;
+                if (mfaUser && mfaUser.user_id) {
+                    const userTheme = mfaUser.theme_preference || localStorage.getItem(`church_theme_user_${mfaUser.user_id}`) || 'system';
+                    localStorage.setItem(`church_theme_user_${mfaUser.user_id}`, userTheme);
+                    localStorage.setItem('church_active_user_theme', userTheme);
+                    localStorage.setItem('church_active_user_id', String(mfaUser.user_id));
+                }
+
                 localStorage.removeItem('church_token');
                 localStorage.removeItem('church_user');
 

@@ -27,6 +27,18 @@ async function testConnection() {
         const connection = await pool.getConnection();
         console.log('[DATABASE] MySQL connection established successfully.');
         console.log(`[DATABASE] Connected to: ${process.env.DB_NAME}@${process.env.DB_HOST}:${process.env.DB_PORT}`);
+        
+        // Ensure theme_preference column exists on users table
+        try {
+            const [check] = await connection.query("SHOW COLUMNS FROM users LIKE 'theme_preference'");
+            if (check.length === 0) {
+                await connection.query("ALTER TABLE users ADD COLUMN theme_preference VARCHAR(20) DEFAULT 'system'");
+                console.log('[DATABASE] Successfully added theme_preference column to users table.');
+            }
+        } catch (colErr) {
+            console.warn('[DATABASE] theme_preference column check notice:', colErr.message);
+        }
+
         connection.release();
         return true;
     } catch (error) {

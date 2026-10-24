@@ -11,6 +11,7 @@ router.post('/logout', authMiddleware, authController.logout);
 router.get('/check-session', authMiddleware, authController.checkSession);
 router.get('/me', authMiddleware, authController.getMe);
 router.put('/update-password', authMiddleware, authController.updatePassword);
+router.put('/theme', authMiddleware, authController.updateThemePreference);
 
 // Multi-Factor Authentication (MFA) Routes
 router.post('/mfa/verify', mfaLimiter, authController.verifyMfaLogin);

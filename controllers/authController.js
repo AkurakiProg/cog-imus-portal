@@ -400,6 +400,7 @@ exports.getMe = async (req, res) => {
         user.is_department_head = !!wordaInfo.is_department_head;
 
         user.mfa_enabled = !!user.mfa_enabled;
+        user.theme_preference = user.theme_preference || 'system';
         delete user.mfa_secret;
         delete user.mfa_temp_secret;
 
@@ -907,5 +908,15 @@ exports.regenerateRecoveryCodes = async (req, res) => {
     } catch (error) {
         console.error('[MFA_REGENERATE_RECOVERY_ERROR]', error);
         return errorResponse(res, 'Failed to regenerate recovery codes.', 500);
+    }
+};
+exports.updateThemePreference = async (req, res) => {
+    try {
+        const theme = (req.body.theme || req.body.theme_preference || '').toLowerCase().trim();
+        const cleanTheme = ['light', 'dark', 'system'].includes(theme) ? theme : 'system';
+        await userModel.updateThemePreference(req.user.id, cleanTheme);
+        return successResponse(res, { theme_preference: cleanTheme }, 'Theme preference updated successfully');
+    } catch (error) {
+        return errorResponse(res, 'Failed to update theme preference', 500);
     }
 };
