@@ -3627,11 +3627,52 @@ body.dark-mode .cms-file-input::file-selector-button:hover {
     background: #2b394e;
 }
 
-/* Schedule Modal & Table Dark Theme Overrides */
-body.dark-mode #cmsScheduleModal .modal-dialog {
+/* Schedule Modal & Decision Modal Dark Theme Overrides */
+body.dark-mode #cmsScheduleModal .modal,
+body.dark-mode #cmsScheduleModal .custom-decision-modal,
+body.dark-mode #customConfirmModal .modal,
+body.dark-mode #customConfirmModal .custom-decision-modal {
     background: #141A24 !important;
-    border-color: #283548 !important;
+    border: 1px solid #283548 !important;
+    color: #F8FAFC !important;
 }
+
+body.dark-mode #cmsScheduleModal .modal-header,
+body.dark-mode #customConfirmModal .modal-header {
+    background: #101620 !important;
+    border-bottom: 1px solid #283548 !important;
+}
+
+body.dark-mode #cmsScheduleModal .modal-body {
+    background: #141A24 !important;
+    color: #F8FAFC !important;
+}
+
+body.dark-mode #cmsScheduleModal .modal-footer,
+body.dark-mode #customConfirmModal .modal-footer,
+body.dark-mode #cmsScheduleModal form > div:last-child,
+body.dark-mode #customConfirmModal .custom-decision-modal > div:last-child {
+    background: #0D121A !important;
+    border-top: 1px solid #283548 !important;
+}
+
+body.dark-mode #cmsScheduleModal .btn-secondary,
+body.dark-mode #customConfirmModal .btn-secondary {
+    background: #1E2838 !important;
+    border: 1px solid #334155 !important;
+    color: #F1F5F9 !important;
+}
+body.dark-mode #cmsScheduleModal .btn-secondary:hover,
+body.dark-mode #customConfirmModal .btn-secondary:hover {
+    background: #28354A !important;
+    border-color: #475569 !important;
+    color: #FFFFFF !important;
+}
+
+body.dark-mode #cmsScheduleModal small {
+    color: #94A3B8 !important;
+}
+
 body.dark-mode #cmsScheduleTableBody tr {
     border-color: #283548 !important;
 }

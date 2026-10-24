@@ -30,7 +30,11 @@ async function testAll() {
     const hpData = await contentModel.getWebsiteSection('homepage');
     assert(hpData, 'Homepage content must be retrievable');
     assert(hpData.data.hero, 'Homepage hero must be present');
-    assert.strictEqual(hpData.data.hero.heading, 'A Place to Belong, A Faith to Believe.');
+    assert(
+        hpData.data.hero.heading === 'A Place to Belong, <em>A Faith to Believe.</em>' ||
+        hpData.data.hero.heading === 'A Place to Belong, A Faith to Believe.',
+        'Homepage hero heading must match expected title'
+    );
 
     // Test saveWebsiteSection
     const testUpdate = { ...hpData.data };

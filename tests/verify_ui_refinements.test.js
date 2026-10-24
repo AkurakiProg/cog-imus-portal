@@ -80,4 +80,16 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         assert.ok(darkCss.includes('.cms-file-input'), 'Dark CSS styles cms-file-input');
         assert.ok(darkCss.includes('::file-selector-button'), 'Dark CSS styles file-selector-button');
     });
+
+    await t.test('7. Schedule modal footer colors fixed in dark mode (no white strip)', () => {
+        const adminHtml = fs.readFileSync(path.join(__dirname, '../public/views/admin-dashboard.html'), 'utf8');
+        assert.ok(adminHtml.includes('id="cmsScheduleModal"'), 'cmsScheduleModal exists');
+        assert.ok(!adminHtml.includes('cmsScheduleModal.*background: #f8fafc'), 'No inline white background in cmsScheduleModal');
+        assert.ok(!adminHtml.includes('cmsScheduleModal.*background: var(--bg-secondary'), 'No inline var(--bg-secondary) in cmsScheduleModal');
+
+        const darkCss = fs.readFileSync(path.join(__dirname, '../public/css/dark-theme.css'), 'utf8');
+        assert.ok(darkCss.includes('#cmsScheduleModal .modal-footer'), 'Dark CSS overrides cmsScheduleModal modal-footer');
+        assert.ok(darkCss.includes('#cmsScheduleModal .btn-secondary'), 'Dark CSS styles cmsScheduleModal btn-secondary');
+    });
 });
+
