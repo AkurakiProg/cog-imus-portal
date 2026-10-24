@@ -176,6 +176,11 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
             if (error) {
                 const errMsg = error.message || 'Resend request failed';
                 console.error(`[EMAIL SERVICE: Resend ERROR] Delivery failed to ${recipients.join(', ')}:`, errMsg);
+
+                if (errMsg.includes('only send testing emails to your own email address')) {
+                    throw new Error(`Resend Sandbox Mode: 'onboarding@resend.dev' can only deliver emails to your registered Resend account address. To deliver emails to all church members, verify your custom domain at https://resend.com/domains and configure RESEND_FROM in your Render environment variables.`);
+                }
+
                 throw new Error(`Resend API Error: ${errMsg}`);
             }
 
