@@ -390,6 +390,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Load the initial dashboard summary
         await loadDashboardSummary();
         if (typeof loadSmsGatewayStatus === 'function') loadSmsGatewayStatus();
+        if (typeof loadEmailServiceStatus === 'function') loadEmailServiceStatus();
 
         // Global single-session watchdog
         if (api && typeof api.startSessionWatchdog === 'function') api.startSessionWatchdog();
@@ -702,6 +703,8 @@ function navigateTo(viewName, event) {
             break;
         case 'audit': 
             loadAuditTrail(1); 
+            if (typeof loadSmsGatewayStatus === 'function') loadSmsGatewayStatus();
+            if (typeof loadEmailServiceStatus === 'function') loadEmailServiceStatus();
             break;
     }
     
@@ -7676,15 +7679,17 @@ async function loadSmsGatewayStatus() {
         const res = await api.system.getSmsSettings();
         smsSettingsCache = res.data;
 
-        // Update Audit view badge
+        // Update Audit view badge (single badge instance, no nested badge spans)
         const badgeEl = document.getElementById('smsGatewayStatusBadge');
         const descEl = document.getElementById('smsGatewayDesc');
         if (badgeEl) {
             if (smsSettingsCache.configured) {
-                badgeEl.innerHTML = `<span class="badge badge-active"><i class="fa-solid fa-circle-check"></i> Live Gateway Active (${escapeHtml(smsSettingsCache.provider)})</span>`;
+                badgeEl.className = 'badge badge-active';
+                badgeEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Live Gateway Active (${escapeHtml(smsSettingsCache.provider)})`;
                 if (descEl) descEl.textContent = `Provider: ${smsSettingsCache.provider}. Ready to deliver SMS over cellular carriers.`;
             } else {
-                badgeEl.innerHTML = `<span class="badge badge-inactive"><i class="fa-solid fa-triangle-exclamation"></i> Simulation Mode (No API Key)</span>`;
+                badgeEl.className = 'badge badge-inactive';
+                badgeEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Simulation Mode (No API Key)`;
                 if (descEl) descEl.textContent = `No API key configured. SMS blasts will be simulated and logged to database only.`;
             }
         }
@@ -7700,6 +7705,33 @@ async function loadSmsGatewayStatus() {
         }
     } catch (err) {
         console.warn('Failed to load SMS gateway status:', err.message);
+    }
+}
+
+async function loadEmailServiceStatus() {
+    try {
+        const badgeEl = document.getElementById('emailServiceStatusBadge');
+        const descEl = document.getElementById('emailServiceDesc');
+        if (!badgeEl) return;
+        const res = await api.system.getEmailSettings();
+        if (res && res.data) {
+            const info = res.data;
+            if (info.configured) {
+                badgeEl.innerHTML = `<span class="badge badge-active"><i class="fa-solid fa-circle-check"></i> Active (${escapeHtml(info.label)})</span>`;
+                if (descEl) {
+                    descEl.textContent = info.provider === 'resend'
+                        ? 'Delivers official church announcements, member verifications, and pastoral alerts via Resend.com HTTPS API (Port 443).'
+                        : 'Delivers official church announcements, member verifications, and pastoral alerts directly to member inboxes.';
+                }
+            } else {
+                badgeEl.innerHTML = `<span class="badge badge-inactive"><i class="fa-solid fa-triangle-exclamation"></i> Simulation Mode (No API Key)</span>`;
+                if (descEl) {
+                    descEl.textContent = 'No Resend or SMTP credentials configured. Verification emails will be simulated and logged in database only.';
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Failed to load email service status:', err.message);
     }
 }
 
@@ -7902,6 +7934,7 @@ async function dispatchTestSms() {
 }
 
 window.loadSmsGatewayStatus = loadSmsGatewayStatus;
+window.loadEmailServiceStatus = loadEmailServiceStatus;
 window.openSmsSettingsModal = openSmsSettingsModal;
 window.closeSmsSettingsModal = closeSmsSettingsModal;
 window.saveSmsSettings = saveSmsSettings;

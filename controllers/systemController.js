@@ -25,6 +25,22 @@ function updateEnvFile(updates) {
     fs.writeFileSync(envPath, envContent, 'utf8');
 }
 
+exports.getEmailSettings = async (req, res) => {
+    try {
+        const { getEmailProviderInfo } = require('../utils/emailService');
+        const info = getEmailProviderInfo();
+        return successResponse(res, {
+            provider: info.provider,
+            configured: info.configured,
+            label: info.label,
+            from: process.env.RESEND_FROM || process.env.EMAIL_FROM || (info.provider === 'resend' ? 'onboarding@resend.dev' : 'info@cogwmphimus.org')
+        }, 'Email settings retrieved');
+    } catch (error) {
+        console.error('getEmailSettings Error:', error);
+        return errorResponse(res, 'Failed to fetch email settings: ' + error.message, 500);
+    }
+};
+
 exports.backupDatabase = async (req, res) => {
     try {
         const backupData = await systemModel.getBackupData();

@@ -418,6 +418,7 @@ const api = {
         backup: () => `${API_BASE_URL}/system/backup`,
         getSmsSettings: () => api.request('/system/sms-settings', 'GET'),
         updateSmsSettings: (data) => api.request('/system/sms-settings', 'PUT', data),
-        sendTestSms: (data) => api.request('/system/send-test-sms', 'POST', data)
+        sendTestSms: (data) => api.request('/system/send-test-sms', 'POST', data),
+        getEmailSettings: () => api.request('/system/email-settings', 'GET')
     }
 };

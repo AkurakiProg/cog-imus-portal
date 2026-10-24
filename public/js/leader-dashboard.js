@@ -7706,10 +7706,12 @@ async function loadSmsGatewayStatus() {
         const descEl = document.getElementById('smsGatewayDesc');
         if (badgeEl) {
             if (smsSettingsCache.configured) {
-                badgeEl.innerHTML = `<span class="badge badge-active"><i class="fa-solid fa-circle-check"></i> Live Gateway Active (${escapeHtml(smsSettingsCache.provider)})</span>`;
+                badgeEl.className = 'badge badge-active';
+                badgeEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Live Gateway Active (${escapeHtml(smsSettingsCache.provider)})`;
                 if (descEl) descEl.textContent = `Provider: ${smsSettingsCache.provider}. Ready to deliver SMS over cellular carriers.`;
             } else {
-                badgeEl.innerHTML = `<span class="badge badge-inactive"><i class="fa-solid fa-triangle-exclamation"></i> Simulation Mode (Sandbox Verification)</span>`;
+                badgeEl.className = 'badge badge-inactive';
+                badgeEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Simulation Mode (Sandbox Verification)`;
                 if (descEl) descEl.textContent = `No API key configured. SMS blasts will be simulated and logged to database only.`;
             }
         }

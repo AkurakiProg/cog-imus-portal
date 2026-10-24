@@ -1,19 +1,41 @@
 require('dotenv').config();
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 let transporterInstance = null;
+let resendClient = null;
 
 /**
- * Obtain or initialize the Nodemailer transporter for Gmail SMTP.
+ * Validate standard email address format
+ */
+function isValidEmail(email) {
+    if (!email || typeof email !== 'string') return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+/**
+ * Obtain or initialize the official Resend client
+ */
+function getResendClient() {
+    const apiKey = (process.env.RESEND_API_KEY || '').trim();
+    if (!apiKey) return null;
+    if (!resendClient) {
+        resendClient = new Resend(apiKey);
+    }
+    return resendClient;
+}
+
+/**
+ * Obtain or initialize the Nodemailer transporter for Gmail / SMTP fallback.
  */
 function getTransporter() {
     if (transporterInstance) return transporterInstance;
 
     const user = process.env.SMTP_USER;
     const rawPass = process.env.SMTP_PASS;
-    
+
     if (!user || !rawPass) {
-        throw new Error('SMTP credentials are not configured. Please set SMTP_USER and SMTP_PASS in your environment configuration.');
+        return null;
     }
 
     // Clean spaces from Google App Password if present
@@ -34,16 +56,174 @@ function getTransporter() {
 }
 
 /**
- * Verify SMTP connection configuration.
+ * Determine currently active email service provider
+ */
+function getEmailProviderInfo() {
+    if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim()) {
+        return {
+            provider: 'resend',
+            configured: true,
+            label: 'Resend.com API (HTTPS Port 443)'
+        };
+    }
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        return {
+            provider: 'smtp',
+            configured: true,
+            label: `Gmail SMTP (${process.env.SMTP_USER})`
+        };
+    }
+    return {
+        provider: 'none',
+        configured: false,
+        label: 'Not Configured (Simulation Mode)'
+    };
+}
+
+/**
+ * Verify email service configuration (Resend or SMTP).
+ */
+async function verifyEmailService() {
+    const providerInfo = getEmailProviderInfo();
+    if (providerInfo.provider === 'resend') {
+        const resend = getResendClient();
+        if (!resend) return { success: false, provider: 'resend', message: 'Resend API key is missing or blank.' };
+        return {
+            success: true,
+            provider: 'resend',
+            message: 'Resend.com API is active. Real-time delivery enabled over HTTPS (Port 443).'
+        };
+    } else if (providerInfo.provider === 'smtp') {
+        return await verifySmtp();
+    } else {
+        return {
+            success: false,
+            provider: 'none',
+            message: 'No email provider configured. Please set RESEND_API_KEY in environment configuration.'
+        };
+    }
+}
+
+/**
+ * Verify SMTP connection configuration (Nodemailer fallback).
  */
 async function verifySmtp() {
     const transporter = getTransporter();
+    if (!transporter) {
+        return { success: false, provider: 'smtp', message: 'SMTP credentials (SMTP_USER/SMTP_PASS) are not set.' };
+    }
     try {
         await transporter.verify();
-        return { success: true, message: 'SMTP connection verified successfully.' };
+        return { success: true, provider: 'smtp', message: 'SMTP connection verified successfully.' };
     } catch (err) {
-        return { success: false, message: err.message };
+        return { success: false, provider: 'smtp', message: err.message };
     }
+}
+
+/**
+ * Resolve verified sender address
+ */
+function resolveFromAddress(provider) {
+    if (provider === 'resend') {
+        return (
+            process.env.RESEND_FROM ||
+            process.env.EMAIL_FROM ||
+            'Church of God Imus <onboarding@resend.dev>'
+        );
+    }
+    return (
+        process.env.EMAIL_FROM ||
+        (process.env.SMTP_USER ? `"Church of God World Missions - Imus" <${process.env.SMTP_USER}>` : '"Church of God World Missions - Imus" <info@cogwmphimus.org>')
+    );
+}
+
+/**
+ * Core Real-Time Email Dispatcher:
+ * Automatically uses Resend API (Port 443) when RESEND_API_KEY is configured;
+ * gracefully falls back to Nodemailer SMTP when Resend is not set.
+ */
+async function sendEmail({ to, subject, html, text, from = null, replyTo = null }) {
+    if (!to) {
+        throw new Error('Recipient email address is required.');
+    }
+
+    const recipients = Array.isArray(to) ? to.map(e => String(e).trim()) : [String(to).trim()];
+    for (const email of recipients) {
+        if (!isValidEmail(email)) {
+            throw new Error(`Invalid recipient email address: "${email}"`);
+        }
+    }
+
+    const plainText = text || (html ? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '');
+    const resend = getResendClient();
+
+    // 1. Primary: Resend API (HTTPS Port 443 - zero SMTP port blocking)
+    if (resend) {
+        const fromAddress = from || resolveFromAddress('resend');
+        const payload = {
+            from: fromAddress,
+            to: recipients,
+            subject: subject,
+            html: html,
+            text: plainText
+        };
+        if (replyTo && isValidEmail(replyTo)) {
+            payload.reply_to = replyTo;
+        }
+
+        try {
+            const { data, error } = await resend.emails.send(payload);
+            if (error) {
+                const errMsg = error.message || 'Resend request failed';
+                console.error(`[EMAIL SERVICE: Resend ERROR] Delivery failed to ${recipients.join(', ')}:`, errMsg);
+                throw new Error(`Resend API Error: ${errMsg}`);
+            }
+
+            console.log(`[EMAIL SERVICE: Resend] Email "${subject}" accepted for delivery to ${recipients.join(', ')}. ID: ${data?.id}`);
+            return {
+                success: true,
+                provider: 'resend',
+                status: 'Accepted',
+                messageId: data?.id,
+                recipients: recipients
+            };
+        } catch (resendErr) {
+            console.error(`[EMAIL SERVICE: Resend Exception] ${resendErr.message}`);
+            throw resendErr;
+        }
+    }
+
+    // 2. Secondary Fallback: Nodemailer SMTP
+    const transporter = getTransporter();
+    if (transporter) {
+        const fromAddress = from || resolveFromAddress('smtp');
+        try {
+            const info = await transporter.sendMail({
+                from: fromAddress,
+                to: recipients.length === 1 ? recipients[0] : recipients,
+                subject: subject,
+                text: plainText,
+                html: html,
+                replyTo: (replyTo && isValidEmail(replyTo)) ? replyTo : undefined
+            });
+
+            console.log(`[EMAIL SERVICE: SMTP] Email "${subject}" sent to ${recipients.join(', ')}. ID: ${info.messageId}`);
+            return {
+                success: true,
+                provider: 'smtp',
+                status: 'Sent',
+                messageId: info.messageId,
+                recipients: recipients
+            };
+        } catch (smtpErr) {
+            console.error(`[EMAIL SERVICE: SMTP ERROR] Failed delivering to ${recipients.join(', ')}:`, smtpErr.message);
+            throw smtpErr;
+        }
+    }
+
+    // 3. Neither configured
+    console.warn(`[EMAIL SERVICE] No email provider configured. Email "${subject}" to ${recipients.join(', ')} was not transmitted.`);
+    throw new Error('Email service is not configured. Please set RESEND_API_KEY in environment configuration.');
 }
 
 /**
@@ -54,12 +234,10 @@ async function sendAccountVerificationEmail({ to, fullName, username, roleName =
         throw new Error('Recipient email address is required.');
     }
 
-    const transporter = getTransporter();
     const portalUrl = process.env.PORTAL_URL || 'http://localhost:5000';
     const loginUrl = `${portalUrl}/views/login.html`;
     const actionUrl = activationLink || loginUrl;
     const isActivation = Boolean(activationLink);
-    const fromAddress = process.env.EMAIL_FROM || (process.env.SMTP_USER ? `"Church of God World Missions - Imus" <${process.env.SMTP_USER}>` : '"Church of God World Missions - Imus" <noreply@cogwmphimus.org>');
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -96,44 +274,32 @@ async function sendAccountVerificationEmail({ to, fullName, username, roleName =
                     <tr>
                         <td style="padding: 36px 32px 28px;">
                             <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 700; color: #0f172a;">
-                                Welcome, ${fullName || 'Valued Member'}!
+                                Welcome, ${escapeHtmlEmail(fullName) || 'Valued Member'}!
                             </h2>
-                            <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #475569;">
+                            <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #334155;">
                                 ${isActivation 
-                                    ? 'An administrator has reviewed your account for the <strong>Church of God World Missions - Imus Portal</strong>. To complete your registration and activate your account, please click the button below to verify your email address.'
-                                    : 'We are pleased to inform you that your account on the <strong>Church of God World Missions - Imus Portal</strong> has been officially reviewed and <strong style="color: #059669;">verified</strong> by the Church Administration.'
-                                }
-                            </p>
-                            <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #475569;">
-                                ${isActivation 
-                                    ? 'Once verified, your account will be fully activated and you will have authorized access to sermons, events, announcements, WORDA ministries, and church portal services.'
-                                    : 'You now have full authorized access to the church portal, including sermons, events, announcements, WORDA departments, and member records.'
-                                }
+                                    ? 'Your account on the Church of God World Missions Philippines - Imus Web Portal has been created. To activate your access, please verify your email address by clicking the activation button below.'
+                                    : 'Your account has been officially verified by the church administration. You now have full access to member events, prayer requests, and church resources.'}
                             </p>
 
-                            <!-- Account Details Card -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 28px;">
-                                <tr>
-                                    <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0;">
-                                        <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Account Summary</span>
-                                    </td>
-                                </tr>
+                            <!-- Account Details Table -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 24px 0;">
                                 <tr>
                                     <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px;">
                                         <strong style="color: #334155; width: 120px; display: inline-block;">Username:</strong>
-                                        <code style="background-color: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #0f172a;">${username}</code>
+                                        <code style="background-color: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #0f172a;">${escapeHtmlEmail(username)}</code>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px;">
                                         <strong style="color: #334155; width: 120px; display: inline-block;">Email:</strong>
-                                        <span style="color: #0f172a;">${to}</span>
+                                        <span style="color: #0f172a;">${escapeHtmlEmail(to)}</span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px;">
                                         <strong style="color: #334155; width: 120px; display: inline-block;">Portal Role:</strong>
-                                        <span style="background-color: #dbeafe; color: #1e40af; font-weight: 600; font-size: 12px; padding: 3px 8px; border-radius: 10px;">${roleName}</span>
+                                        <span style="background-color: #dbeafe; color: #1e40af; font-weight: 600; font-size: 12px; padding: 3px 8px; border-radius: 10px;">${escapeHtmlEmail(roleName)}</span>
                                     </td>
                                 </tr>
                                 <tr>
@@ -146,34 +312,31 @@ async function sendAccountVerificationEmail({ to, fullName, username, roleName =
                                 </tr>
                             </table>
 
-                            <!-- Call to Action -->
-                            <div style="text-align: center; margin: 32px 0 24px;">
-                                <a href="${actionUrl}" target="_blank" style="display: inline-block; background: ${isActivation ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'}; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 15px; padding: 16px 40px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15); letter-spacing: 0.3px;">
-                                    ${isActivation ? 'Verify & Activate My Account →' : 'Log In to Church Portal →'}
+                            <!-- Action Button -->
+                            <div style="text-align: center; margin: 32px 0 28px;">
+                                <a href="${actionUrl}" style="background-color: ${isActivation ? '#059669' : '#0b1d3a'}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block; letter-spacing: 0.3px;">
+                                    ${isActivation ? 'Verify & Activate Account' : 'Log In to Member Portal'}
                                 </a>
                             </div>
 
-                            ${isActivation ? `
-                            <p style="margin: 0 0 16px; font-size: 12px; color: #64748b; text-align: center;">
-                                ⏱️ This verification link will expire in 24 hours.
+                            <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0 0 16px; text-align: center;">
+                                ${isActivation ? '⚠️ This verification link is valid for 24 hours. If you did not create this account, please ignore this email.' : 'You can log in anytime to manage your church profile, view upcoming services, and connect with your ministry group.'}
                             </p>
-                            ` : ''}
 
-                            <p style="margin: 0; font-size: 13px; color: #94a3b8; text-align: center; line-height: 1.5;">
-                                Button not working? Copy and paste this link into your browser:<br>
-                                <a href="${actionUrl}" style="color: #2563eb; word-break: break-all;">${actionUrl}</a>
-                            </p>
+                            <!-- Plain text fallback URL -->
+                            <div style="background-color: #f8fafc; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #64748b; word-break: break-all;">
+                                If the button above does not work, copy and paste this link into your browser:<br>
+                                <a href="${actionUrl}" style="color: #2563eb; text-decoration: underline;">${actionUrl}</a>
+                            </div>
                         </td>
                     </tr>
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 30px; text-align: center; font-size: 12px; color: #64748b; line-height: 1.6;">
-                            <p style="margin: 0 0 6px;"><strong>Church of God World Missions Philippines - Imus</strong></p>
-                            <p style="margin: 0 0 6px;">Official Church Administration Portal System</p>
-                            <p style="margin: 0; color: #94a3b8; font-size: 11px;">
-                                This is an automated notification. If you did not create an account or believe you received this in error, please contact the Church Administrator immediately.
-                            </p>
+                        <td style="background-color: #0b1d3a; color: #94a3b8; padding: 24px 30px; text-align: center; font-size: 12px; line-height: 1.6;">
+                            <p style="margin: 0 0 6px; color: #cbd5e1; font-weight: 600;">Church of God World Missions Philippines - Imus</p>
+                            <p style="margin: 0 0 6px;">Cavite, Philippines • Dedicated to Worship, Outreach, Relationship, and Discipleship</p>
+                            <p style="margin: 0; font-size: 11px; color: #64748b;">This is an automated system email. Replies to this email address are not monitored.</p>
                         </td>
                     </tr>
                 </table>
@@ -182,20 +345,19 @@ async function sendAccountVerificationEmail({ to, fullName, username, roleName =
     </table>
 </body>
 </html>
-    `;
+    `.trim();
 
     const textContent = `
 Church of God World Missions Philippines - Imus
-${isActivation ? 'Account Verification & Activation Required' : 'Church Portal Account Verification'}
+Church Portal Account ${isActivation ? 'Verification' : 'Confirmation'}
 
-Hello, ${fullName || 'Valued Member'}!
+Welcome, ${fullName || 'Valued Member'}!
 
 ${isActivation 
-    ? 'An administrator has reviewed your account. Please click the link below to verify your email address and activate your account:'
-    : 'We are pleased to inform you that your account on the Church Portal has been officially verified by the Church Administration.'
-}
+    ? 'Your church portal account has been created. Please activate your account by visiting the link below (valid for 24 hours):' 
+    : 'Your church portal account has been verified by the administration. You may now log in to the portal.'}
 
-Account Summary:
+Account Details:
 - Username: ${username}
 - Email: ${to}
 - Portal Role: ${roleName}
@@ -208,16 +370,18 @@ Blessings,
 Church of God World Missions Philippines - Imus
     `.trim();
 
-    const info = await transporter.sendMail({
-        from: fromAddress,
+    const subject = isActivation
+        ? 'Action Required: Verify & Activate Your Church of God Imus Account'
+        : 'Account Verified - Church of God Imus Portal';
+
+    const result = await sendEmail({
         to: to,
-        subject: isActivation ? 'Action Required: Verify & Activate Your Church of God Imus Account' : 'Account Verified - Church of God Imus Portal',
-        text: textContent,
-        html: htmlContent
+        subject: subject,
+        html: htmlContent,
+        text: textContent
     });
 
-    console.log(`[EMAIL SERVICE] ${isActivation ? 'Activation' : 'Verification'} email sent to ${to}. Message ID: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    return result;
 }
 
 /**
@@ -228,9 +392,7 @@ async function sendAnnouncementEmail({ to, recipientName, title, content, catego
         throw new Error('Recipient email address is required.');
     }
 
-    const transporter = getTransporter();
     const portalUrl = process.env.PORTAL_URL || 'http://localhost:5000';
-    const fromAddress = process.env.EMAIL_FROM || (process.env.SMTP_USER ? `"Church of God World Missions - Imus" <${process.env.SMTP_USER}>` : '"Church of God World Missions - Imus" <noreply@cogwmphimus.org>');
     const dateFormatted = new Date(publishDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
     const htmlContent = `
@@ -239,45 +401,69 @@ async function sendAnnouncementEmail({ to, recipientName, title, content, catego
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - Church of God Imus</title>
+    <title>${escapeHtmlEmail(title)} - COGWM Imus Announcement</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 30px 15px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 40px 15px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 620px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                    <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #0b1d3a 0%, #1e3a8a 100%); padding: 28px 30px; text-align: center;">
                             <div style="font-size: 28px; margin-bottom: 6px;">📢</div>
-                            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">Church of God World Missions</h1>
-                            <p style="color: #93c5fd; margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;">Imus, Cavite • Official Announcement</p>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">Official Church Announcement</h1>
+                            <p style="color: #93c5fd; margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Church of God World Missions - Imus</p>
                         </td>
                     </tr>
+
+                    <!-- Category & Date Badge -->
                     <tr>
-                        <td style="padding: 28px 32px;">
-                            <div style="display: inline-block; padding: 4px 10px; background-color: #fef3c7; color: #b45309; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
-                                ${category} • ${department || 'Church Administration'}
-                            </div>
-                            <h2 style="margin: 0 0 10px; font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1.3;">
-                                ${title}
+                        <td style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 30px;">
+                            <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                                <tr>
+                                    <td align="left">
+                                        <span style="background-color: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: uppercase;">
+                                            ${escapeHtmlEmail(category)}
+                                        </span>
+                                        <span style="color: #64748b; font-size: 13px; margin-left: 8px;">
+                                            • ${escapeHtmlEmail(department)}
+                                        </span>
+                                    </td>
+                                    <td align="right" style="color: #64748b; font-size: 12px;">
+                                        📅 ${dateFormatted}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 32px 30px;">
+                            <h2 style="margin: 0 0 16px; font-size: 22px; font-weight: 700; color: #0b1d3a; line-height: 1.3;">
+                                ${escapeHtmlEmail(title)}
                             </h2>
-                            <p style="font-size: 13px; color: #64748b; margin: 0 0 20px;">
-                                Date: <strong>${dateFormatted}</strong> | Dear <strong>${recipientName || 'Church Member'}</strong>,
+                            <p style="font-size: 14px; color: #64748b; margin: 0 0 20px;">
+                                Dear ${escapeHtmlEmail(recipientName) || 'Church Member'},
                             </p>
-                            <div style="padding: 18px 20px; background-color: #f8fafc; border-left: 4px solid #0E2A4F; border-radius: 6px; font-size: 14px; line-height: 1.7; color: #334155; white-space: pre-line; margin-bottom: 24px;">
-${content}
+                            <div style="font-size: 15px; line-height: 1.7; color: #334155; white-space: pre-wrap; background-color: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #1e3a8a;">
+${escapeHtmlEmail(content)}
                             </div>
-                            <div style="text-align: center; margin: 24px 0 12px;">
-                                <a href="${portalUrl}/views/login.html" target="_blank" style="display: inline-block; background: #0E2A4F; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 28px; border-radius: 6px;">
-                                    View on Church Portal &rarr;
+
+                            <div style="text-align: center; margin: 30px 0 10px;">
+                                <a href="${portalUrl}" style="background-color: #0b1d3a; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">
+                                    View in Church Portal
                                 </a>
                             </div>
                         </td>
                     </tr>
+
+                    <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 11px; color: #64748b; line-height: 1.5;">
-                            <p style="margin: 0 0 4px;"><strong>Church of God World Missions Philippines - Imus</strong></p>
-                            <p style="margin: 0;">Stay connected with our church body in faith, worship, and fellowship.</p>
+                        <td style="background-color: #0b1d3a; color: #94a3b8; padding: 20px 30px; text-align: center; font-size: 11px;">
+                            <p style="margin: 0 0 4px; color: #cbd5e1;">Church of God World Missions Philippines - Imus</p>
+                            <p style="margin: 0;">You received this email because you are a registered member of the COGWM Imus Portal.</p>
                         </td>
                     </tr>
                 </table>
@@ -286,12 +472,12 @@ ${content}
     </table>
 </body>
 </html>
-    `;
+    `.trim();
 
     const textContent = `
-[COGWM Imus Announcement]
-Title: ${title}
-Category: ${category}
+[Announcement] ${title}
+Church of God World Missions Philippines - Imus
+Category: ${category} | Department: ${department}
 Date: ${dateFormatted}
 
 Dear ${recipientName || 'Church Member'},
@@ -302,18 +488,14 @@ View online on the church portal: ${portalUrl}
     `.trim();
 
     try {
-        const info = await transporter.sendMail({
-            from: fromAddress,
+        const result = await sendEmail({
             to: to,
             subject: `[Announcement] ${title} - Church of God Imus`,
-            text: textContent,
-            html: htmlContent
+            html: htmlContent,
+            text: textContent
         });
-
-        console.log(`[EMAIL SERVICE] Announcement email delivered to ${to}. Message ID: ${info.messageId}`);
-        return { success: true, messageId: info.messageId, status: 'Sent' };
+        return { success: true, messageId: result.messageId, provider: result.provider, status: result.status || 'Accepted' };
     } catch (err) {
-        console.warn(`[EMAIL SERVICE] Failed delivering to ${to}: ${err.message}`);
         return { success: false, error: err.message, status: 'Failed' };
     }
 }
@@ -322,12 +504,6 @@ View online on the church portal: ${portalUrl}
  * Dispatches a Contact Inquiry / Prayer Request email directly to the pastoral/admin recipient.
  */
 async function sendContactPrayerEmail({ name, email, contact_number, subject, message }) {
-    const transporter = getTransporter();
-    if (!transporter) {
-        console.warn('[EMAIL SERVICE] SMTP transporter unavailable for contact/prayer request.');
-        return { success: false, error: 'SMTP transporter not configured.' };
-    }
-
     const recipient = process.env.CONTACT_RECIPIENT_EMAIL || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'info@cogwmphimus.org';
     const isPrayer = String(subject || '').toLowerCase().includes('prayer') || String(message || '').toLowerCase().includes('pray');
     const badgeLabel = isPrayer ? 'PRAYER REQUEST' : 'CONTACT MESSAGE';
@@ -343,61 +519,47 @@ async function sendContactPrayerEmail({ name, email, contact_number, subject, me
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
             .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
             .header { background: #0c2340; color: #ffffff; padding: 25px 30px; border-bottom: 3px solid #c9a961; }
-            .header h1 { margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; }
-            .header p { margin: 5px 0 0; color: #c9a961; font-size: 13px; font-weight: 500; }
-            .badge { display: inline-block; background: ${badgeColor}; color: #ffffff; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 12px; }
-            .body { padding: 30px; }
-            .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
-            .info-table td { padding: 10px 14px; font-size: 14px; }
-            .info-table td.label { width: 140px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
-            .info-table td.val { color: #0f172a; font-weight: 500; border-bottom: 1px solid #e2e8f0; }
-            .info-table tr:last-child td { border-bottom: none; }
-            .message-box { background: #fefce8; border-left: 4px solid #eab308; padding: 16px 18px; border-radius: 6px; font-size: 15px; line-height: 1.6; color: #1e293b; white-space: pre-wrap; margin-bottom: 25px; }
-            .action-btn { display: inline-block; background: #0c2340; color: #ffffff !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; border: 1px solid #c9a961; }
-            .footer { background: #f8fafc; padding: 16px 30px; font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; }
+            .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; background: ${badgeColor}; color: #ffffff; margin-bottom: 8px; letter-spacing: 0.5px; }
+            .content { padding: 30px; }
+            .field-group { margin-bottom: 18px; }
+            .label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+            .value { font-size: 15px; color: #0f172a; line-height: 1.5; }
+            .message-box { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #c9a961; padding: 18px; border-radius: 6px; font-size: 14px; line-height: 1.6; color: #334155; margin-top: 20px; white-space: pre-wrap; }
+            .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 15px 30px; text-align: center; font-size: 12px; color: #94a3b8; }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h1>Church of God World Missions &bull; Imus</h1>
-                <p>Official Website Inquiry & Pastoral Portal</p>
-            </div>
-            <div class="body">
                 <span class="badge">${badgeLabel}</span>
-                <h2 style="margin: 0 0 16px; color: #0c2340; font-size: 18px;">${escapeHtmlEmail(subject || 'General Inquiry')}</h2>
-
-                <table class="info-table">
-                    <tr>
-                        <td class="label">From:</td>
-                        <td class="val"><strong>${escapeHtmlEmail(name)}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Email Address:</td>
-                        <td class="val"><a href="mailto:${escapeHtmlEmail(email)}" style="color: #2563eb; text-decoration: underline;">${escapeHtmlEmail(email)}</a></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Phone / Mobile:</td>
-                        <td class="val">${escapeHtmlEmail(contact_number || 'Not provided')}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Submitted:</td>
-                        <td class="val">${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', dateStyle: 'full', timeStyle: 'short' })} PHT</td>
-                    </tr>
-                </table>
-
-                <h3 style="font-size: 14px; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; margin: 0 0 8px;">Message Content:</h3>
-                <div class="message-box">${escapeHtmlEmail(message)}</div>
-
-                <div style="text-align: center;">
-                    <a href="mailto:${escapeHtmlEmail(email)}?subject=Re:%20${encodeURIComponent(subject || 'Your Message to COGWM Imus')}" class="action-btn">
-                        &larr; Reply Directly to ${escapeHtmlEmail(name)}
-                    </a>
+                <h2 style="margin: 0; font-size: 20px; font-weight: 700;">Church of God World Missions - Imus</h2>
+                <p style="margin: 5px 0 0; font-size: 13px; opacity: 0.85;">Website Portal Submission</p>
+            </div>
+            <div class="content">
+                <div class="field-group">
+                    <div class="label">From</div>
+                    <div class="value"><strong>${escapeHtmlEmail(name)}</strong></div>
+                </div>
+                <div class="field-group">
+                    <div class="label">Email Address</div>
+                    <div class="value"><a href="mailto:${escapeHtmlEmail(email)}" style="color: #2563eb; text-decoration: none;">${escapeHtmlEmail(email)}</a></div>
+                </div>
+                ${contact_number ? `
+                <div class="field-group">
+                    <div class="label">Contact Number</div>
+                    <div class="value">${escapeHtmlEmail(contact_number)}</div>
+                </div>` : ''}
+                <div class="field-group">
+                    <div class="label">Subject</div>
+                    <div class="value"><strong>${escapeHtmlEmail(subject || 'General Inquiry')}</strong></div>
+                </div>
+                <div class="field-group" style="margin-bottom: 0;">
+                    <div class="label">Message / Prayer Details</div>
+                    <div class="message-box">${escapeHtmlEmail(message)}</div>
                 </div>
             </div>
             <div class="footer">
-                This email was generated automatically by the COGWM Imus Portal Contact & Prayer Request Form.<br>
-                Recipient: ${recipient}
+                This is an automated notification from the Church of God World Missions Philippines - Imus Web Portal.
             </div>
         </div>
     </body>
@@ -405,32 +567,29 @@ async function sendContactPrayerEmail({ name, email, contact_number, subject, me
     `;
 
     const textContent = `
-========================================
-[COGWM IMUS] ${badgeLabel}
-========================================
-Subject: ${subject || 'General Inquiry'}
-From: ${name}
+[${badgeLabel}] From: ${name}
 Email: ${email}
-Contact Number: ${contact_number || 'None'}
-Date: ${new Date().toLocaleString()}
+Phone: ${contact_number || 'N/A'}
+Subject: ${subject || 'General Inquiry'}
 
 Message:
 ${message}
-========================================
-`;
+
+---
+Delivered by Church of God Imus Web Portal
+    `.trim();
 
     try {
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_FROM || `"COGWM Imus Portal" <${process.env.SMTP_USER || 'noreply@cogwmphimus.org'}>`,
+        const result = await sendEmail({
             to: recipient,
-            replyTo: `"${name}" <${email}>`,
-            subject: `[COGWM Imus] ${badgeLabel}: ${subject || 'New Submission'} - from ${name}`,
+            subject: `[${badgeLabel}] ${subject || 'New Message'} - from ${name}`,
+            html: htmlContent,
             text: textContent,
-            html: htmlContent
+            replyTo: email
         });
 
-        console.log(`[EMAIL SERVICE] Contact/Prayer request delivered to ${recipient}. Message ID: ${info.messageId}`);
-        return { success: true, messageId: info.messageId, status: 'Sent' };
+        console.log(`[EMAIL SERVICE] Contact/Prayer request delivered to ${recipient}. Message ID: ${result.messageId}`);
+        return { success: true, messageId: result.messageId, provider: result.provider, status: result.status || 'Accepted' };
     } catch (err) {
         console.error(`[EMAIL SERVICE] Error sending contact/prayer request: ${err.message}`);
         return { success: false, error: err.message, status: 'Failed' };
@@ -449,8 +608,14 @@ function escapeHtmlEmail(str) {
 
 module.exports = {
     getTransporter,
+    getResendClient,
+    getEmailProviderInfo,
     verifySmtp,
+    verifyEmailService,
+    sendEmail,
     sendAccountVerificationEmail,
     sendAnnouncementEmail,
-    sendContactPrayerEmail
+    sendContactPrayerEmail,
+    isValidEmail,
+    escapeHtmlEmail
 };

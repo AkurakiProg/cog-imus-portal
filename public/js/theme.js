@@ -48,9 +48,13 @@
 })();
 
 /**
- * Professional Theme & Profile System (Light / Dark / System Default)
+ * Professional Time-Sensitive Theme & Profile System (Light / Dark / Auto)
  * Church of God World Missions Philippines - Imus
  * Compliant with WCAG 2.2 AA Contrast & Keyboard Accessibility
+ * 
+ * Auto Mode Rule (Asia/Manila Philippine Standard Time):
+ *   - 12:00 AM – 11:59 AM (AM): Light Mode
+ *   - 12:00 PM – 11:59 PM (PM): Dark Mode
  */
 
 // Immediate execution in <head> to prevent Flash of Unstyled Content (FOUC)
@@ -73,10 +77,21 @@
             } catch (e) {}
             return 'church_theme_public';
         }
+
+        function getPhilippineIsDark() {
+            try {
+                const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false });
+                const h = parseInt(fmt.format(new Date()), 10);
+                return h >= 12 && h < 24;
+            } catch (e) {
+                const phtH = (new Date().getUTCHours() + 8) % 24;
+                return phtH >= 12 && phtH < 24;
+            }
+        }
+
         const key = resolveStorageKey();
         const saved = localStorage.getItem(key) || localStorage.getItem('church_theme') || 'system';
-        const sysDark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        const isDark = (saved === 'dark') || (saved === 'system' && sysDark);
+        const isDark = (saved === 'dark') || (saved === 'system' && getPhilippineIsDark());
         if (isDark) {
             document.documentElement.classList.add('dark-mode');
             document.documentElement.setAttribute('data-theme', 'dark');
@@ -127,10 +142,43 @@ function getThemePreference() {
 }
 
 /**
- * Returns OS system preference: 'dark' | 'light'
+ * Evaluates current time in Philippine Time (Asia/Manila).
+ * Returns { isDark, hour, period: 'AM' | 'PM' }
+ * AM (12:00 AM - 11:59 AM) -> isDark = false (Light Mode)
+ * PM (12:00 PM - 11:59 PM) -> isDark = true (Dark Mode)
+ */
+function getPhilippineThemeStatus() {
+    try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Manila',
+            hour: 'numeric',
+            hour12: false
+        });
+        const hour = parseInt(formatter.format(new Date()), 10);
+        const isDark = (hour >= 12 && hour < 24);
+        return { isDark, hour, period: isDark ? 'PM' : 'AM' };
+    } catch (e) {
+        const now = new Date();
+        const phtHour = (now.getUTCHours() + 8) % 24;
+        const isDark = (phtHour >= 12 && phtHour < 24);
+        return { isDark, hour: phtHour, period: isDark ? 'PM' : 'AM' };
+    }
+}
+
+/**
+ * Returns whether the given theme mode resolves to dark mode
+ */
+function isThemeDark(mode) {
+    if (mode === 'dark') return true;
+    if (mode === 'light') return false;
+    return getPhilippineThemeStatus().isDark;
+}
+
+/**
+ * Backward compatibility alias
  */
 function getSystemPreference() {
-    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    return getPhilippineThemeStatus().isDark ? 'dark' : 'light';
 }
 
 /**
@@ -144,20 +192,20 @@ function setAppTheme(mode, e) {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
     }
-    if (!['light', 'dark', 'system'].includes(mode)) {
+    if (!['light', 'dark', 'system', 'auto'].includes(mode)) {
         mode = 'system';
     }
+    const storageVal = (mode === 'auto') ? 'system' : mode;
 
     try {
         const key = getThemeStorageKey();
-        localStorage.setItem(key, mode);
-        // Only set global fallback if on public page
+        localStorage.setItem(key, storageVal);
         if (key === 'church_theme_public') {
-            localStorage.setItem('church_theme', mode);
+            localStorage.setItem('church_theme', storageVal);
         }
     } catch (err) {}
 
-    const isDark = (mode === 'dark') || (mode === 'system' && getSystemPreference() === 'dark');
+    const isDark = isThemeDark(storageVal);
 
     // Prevent any animation restarts on open menus/dropdowns during theme switch
     const menu = document.getElementById('topbarProfileDropdown');
@@ -175,17 +223,18 @@ function setAppTheme(mode, e) {
         if (document.body) document.body.classList.remove('dark-mode');
     }
 
-    updateThemeUi(mode, isDark);
+    updateThemeUi(storageVal, isDark);
     updateChartJsTheme(isDark);
+    scheduleAutoThemeBoundary();
 
     // Dispatch global event for other listeners
     try {
-        window.dispatchEvent(new CustomEvent('church_theme_changed', { detail: { mode, isDark } }));
+        window.dispatchEvent(new CustomEvent('church_theme_changed', { detail: { mode: storageVal, isDark } }));
     } catch (err) {}
 }
 
 /**
- * Quick toggle between light and dark mode (or toggles away from current active appearance)
+ * Quick toggle between light and dark mode
  */
 function toggleDarkMode() {
     const isCurrentlyDark = document.documentElement.classList.contains('dark-mode') ||
@@ -200,14 +249,15 @@ function toggleDarkMode() {
 function updateThemeUi(mode, isDark) {
     if (!mode) mode = getThemePreference();
     if (typeof isDark === 'undefined') {
-        isDark = (mode === 'dark') || (mode === 'system' && getSystemPreference() === 'dark');
+        isDark = isThemeDark(mode);
     }
 
-    // Active Mode Label (e.g. "Dark", "Light", "Auto (System)")
+    // Active Mode Label (e.g. "Dark", "Light", "Auto (Light / AM)")
     const modeLabelEl = document.getElementById('currentThemeModeLabel');
     if (modeLabelEl) {
-        if (mode === 'system') {
-            modeLabelEl.textContent = `Auto (${isDark ? 'Dark' : 'Light'})`;
+        if (mode === 'system' || mode === 'auto') {
+            const pht = getPhilippineThemeStatus();
+            modeLabelEl.textContent = `Auto (${isDark ? 'Dark / PM' : 'Light / AM'})`;
         } else {
             modeLabelEl.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
         }
@@ -227,8 +277,10 @@ function updateThemeUi(mode, isDark) {
         btnDark.setAttribute('aria-checked', mode === 'dark' ? 'true' : 'false');
     }
     if (btnSystem) {
-        btnSystem.classList.toggle('active', mode === 'system');
-        btnSystem.setAttribute('aria-checked', mode === 'system' ? 'true' : 'false');
+        const isAuto = (mode === 'system' || mode === 'auto');
+        btnSystem.classList.toggle('active', isAuto);
+        btnSystem.setAttribute('aria-checked', isAuto ? 'true' : 'false');
+        btnSystem.setAttribute('title', 'Auto: Light Mode (12:00 AM - 11:59 AM) / Dark Mode (12:00 PM - 11:59 PM PHT)');
     }
 
     // Quick toggle dropdown item if present
@@ -238,8 +290,8 @@ function updateThemeUi(mode, isDark) {
     const toggleBtn = document.getElementById('themeQuickToggleBtn');
 
     if (pill) {
-        if (mode === 'system') {
-            pill.textContent = isDark ? 'Auto (On)' : 'Auto (Off)';
+        if (mode === 'system' || mode === 'auto') {
+            pill.textContent = isDark ? 'Auto (Dark)' : 'Auto (Light)';
             pill.className = isDark ? 'theme-toggle-pill active' : 'theme-toggle-pill';
         } else {
             pill.textContent = isDark ? 'On' : 'Off';
@@ -352,7 +404,7 @@ function toggleProfileDropdown(e) {
     } else {
         updateDropdownUserInfo();
         const mode = getThemePreference();
-        const isDark = (mode === 'dark') || (mode === 'system' && getSystemPreference() === 'dark');
+        const isDark = isThemeDark(mode);
         updateThemeUi(mode, isDark);
         menu.classList.remove('menu-opening');
         menu.style.animation = '';
@@ -421,33 +473,83 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// System Preference Change Listener (Pre-emptively reacts when OS changes theme)
-if (window.matchMedia) {
+// Automatic Time-Sensitive Synchronization across Philippine Time Boundaries
+let autoThemeTimer = null;
+let autoThemeWatchdog = null;
+
+function getMsUntilNextPhilippineBoundary() {
     try {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-            const currentPref = getThemePreference();
-            if (currentPref === 'system') {
-                const isDark = e.matches;
-                if (isDark) {
-                    document.documentElement.classList.add('dark-mode');
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    if (document.body) document.body.classList.add('dark-mode');
-                } else {
-                    document.documentElement.classList.remove('dark-mode');
-                    document.documentElement.setAttribute('data-theme', 'light');
-                    if (document.body) document.body.classList.remove('dark-mode');
-                }
-                updateThemeUi('system', isDark);
-                updateChartJsTheme(isDark);
-            }
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Manila',
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hour12: false
         });
-    } catch (e) {}
+        const parts = formatter.formatToParts(now);
+        const p = {};
+        parts.forEach(pt => p[pt.type] = pt.value);
+
+        const curHour = parseInt(p.hour, 10);
+        const curMin = parseInt(p.minute, 10);
+        const curSec = parseInt(p.second, 10);
+
+        let targetHour = curHour < 12 ? 12 : 24;
+        const hoursLeft = targetHour - curHour - 1;
+        const minsLeft = 59 - curMin;
+        const secsLeft = 60 - curSec;
+
+        const totalMs = ((hoursLeft * 3600) + (minsLeft * 60) + secsLeft) * 1000;
+        return Math.max(1000, totalMs);
+    } catch (e) {
+        return 3600000;
+    }
+}
+
+function checkAndSyncAutoTheme() {
+    const mode = getThemePreference();
+    if (mode === 'system' || mode === 'auto') {
+        const pht = getPhilippineThemeStatus();
+        const isCurrentlyDark = document.documentElement.classList.contains('dark-mode');
+        if (pht.isDark !== isCurrentlyDark) {
+            setAppTheme('system');
+        } else {
+            updateThemeUi(mode, pht.isDark);
+        }
+    }
+}
+
+function scheduleAutoThemeBoundary() {
+    if (autoThemeTimer) clearTimeout(autoThemeTimer);
+    const msUntilBoundary = getMsUntilNextPhilippineBoundary();
+    autoThemeTimer = setTimeout(function () {
+        checkAndSyncAutoTheme();
+        scheduleAutoThemeBoundary();
+    }, msUntilBoundary + 1000);
+}
+
+// Lifecycle listeners: tab focus & visibility change re-evaluates immediately
+document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+        checkAndSyncAutoTheme();
+        scheduleAutoThemeBoundary();
+    }
+});
+
+window.addEventListener('focus', function () {
+    checkAndSyncAutoTheme();
+});
+
+// Periodic lightweight check (every 30s) to handle computer sleep/wake clock shifts
+if (!autoThemeWatchdog && typeof window !== 'undefined') {
+    autoThemeWatchdog = setInterval(checkAndSyncAutoTheme, 30000);
 }
 
 // Initial hydration upon DOM Ready
 document.addEventListener('DOMContentLoaded', function () {
     const mode = getThemePreference();
-    const isDark = (mode === 'dark') || (mode === 'system' && getSystemPreference() === 'dark');
+    const isDark = isThemeDark(mode);
 
     if (isDark) {
         document.documentElement.classList.add('dark-mode');
@@ -462,4 +564,5 @@ document.addEventListener('DOMContentLoaded', function () {
     updateThemeUi(mode, isDark);
     updateDropdownUserInfo();
     updateChartJsTheme(isDark);
+    scheduleAutoThemeBoundary();
 });
