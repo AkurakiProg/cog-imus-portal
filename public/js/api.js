@@ -1,5 +1,34 @@
 const API_BASE_URL = '/api';
 
+function detectThemeIsDark() {
+    try {
+        if (typeof document !== 'undefined') {
+            if (document.documentElement && (document.documentElement.classList.contains('dark-mode') || document.documentElement.getAttribute('data-theme') === 'dark')) {
+                return true;
+            }
+            if (document.body && (document.body.classList.contains('dark-mode') || document.body.getAttribute('data-theme') === 'dark')) {
+                return true;
+            }
+        }
+        if (typeof window !== 'undefined') {
+            const pathname = window.location.pathname || '';
+            let portal = '';
+            if (pathname.includes('admin')) portal = 'admin';
+            else if (pathname.includes('leader')) portal = 'leader';
+            else if (pathname.includes('member')) portal = 'member';
+            
+            const saved = portal ? localStorage.getItem(`church_theme_portal_${portal}`) : localStorage.getItem('church_public_theme');
+            if (saved === 'dark') return true;
+            if (saved === 'system') {
+                const now = new Date();
+                const phHours = (now.getUTCHours() + 8) % 24;
+                return phHours >= 18 || phHours < 6;
+            }
+        }
+    } catch (e) {}
+    return false;
+}
+
 let _isLoggingOut = false;
 function triggerConcurrentLogout(reason = 'concurrent_login') {
     if (_isLoggingOut) return;
@@ -13,49 +42,68 @@ function triggerConcurrentLogout(reason = 'concurrent_login') {
 
     if (window.location.href.includes('login.html')) return;
 
+    const isDark = detectThemeIsDark();
+
     let title = 'Session Terminated';
     let message = 'You have logged in from another browser or device. For your security, this session has been automatically logged out.';
     let icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
-    let iconBg = '#fee2e2';
-    let iconColor = '#dc2626';
+    let iconClass = 'session-icon-danger';
+    let iconBg = isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2';
+    let iconColor = isDark ? '#f87171' : '#dc2626';
+    let iconBorder = isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca';
 
     if (reason === 'server_offline') {
         title = 'Server Disconnected';
         message = 'The Node.js server is currently off or unreachable. For your security, this session has been automatically closed.';
         icon = '<i class="fa-solid fa-power-off"></i>';
-        iconBg = '#fef3c7';
-        iconColor = '#d97706';
+        iconClass = 'session-icon-warning';
+        iconBg = isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7';
+        iconColor = isDark ? '#fbbf24' : '#d97706';
+        iconBorder = isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a';
     } else if (reason === 'role_changed') {
         title = 'Account Role Updated';
         message = 'Your account role has been changed by Church Administration (e.g. Member to Leader). Please log in again to access your updated dashboard and permissions.';
         icon = '<i class="fa-solid fa-user-shield"></i>';
-        iconBg = '#eff6ff';
-        iconColor = '#2563eb';
+        iconClass = 'session-icon-role';
+        iconBg = isDark ? 'rgba(37, 99, 235, 0.22)' : '#eff6ff';
+        iconColor = isDark ? '#60a5fa' : '#2563eb';
+        iconBorder = isDark ? 'rgba(59, 130, 246, 0.4)' : '#dbeafe';
     } else if (reason === 'unauthorized') {
         title = 'Session Expired';
         message = 'Your session has expired or is invalid. Please log in again to continue.';
         icon = '<i class="fa-solid fa-clock-rotate-left"></i>';
-        iconBg = '#fee2e2';
-        iconColor = '#dc2626';
+        iconClass = 'session-icon-danger';
+        iconBg = isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2';
+        iconColor = isDark ? '#f87171' : '#dc2626';
+        iconBorder = isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca';
     }
+
+    const modalBg = isDark ? '#141A24' : '#ffffff';
+    const cardBorder = isDark ? '1px solid #283548' : '1px solid #e2e8f0';
+    const cardShadow = isDark ? '0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05)' : '0 25px 50px -12px rgba(0, 0, 0, 0.28)';
+    const titleColor = isDark ? '#f8fafc' : '#0f172a';
+    const descColor = isDark ? '#94a3b8' : '#475569';
+    const btnBg = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+    const btnShadow = isDark ? '0 4px 16px rgba(37, 99, 235, 0.45)' : '0 4px 14px rgba(37, 99, 235, 0.35)';
 
     let existingOverlay = document.getElementById('session-terminated-overlay');
     if (!existingOverlay) {
-        const isDark = document.body && document.body.classList.contains('dark-mode');
-        const modalBg = isDark ? '#1e293b' : 'white';
-        const titleColor = isDark ? '#f8fafc' : '#0f172a';
-        const descColor = isDark ? '#94a3b8' : '#64748b';
         const overlay = document.createElement('div');
         overlay.id = 'session-terminated-overlay';
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.88);z-index:9999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);font-family:Inter,system-ui,-apple-system,sans-serif;';
+        overlay.className = 'session-terminated-overlay';
+        overlay.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:${isDark ? 'rgba(5,9,15,0.88)' : 'rgba(15,23,42,0.82)'};z-index:9999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);font-family:Inter,system-ui,-apple-system,sans-serif;`;
         overlay.innerHTML = `
-            <div style="background:${modalBg};padding:32px;border-radius:14px;max-width:440px;width:90%;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);border:1px solid ${isDark ? '#334155' : 'transparent'};">
-                <div style="width:64px;height:64px;background:${iconBg};color:${iconColor};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">
+            <div class="session-terminated-card modal" style="background:${modalBg} !important;background-color:${modalBg} !important;padding:32px;border-radius:16px;max-width:440px;width:90%;text-align:center;box-shadow:${cardShadow} !important;border:${cardBorder} !important;font-family:Inter,system-ui,-apple-system,sans-serif !important;">
+                <div class="session-icon-box ${iconClass}" style="width:68px;height:68px;background:${iconBg} !important;color:${iconColor} !important;border:1px solid ${iconBorder} !important;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:30px;">
                     ${icon}
                 </div>
-                <h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:${titleColor};">${title}</h3>
-                <p style="margin:0 0 20px;color:${descColor};font-size:14px;line-height:1.5;">${message}</p>
-                <div style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;font-weight:600;font-size:14px;border-radius:8px;">Redirecting to Login...</div>
+                <h3 class="session-terminated-title" style="margin:0 0 10px;font-size:20px;font-weight:700;color:${titleColor} !important;font-family:Inter,system-ui,-apple-system,sans-serif !important;letter-spacing:-0.3px;">${title}</h3>
+                <p class="session-terminated-message" style="margin:0 0 22px;color:${descColor} !important;font-size:14px;line-height:1.55;font-family:Inter,system-ui,-apple-system,sans-serif !important;">${message}</p>
+                <div class="session-terminated-btn" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 22px;background:${btnBg} !important;color:#ffffff !important;font-weight:600;font-size:14px;border-radius:9px;box-shadow:${btnShadow} !important;border:1px solid rgba(255,255,255,0.12) !important;font-family:Inter,system-ui,-apple-system,sans-serif !important;">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <span>Redirecting to Login...</span>
+                </div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -63,7 +111,7 @@ function triggerConcurrentLogout(reason = 'concurrent_login') {
 
     setTimeout(() => {
         window.location.href = '/views/login.html';
-    }, 1200);
+    }, 1400);
 }
 
 let _watchdogStarted = false;

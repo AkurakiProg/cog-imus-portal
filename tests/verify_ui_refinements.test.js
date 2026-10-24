@@ -152,5 +152,19 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         const adminJs = fs.readFileSync(path.join(__dirname, '../public/js/admin-dashboard.js'), 'utf8');
         assert.ok(adminJs.includes('/views/login.html?preview=cms'), 'previewCurrentCmsPage opens with preview=cms');
     });
+
+    await t.test('10. Session Terminated modal dark mode styling and theme synchronization', () => {
+        const apiJs = fs.readFileSync(path.join(__dirname, '../public/js/api.js'), 'utf8');
+        assert.ok(apiJs.includes('detectThemeIsDark'), 'api.js includes robust detectThemeIsDark helper');
+        assert.ok(apiJs.includes('session-terminated-card'), 'api.js assigns session-terminated-card class');
+        assert.ok(apiJs.includes('session-terminated-title'), 'api.js assigns session-terminated-title class');
+        assert.ok(apiJs.includes('session-terminated-message'), 'api.js assigns session-terminated-message class');
+
+        const darkCss = fs.readFileSync(path.join(__dirname, '../public/css/dark-theme.css'), 'utf8');
+        assert.ok(darkCss.includes('#session-terminated-overlay'), 'dark-theme.css styles #session-terminated-overlay');
+        assert.ok(darkCss.includes('.session-terminated-card'), 'dark-theme.css styles .session-terminated-card');
+        assert.ok(darkCss.includes('.session-icon-danger'), 'dark-theme.css styles .session-icon-danger');
+        assert.ok(darkCss.includes('.session-icon-role'), 'dark-theme.css styles .session-icon-role');
+    });
 });
 
