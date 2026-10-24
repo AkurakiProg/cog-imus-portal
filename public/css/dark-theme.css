@@ -4928,3 +4928,41 @@ html.dark-mode #session-terminated-overlay .session-icon-password,
     border: 1px solid rgba(245, 158, 11, 0.35) !important;
 }
 
+/* ============================================================
+   Dark Mode Responsive Table Scrollbars & Mobile Sidebar Overlay
+   ============================================================ */
+body.dark-mode .overflow-x-auto,
+body.dark-mode .table-responsive,
+html.dark-mode .overflow-x-auto,
+html.dark-mode .table-responsive {
+    scrollbar-color: #334155 #0f172a;
+}
+
+body.dark-mode .overflow-x-auto::-webkit-scrollbar-track,
+body.dark-mode .table-responsive::-webkit-scrollbar-track,
+html.dark-mode .overflow-x-auto::-webkit-scrollbar-track,
+html.dark-mode .table-responsive::-webkit-scrollbar-track {
+    background: #0d121a !important;
+}
+
+body.dark-mode .overflow-x-auto::-webkit-scrollbar-thumb,
+body.dark-mode .table-responsive::-webkit-scrollbar-thumb,
+html.dark-mode .overflow-x-auto::-webkit-scrollbar-thumb,
+html.dark-mode .table-responsive::-webkit-scrollbar-thumb {
+    background: #283548 !important;
+    border-radius: 4px;
+}
+
+body.dark-mode .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+body.dark-mode .table-responsive::-webkit-scrollbar-thumb:hover,
+html.dark-mode .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+html.dark-mode .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #3e506d !important;
+}
+
+body.dark-mode .sidebar-overlay,
+html.dark-mode .sidebar-overlay {
+    background: rgba(3, 7, 18, 0.75) !important;
+}
+
+

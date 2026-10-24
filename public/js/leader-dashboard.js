@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const avatarEl = document.getElementById('userAvatar');
         if (avatarEl) {
             if (user.profile_image) {
-                avatarEl.innerHTML = `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}">`;
+                avatarEl.innerHTML = `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}" onerror="this.onerror=null; this.parentElement.textContent='${escapeHtml(user.full_name.charAt(0).toUpperCase())}';">`;
             } else {
                 avatarEl.textContent = user.full_name.charAt(0).toUpperCase();
             }
@@ -653,8 +653,33 @@ function initLeaderRealtimeSync() {
 }
 
 // --- UI Navigation Helpers ---
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
+function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    let overlay = document.getElementById('sidebarOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'sidebarOverlay';
+        overlay.className = 'sidebar-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.onclick = closeSidebar;
+        document.body.appendChild(overlay);
+    }
+    if (sb) {
+        const isActive = sb.classList.toggle('active');
+        if (isActive) {
+            overlay.classList.add('active');
+        } else {
+            overlay.classList.remove('active');
+        }
+    }
+}
+
+function closeSidebar() {
+    const sb = document.getElementById('sidebar');
+    if (sb) sb.classList.remove('active');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
 async function logout() {
     try {
         if (api.auth && api.auth.logout) await api.auth.logout();
@@ -6620,7 +6645,7 @@ async function loadAlbumsAdmin(page = 1) {
         } else {
             tbody.innerHTML = allAlbumsCache.map(a => {
                 const coverImg = a.cover_image 
-                    ? `<img src="${escapeHtml(a.cover_image)}" alt="${escapeHtml(a.title)}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; display: block; margin: 0 auto;">`
+                    ? `<img src="${escapeHtml(a.cover_image)}" alt="${escapeHtml(a.title)}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; display: block; margin: 0 auto;" onerror="this.onerror=null; this.outerHTML='<div style=\\\'width: 48px; height: 48px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #94a3b8; margin: 0 auto;\\\'><i class=\\\'fa-solid fa-image\\\'></i></div>';">`
                     : `<div style="width: 48px; height: 48px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #94a3b8; margin: 0 auto;"><i class="fa-solid fa-image"></i></div>`;
                 const albumDate = a.album_date ? new Date(a.album_date).toLocaleDateString() : 'N/A';
                 return `
@@ -6784,7 +6809,7 @@ async function loadAlbumPhotos(albumId) {
 
         grid.innerHTML = images.map(img => `
             <div style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; aspect-ratio: 1/1;">
-                <img src="${escapeHtml(img.image_path)}" alt="Photo" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="${escapeHtml(img.image_path)}" alt="Photo" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/images/sermon-placeholder.jpg';">
                 <button onclick="deleteAlbumPhoto(${img.image_id})" title="Delete Photo" 
                         style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.85); color: #fff; border: none; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;">
                     <i class="fa-solid fa-trash text-xs"></i>

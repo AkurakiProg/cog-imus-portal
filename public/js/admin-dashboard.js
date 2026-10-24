@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const avatarEl = document.getElementById('userAvatar');
         if (avatarEl) {
             if (user.profile_image) {
-                avatarEl.innerHTML = `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}">`;
+                avatarEl.innerHTML = `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}" onerror="this.onerror=null; this.parentElement.textContent='${escapeHtml((user.full_name || 'A').charAt(0).toUpperCase())}';">`;
             } else {
                 avatarEl.textContent = (user.full_name || 'A').charAt(0).toUpperCase();
             }
@@ -863,12 +863,30 @@ async function loadDashboardSummary() {
 
 function toggleSidebar() {
     const sb = document.getElementById('sidebar');
-    if (sb) sb.classList.toggle('active');
+    let overlay = document.getElementById('sidebarOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'sidebarOverlay';
+        overlay.className = 'sidebar-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.onclick = closeSidebar;
+        document.body.appendChild(overlay);
+    }
+    if (sb) {
+        const isActive = sb.classList.toggle('active');
+        if (isActive) {
+            overlay.classList.add('active');
+        } else {
+            overlay.classList.remove('active');
+        }
+    }
 }
 
 function closeSidebar() {
     const sb = document.getElementById('sidebar');
     if (sb) sb.classList.remove('active');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) overlay.classList.remove('active');
 }
 
 function logout() {
@@ -945,9 +963,10 @@ function renderUsersTable(users) {
     }
 
     tbody.innerHTML = users.map(u => {
+        const initial = escapeHtml((u.full_name || 'U').charAt(0).toUpperCase());
         const avatarImg = u.profile_image 
-            ? `<img src="${escapeHtml(u.profile_image)}" alt="${escapeHtml(u.full_name)}">`
-            : escapeHtml((u.full_name || 'U').charAt(0).toUpperCase());
+            ? `<img src="${escapeHtml(u.profile_image)}" alt="${escapeHtml(u.full_name)}" onerror="this.onerror=null; this.parentElement.textContent='${initial}';">`
+            : initial;
 
         const isUnverified = (u.is_verified == 0);
         const statusBadge = u.is_active == 1 
@@ -1197,9 +1216,11 @@ function viewUser(id) {
     
     document.getElementById('viewModalTitle').innerText = 'User Account Profile';
     
+    const initial = escapeHtml((user.full_name || 'U').charAt(0).toUpperCase());
+    const fallbackDiv = `<div style="width: 100px; height: 100px; border-radius: 50%; background: #475569; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 700; margin: 0 auto 1rem auto;">${initial}</div>`;
     const avatarHtml = user.profile_image 
-        ? `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 0 auto 1rem auto; display: block;">`
-        : `<div style="width: 100px; height: 100px; border-radius: 50%; background: #475569; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 700; margin: 0 auto 1rem auto;">${escapeHtml((user.full_name || 'U').charAt(0).toUpperCase())}</div>`;
+        ? `<img src="${escapeHtml(user.profile_image)}" alt="${escapeHtml(user.full_name)}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 0 auto 1rem auto; display: block;" onerror="this.onerror=null; this.outerHTML='<div style=\\\'width: 100px; height: 100px; border-radius: 50%; background: #475569; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 700; margin: 0 auto 1rem auto;\\\'>${initial}</div>';">`
+        : fallbackDiv;
 
     const verificationBadge = user.is_verified == 1 
         ? '<span class="badge badge-active"><i class="fa-solid fa-circle-check"></i> Verified</span>' 
@@ -7380,7 +7401,7 @@ async function loadAlbumsAdmin(page = 1) {
         } else {
             tbody.innerHTML = allAlbumsCache.map(a => {
                 const coverImg = a.cover_image 
-                    ? `<img src="${escapeHtml(a.cover_image)}" alt="${escapeHtml(a.title)}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; display: block; margin: 0 auto;">`
+                    ? `<img src="${escapeHtml(a.cover_image)}" alt="${escapeHtml(a.title)}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; display: block; margin: 0 auto;" onerror="this.onerror=null; this.outerHTML='<div style=\\\'width: 48px; height: 48px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #94a3b8; margin: 0 auto;\\\'><i class=\\\'fa-solid fa-image\\\'></i></div>';">`
                     : `<div style="width: 48px; height: 48px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #94a3b8; margin: 0 auto;"><i class="fa-solid fa-image"></i></div>`;
                 const albumDate = a.album_date ? new Date(a.album_date).toLocaleDateString() : 'N/A';
                 return `
@@ -7544,7 +7565,7 @@ async function loadAlbumPhotos(albumId) {
 
         grid.innerHTML = images.map(img => `
             <div class="album-photo-card">
-                <img src="${escapeHtml(img.image_path)}" alt="${escapeHtml(img.caption || 'Album Photo')}" loading="lazy">
+                <img src="${escapeHtml(img.image_path)}" alt="${escapeHtml(img.caption || 'Album Photo')}" loading="lazy" onerror="this.onerror=null; this.src='/images/sermon-placeholder.jpg';">
                 <div class="album-photo-overlay">
                     <span class="text-xs text-white truncate" style="max-width: 110px; font-weight: 500;">${escapeHtml(img.caption || '')}</span>
                     <button type="button" onclick="deleteAlbumPhoto(${img.image_id})" title="Delete this photo" 

@@ -63,6 +63,8 @@
     <!-- Facebook JavaScript SDK for Livestream Player Synchronization -->
     <div id="fb-root"></div>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0"></script>
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()" aria-hidden="true"></div>
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -1498,7 +1500,7 @@
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
                                         <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Current Logo Preview</label>
                                         <div class="cms-logo-preview-box" id="topLogoPreviewContainer" style="width: 140px; height: 60px; background: #061730; border-radius: 8px; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden;">
-                                            <img id="topLogoPreviewImg" src="/images/logo.png" alt="Top Bar Logo Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                            <img id="topLogoPreviewImg" src="/images/logo.png" alt="Top Bar Logo Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.onerror=null; this.src='/images/logo.png';">
                                         </div>
                                         <span id="topLogoDimensionLabel" style="font-size: 0.72rem; color: #64748b;">Fits in 44px navbar</span>
                                     </div>
@@ -1730,7 +1732,7 @@
                                     <div>
                                         <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 0.35rem; display: block;">Welcome Section Image Preview</label>
                                         <div style="width: 100%; height: 260px; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid var(--border-color); background: #061730;">
-                                            <img id="cmsWelcomeImagePreview" src="https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=800&auto=format&fit=crop" alt="Welcome Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                                            <img id="cmsWelcomeImagePreview" src="https://images.unsplash.com/photo-1438032005730-c779502df39b?q=80&w=800&auto=format&fit=crop" alt="Welcome Preview" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/images/sermon-placeholder.jpg';">
                                         </div>
                                         <div class="form-group" style="margin: 0.85rem 0 0;">
                                             <label>Upload New Welcome Image</label>
@@ -1831,7 +1833,7 @@
                                     <div>
                                         <label style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 0.35rem; display: block;">History Photo Preview</label>
                                         <div style="width: 100%; height: 260px; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid var(--border-color); background: #061730;">
-                                            <img id="cmsHistoryImagePreview" src="https://images.unsplash.com/photo-1544427920-c49ccfb85579?q=80&w=900&auto=format&fit=crop" alt="History Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                                            <img id="cmsHistoryImagePreview" src="https://images.unsplash.com/photo-1544427920-c49ccfb85579?q=80&w=900&auto=format&fit=crop" alt="History Preview" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/images/sermon-placeholder.jpg';">
                                         </div>
                                         <div class="form-group" style="margin: 0.85rem 0 0;">
                                             <label>Upload New History Photo</label>
@@ -2268,7 +2270,7 @@
                     <input type="hidden" id="user_id">
                     
                     <div class="form-group full-width" style="align-items: center; text-align: center; margin-bottom: 1.25rem;">
-                        <img id="user_profile_preview" src="/images/default-avatar.svg" alt="Profile Preview" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                        <img id="user_profile_preview" src="/images/default-avatar.svg" alt="Profile Preview" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.src='/images/default-avatar.svg';">
                         <div>
                             <input type="file" id="user_profile_image" accept="image/*" style="font-size: 0.8rem; margin: 0 auto; max-width: 240px;">
                         </div>

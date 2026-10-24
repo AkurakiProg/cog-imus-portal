@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const avatarEl = document.getElementById('userAvatar');
         if (avatarEl) {
             if (currentUser.profile_image) {
-                avatarEl.innerHTML = `<img src="${escapeHtml(currentUser.profile_image)}" alt="${escapeHtml(currentUser.full_name)}">`;
+                avatarEl.innerHTML = `<img src="${escapeHtml(currentUser.profile_image)}" alt="${escapeHtml(currentUser.full_name)}" onerror="this.onerror=null; this.parentElement.textContent='${escapeHtml(currentUser.full_name.charAt(0).toUpperCase())}';">`;
             } else {
                 avatarEl.textContent = currentUser.full_name.charAt(0).toUpperCase();
             }
@@ -385,8 +385,33 @@ function initMemberRealtimeSync() {
 }
 
 // --- Routing & UI Helpers ---
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
+function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    let overlay = document.getElementById('sidebarOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'sidebarOverlay';
+        overlay.className = 'sidebar-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.onclick = closeSidebar;
+        document.body.appendChild(overlay);
+    }
+    if (sb) {
+        const isActive = sb.classList.toggle('active');
+        if (isActive) {
+            overlay.classList.add('active');
+        } else {
+            overlay.classList.remove('active');
+        }
+    }
+}
+
+function closeSidebar() {
+    const sb = document.getElementById('sidebar');
+    if (sb) sb.classList.remove('active');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
 async function logout() {
     try {
         if (api.auth && api.auth.logout) await api.auth.logout();
@@ -463,6 +488,9 @@ function navigateTo(viewName, event) {
         };
         document.getElementById('pageTitle').innerText = titles[viewName] || (viewName.charAt(0).toUpperCase() + viewName.slice(1));
     }
+
+    if (window.innerWidth <= 768) closeSidebar();
+
     if (viewName === 'announcements') {
         const dot = document.getElementById('memberAnnounceNavDot');
         if (dot) dot.style.display = 'none';
@@ -2472,10 +2500,10 @@ async function renderMemberMinistryDashboard(minId) {
                         </div>
 
                         <!-- Right Actions & Leader Quick Info -->
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-end; min-width: 200px;">
-                            <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; min-width: 0; width: 100%; max-width: 320px;">
+                            <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem; width: 100%;">
                                 ${m.leader_profile_image 
-                                    ? `<img src="${escapeHtml(m.leader_profile_image)}" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold);">`
+                                    ? `<img src="${escapeHtml(m.leader_profile_image)}" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold);" onerror="this.onerror=null; this.outerHTML='<div style=\\\'width: 40px; height: 40px; border-radius: 50%; background: var(--gold); color: #061730; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem;\\\'><i class=\\\'fa-solid fa-user-tie\\\'></i></div>';">`
                                     : `<div style="width: 40px; height: 40px; border-radius: 50%; background: var(--gold); color: #061730; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem;"><i class="fa-solid fa-user-tie"></i></div>`
                                 }
                                 <div>

@@ -63,6 +63,8 @@
     <!-- Facebook JavaScript SDK for Livestream Player Synchronization -->
     <div id="fb-root"></div>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0"></script>
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()" aria-hidden="true"></div>
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -965,11 +967,13 @@
                         <button class="btn-primary" onclick="exportReport()"><i class="fa-solid fa-download"></i> Export CSV</button>
                     </div>
                     <div class="p-6">
-                        <table class="w-full text-sm text-left" id="reportTable">
-                            <tbody class="divide-y divide-slate-100">
-                                <tr><td class="p-4 font-medium">Loading report data...</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left" id="reportTable">
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr><td class="p-4 font-medium">Loading report data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
