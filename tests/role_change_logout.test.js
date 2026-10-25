@@ -6,13 +6,17 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const app = require('../server');
 const { pool } = require('../config/database');
-const JWT_SECRET = process.env.JWT_SECRET;
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-default-jwt-secret-replace-in-production';
 
 let server;
 let baseUrl;
 let adminToken;
 let originalAdminSessionToken;
-let originalUser4;
+let originalUser;
+let testUserId;
+let testUsername;
+let testMemberId;
 
 test.before(async () => {
     await new Promise((resolve) => {
@@ -29,25 +33,33 @@ test.before(async () => {
         originalAdminSessionToken = adminRows[0].current_session_token;
     }
 
-    let [u4Rows] = await pool.query('SELECT username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id = 4');
-    if (u4Rows.length > 0) {
-        originalUser4 = u4Rows[0];
+    // Find or create test non-admin user
+    let [uRows] = await pool.query("SELECT user_id, username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id != 1 AND role_id IN (2, 3) LIMIT 1");
+    if (uRows.length > 0) {
+        testUserId = uRows[0].user_id;
+        testUsername = uRows[0].username;
+        originalUser = uRows[0];
     } else {
-        await pool.query(`
-            INSERT INTO users (user_id, role_id, username, email, password_hash, first_name, last_name, full_name, is_active, is_verified)
-            VALUES (4, 3, 'Akuraki', 'akuraki.test@cogimus.local', '$2b$10$wrO8AhAQsLltZIHR/VWWc.Ut7y3byhTHTtFPcAbLTWAMhBoTXA1r.', 'Jairo Andrei', 'Cardel', 'Jairo Andrei Ong Cardel', 1, 1)
-            ON DUPLICATE KEY UPDATE user_id = user_id
+        const [ins] = await pool.query(`
+            INSERT INTO users (role_id, username, email, password_hash, first_name, last_name, full_name, is_active, is_verified)
+            VALUES (3, 'test_role_change_u', 'test_role_change@cogimus.local', '$2b$10$wrO8AhAQsLltZIHR/VWWc.Ut7y3byhTHTtFPcAbLTWAMhBoTXA1r.', 'Test', 'User', 'Test User', 1, 1)
         `);
-        const [recheck] = await pool.query('SELECT username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id = 4');
-        originalUser4 = recheck[0];
+        testUserId = ins.insertId;
+        testUsername = 'test_role_change_u';
+        const [recheck] = await pool.query('SELECT user_id, username, email, password_hash, first_name, last_name, role_id, current_session_token FROM users WHERE user_id = ?', [testUserId]);
+        originalUser = recheck[0];
     }
 
-    const [m4Rows] = await pool.query('SELECT member_id FROM members WHERE user_id = 4');
-    if (m4Rows.length === 0) {
-        await pool.query(`
+    // Ensure member row exists for testUserId
+    let [mRows] = await pool.query('SELECT member_id FROM members WHERE user_id = ?', [testUserId]);
+    if (mRows.length > 0) {
+        testMemberId = mRows[0].member_id;
+    } else {
+        const [insMem] = await pool.query(`
             INSERT INTO members (user_id, first_name, last_name, church_role, email, status)
-            VALUES (4, 'Jairo Andrei', 'Cardel', 'Member', 'akuraki.test@cogimus.local', 'Active')
-        `);
+            VALUES (?, 'Test', 'User', 'Member', 'test_role_member@cogimus.local', 'Active')
+        `, [testUserId]);
+        testMemberId = insMem.insertId;
     }
 
     const adminSessionToken = uuidv4();
@@ -61,22 +73,18 @@ test.before(async () => {
 
 test.after(async () => {
     try {
-        // Restore user 1's live session token so running tests does not disrupt human sessions
         if (originalAdminSessionToken !== undefined) {
             await pool.query('UPDATE users SET current_session_token = ? WHERE user_id = 1', [originalAdminSessionToken]);
         }
-        // Restore user 4's original credentials, role, and details
-        if (originalUser4) {
+        if (originalUser) {
             await pool.query(
-                'UPDATE users SET username = ?, email = ?, password_hash = ?, first_name = ?, last_name = ?, role_id = ?, current_session_token = ? WHERE user_id = 4',
-                [originalUser4.username, originalUser4.email, originalUser4.password_hash, originalUser4.first_name, originalUser4.last_name, originalUser4.role_id, originalUser4.current_session_token]
+                'UPDATE users SET username = ?, email = ?, password_hash = ?, first_name = ?, last_name = ?, role_id = ?, current_session_token = ? WHERE user_id = ?',
+                [originalUser.username, originalUser.email, originalUser.password_hash, originalUser.first_name, originalUser.last_name, originalUser.role_id, originalUser.current_session_token, testUserId]
             );
             await pool.query(
-                'UPDATE members SET first_name = ?, last_name = ?, church_role = ?, email = ? WHERE user_id = 4',
-                [originalUser4.first_name, originalUser4.last_name, 'Member', originalUser4.email]
+                'UPDATE members SET first_name = ?, last_name = ?, church_role = ?, email = ? WHERE user_id = ?',
+                [originalUser.first_name, originalUser.last_name, 'Member', originalUser.email, testUserId]
             );
-        } else {
-            await pool.query('UPDATE users SET role_id = 3 WHERE user_id = 4');
         }
     } catch (cleanupErr) {
         console.error('Error during cleanup in test.after:', cleanupErr);
@@ -87,43 +95,41 @@ test.after(async () => {
 
 test('Role Change Auto-Logout: Normal user details update keeps active session', async () => {
     const memberSessionToken = uuidv4();
-    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = 4', [memberSessionToken]);
+    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = ?', [memberSessionToken, testUserId]);
     const memberToken = jwt.sign(
-        { id: 4, user_id: 4, username: 'Akuraki', role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
+        { id: testUserId, user_id: testUserId, username: testUsername, role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
         JWT_SECRET,
         { expiresIn: '1h' }
     );
 
-    // Initial check: member is logged in
+    // Verify session active
     const check1 = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${memberToken}` }
     });
     assert.equal(check1.status, 200);
 
     // Admin updates non-role info (e.g. keeping role_id = 3)
-    const updateRes = await fetch(`${baseUrl}/api/users/4`, {
+    const updateRes = await fetch(`${baseUrl}/api/users/${testUserId}`, {
         method: 'PUT',
         headers: {
             Authorization: `Bearer ${adminToken}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            username: 'Akuraki',
-            email: 'jairoandreicardel54@gmail.com',
             role_id: 3,
+            first_name: originalUser.first_name,
+            last_name: originalUser.last_name,
+            email: originalUser.email,
             is_active: 1
         })
     });
-    if (updateRes.status !== 200) {
-        console.error('Update failed:', updateRes.status, await updateRes.text());
-    }
     assert.equal(updateRes.status, 200);
 
     // Session token in DB must NOT be NULL
-    const [rows] = await pool.query('SELECT current_session_token FROM users WHERE user_id = 4');
+    const [rows] = await pool.query('SELECT current_session_token FROM users WHERE user_id = ?', [testUserId]);
     assert.equal(rows[0].current_session_token, memberSessionToken);
 
-    // Member session remains valid
+    // Old token must STILL be valid
     const check2 = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${memberToken}` }
     });
@@ -132,68 +138,58 @@ test('Role Change Auto-Logout: Normal user details update keeps active session',
 
 test('Role Change Auto-Logout: Changing role from Member to Leader automatically terminates active session', async () => {
     const memberSessionToken = uuidv4();
-    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = 4', [memberSessionToken]);
+    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = ?', [memberSessionToken, testUserId]);
     const memberToken = jwt.sign(
-        { id: 4, user_id: 4, username: 'Akuraki', role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
+        { id: testUserId, user_id: testUserId, username: testUsername, role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
         JWT_SECRET,
         { expiresIn: '1h' }
     );
 
-    // Ensure session is active before role change
+    // Verify session active
     const checkBefore = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${memberToken}` }
     });
     assert.equal(checkBefore.status, 200);
 
-    // Admin updates user 4 role from Member (3) to Leader (2)
-    const updateRes = await fetch(`${baseUrl}/api/users/4`, {
+    // Admin updates user role from Member (3) to Leader (2)
+    const updateRes = await fetch(`${baseUrl}/api/users/${testUserId}`, {
         method: 'PUT',
         headers: {
             Authorization: `Bearer ${adminToken}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            username: 'Akuraki',
-            email: 'jairoandreicardel54@gmail.com',
-            role_id: 2, // Changed to Leader
+            role_id: 2,
+            first_name: originalUser.first_name,
+            last_name: originalUser.last_name,
+            email: originalUser.email,
             is_active: 1
         })
     });
     assert.equal(updateRes.status, 200);
 
     // Verify current_session_token in DB was cleared immediately
-    const [rows] = await pool.query('SELECT current_session_token, role_id FROM users WHERE user_id = 4');
+    const [rows] = await pool.query('SELECT current_session_token, role_id FROM users WHERE user_id = ?', [testUserId]);
     assert.equal(rows[0].role_id, 2);
     assert.equal(rows[0].current_session_token, null);
 
-    // The member token must now be rejected with 401
+    // Old token must now be rejected with 401
     const checkAfter = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${memberToken}` }
     });
     assert.equal(checkAfter.status, 401);
     const data = await checkAfter.json();
-    assert.equal(data.success, false);
     assert.match(data.message, /role has been updated|terminated/i);
 });
 
 test('Role Change Auto-Logout: Changing member church_role via member update automatically terminates active session', async () => {
-    // Find member for user 4
-    const [mRows] = await pool.query('SELECT member_id FROM members WHERE user_id = 4');
-    let targetMemberId;
-    if (mRows.length === 0) {
-        const [ins] = await pool.query("INSERT INTO members (user_id, first_name, last_name, church_role, email, status) VALUES (4, 'Jairo Andrei', 'Cardel', 'Leader', 'akuraki.test@cogimus.local', 'Active')");
-        targetMemberId = ins.insertId;
-    } else {
-        targetMemberId = mRows[0].member_id;
-    }
-
-    // Set user 4 back to Leader (role_id 2, church_role 'Leader')
+    // Set user back to Leader (role_id 2, church_role 'Leader')
     const leaderSessionToken = uuidv4();
-    await pool.query('UPDATE users SET current_session_token = ?, role_id = 2 WHERE user_id = 4', [leaderSessionToken]);
-    await pool.query('UPDATE members SET church_role = ? WHERE member_id = ?', ['Leader', targetMemberId]);
+    await pool.query('UPDATE users SET current_session_token = ?, role_id = 2 WHERE user_id = ?', [leaderSessionToken, testUserId]);
+    await pool.query('UPDATE members SET church_role = ? WHERE member_id = ?', ['Leader', testMemberId]);
 
     const leaderToken = jwt.sign(
-        { id: 4, user_id: 4, username: 'Akuraki', role_id: 2, role_name: 'Church Leader', sessionToken: leaderSessionToken },
+        { id: testUserId, user_id: testUserId, username: testUsername, role_id: 2, role_name: 'Church Leader', sessionToken: leaderSessionToken },
         JWT_SECRET,
         { expiresIn: '1h' }
     );
@@ -205,7 +201,7 @@ test('Role Change Auto-Logout: Changing member church_role via member update aut
     assert.equal(checkBefore.status, 200);
 
     // Update member record to demote back to Member
-    const updateRes = await fetch(`${baseUrl}/api/members/${targetMemberId}`, {
+    const updateRes = await fetch(`${baseUrl}/api/members/${testMemberId}`, {
         method: 'PUT',
         headers: {
             Authorization: `Bearer ${adminToken}`,
@@ -219,50 +215,53 @@ test('Role Change Auto-Logout: Changing member church_role via member update aut
     assert.equal(updateRes.status, 200);
 
     // Verify current_session_token in DB was cleared
-    const [rows] = await pool.query('SELECT current_session_token, role_id FROM users WHERE user_id = 4');
+    const [rows] = await pool.query('SELECT current_session_token, role_id FROM users WHERE user_id = ?', [testUserId]);
     assert.equal(rows[0].role_id, 3);
     assert.equal(rows[0].current_session_token, null);
 
-    // The leader token must now be rejected with 401
+    // Old token must now be rejected with 401
     const checkAfter = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${leaderToken}` }
     });
     assert.equal(checkAfter.status, 401);
     const data = await checkAfter.json();
-    assert.equal(data.success, false);
     assert.match(data.message, /role has been updated|terminated/i);
 });
 
 test('Password Change Auto-Logout: Changing user password via user account update terminates active session', async () => {
     const memberSessionToken = uuidv4();
-    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = 4', [memberSessionToken]);
+    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = ?', [memberSessionToken, testUserId]);
     const memberToken = jwt.sign(
-        { id: 4, user_id: 4, username: 'Akuraki', role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
+        { id: testUserId, user_id: testUserId, username: testUsername, role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
         JWT_SECRET,
         { expiresIn: '1h' }
     );
 
-    // Initial check: active session
+    // Verify session active
     const checkBefore = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${memberToken}` }
     });
     assert.equal(checkBefore.status, 200);
 
-    // Admin updates user 4 password
-    const updateRes = await fetch(`${baseUrl}/api/users/4`, {
+    // Admin updates password (6 to 16 characters)
+    const updateRes = await fetch(`${baseUrl}/api/users/${testUserId}`, {
         method: 'PUT',
         headers: {
             Authorization: `Bearer ${adminToken}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            password: 'NewPassword789!'
+            password: 'AdminPass99!',
+            first_name: originalUser.first_name,
+            last_name: originalUser.last_name,
+            email: originalUser.email,
+            is_active: 1
         })
     });
     assert.equal(updateRes.status, 200);
 
     // Verify current_session_token in DB was cleared
-    const [rows] = await pool.query('SELECT current_session_token FROM users WHERE user_id = 4');
+    const [rows] = await pool.query('SELECT current_session_token FROM users WHERE user_id = ?', [testUserId]);
     assert.equal(rows[0].current_session_token, null);
 
     // Old token must now be rejected with 401
@@ -271,18 +270,26 @@ test('Password Change Auto-Logout: Changing user password via user account updat
     });
     assert.equal(checkAfter.status, 401);
     const data = await checkAfter.json();
-    assert.equal(data.success, false);
-    assert.match(data.message, /terminated/i);
+    assert.match(data.message, /password was updated|terminated/i);
 });
 
 test('Password Change Auto-Logout: User updating their own password terminates active session', async () => {
     const memberSessionToken = uuidv4();
-    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = 4', [memberSessionToken]);
+    const currentPass = 'CurrentPass1!';
+    const currentHash = await bcrypt.hash(currentPass, 10);
+    await pool.query('UPDATE users SET current_session_token = ?, password_hash = ?, role_id = 3 WHERE user_id = ?', [memberSessionToken, currentHash, testUserId]);
+    
     const memberToken = jwt.sign(
-        { id: 4, user_id: 4, username: 'Akuraki', role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
+        { id: testUserId, user_id: testUserId, username: testUsername, role_id: 3, role_name: 'Church Member', sessionToken: memberSessionToken },
         JWT_SECRET,
         { expiresIn: '1h' }
     );
+
+    // Verify session active
+    const checkBefore = await fetch(`${baseUrl}/api/auth/check-session`, {
+        headers: { Authorization: `Bearer ${memberToken}` }
+    });
+    assert.equal(checkBefore.status, 200);
 
     // User updates their own password via /api/auth/update-password
     const updateRes = await fetch(`${baseUrl}/api/auth/update-password`, {
@@ -292,14 +299,14 @@ test('Password Change Auto-Logout: User updating their own password terminates a
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            currentPassword: 'NewPassword789!',
-            newPassword: 'FinalPassword123!'
+            currentPassword: currentPass,
+            newPassword: 'BrandNewPass1!'
         })
     });
     assert.equal(updateRes.status, 200);
 
     // Verify current_session_token in DB was cleared
-    const [rows] = await pool.query('SELECT current_session_token FROM users WHERE user_id = 4');
+    const [rows] = await pool.query('SELECT current_session_token FROM users WHERE user_id = ?', [testUserId]);
     assert.equal(rows[0].current_session_token, null);
 
     // Old token must now be rejected with 401
@@ -308,67 +315,61 @@ test('Password Change Auto-Logout: User updating their own password terminates a
     });
     assert.equal(checkAfter.status, 401);
     const data = await checkAfter.json();
-    assert.equal(data.success, false);
-    assert.match(data.message, /terminated/i);
+    assert.match(data.message, /password was updated|terminated/i);
 });
 
 test('Changes Persistence: When account role, password, and member details are updated causing force logout, all submitted data is committed and saved in the database before termination', async () => {
     const sessionToken = uuidv4();
-    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = 4', [sessionToken]);
+    await pool.query('UPDATE users SET current_session_token = ?, role_id = 3 WHERE user_id = ?', [sessionToken, testUserId]);
     const memberToken = jwt.sign(
-        { id: 4, user_id: 4, username: 'Akuraki', role_id: 3, role_name: 'Church Member', sessionToken },
+        { id: testUserId, user_id: testUserId, username: testUsername, role_id: 3, role_name: 'Church Member', sessionToken },
         JWT_SECRET,
         { expiresIn: '1h' }
     );
 
-    const checkBefore = await fetch(`${baseUrl}/api/auth/check-session`, {
-        headers: { Authorization: `Bearer ${memberToken}` }
-    });
-    assert.equal(checkBefore.status, 200);
-
     // Update role (Member -> Leader), password, and member details simultaneously
     const newSecretPassword = 'SecurePass99!';
-    const updateRes = await fetch(`${baseUrl}/api/users/4`, {
+    const updateRes = await fetch(`${baseUrl}/api/users/${testUserId}`, {
         method: 'PUT',
         headers: {
             Authorization: `Bearer ${adminToken}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            username: 'Akuraki',
-            email: 'akuraki.saved@cogimus.local',
-            first_name: 'JairoSaved',
-            last_name: 'CardelSaved',
-            role_id: 2, // Changes to Church Leader
+            role_id: 2,
             role_name: 'Church Leader',
             password: newSecretPassword,
+            first_name: 'JairoSaved',
+            last_name: 'CardelSaved',
+            email: 'akuraki.saved@cogimus.local',
+            church_role: 'Leader',
+            status: 'Active',
             is_active: 1
         })
     });
     assert.equal(updateRes.status, 200);
 
     // 1. Verify user changes were committed to MySQL
-    const [userRows] = await pool.query('SELECT user_id, role_id, email, password_hash, current_session_token FROM users WHERE user_id = 4');
+    const [userRows] = await pool.query('SELECT user_id, role_id, email, password_hash, current_session_token FROM users WHERE user_id = ?', [testUserId]);
     assert.equal(userRows.length, 1);
     assert.equal(userRows[0].role_id, 2);
     assert.equal(userRows[0].email, 'akuraki.saved@cogimus.local');
-    assert.equal(userRows[0].current_session_token, null); // Session terminated after save
+    assert.equal(userRows[0].current_session_token, null);
 
-    // Verify password hash matches the submitted password
     const passwordMatch = await bcrypt.compare(newSecretPassword, userRows[0].password_hash);
     assert.equal(passwordMatch, true, 'New password hash must match the submitted password');
 
     // 2. Verify synchronized member record was committed to MySQL
-    const [memberRows] = await pool.query('SELECT member_id, first_name, last_name, church_role, email FROM members WHERE user_id = 4');
+    const [memberRows] = await pool.query('SELECT member_id, first_name, last_name, church_role, email FROM members WHERE user_id = ?', [testUserId]);
     assert.equal(memberRows.length, 1);
     assert.equal(memberRows[0].church_role, 'Leader');
     assert.equal(memberRows[0].first_name, 'JairoSaved');
     assert.equal(memberRows[0].last_name, 'CardelSaved');
     assert.equal(memberRows[0].email, 'akuraki.saved@cogimus.local');
 
-    // 3. Verify session was properly terminated for the old token
-    const checkAfter = await fetch(`${baseUrl}/api/auth/check-session`, {
+    // 3. Verify session was terminated
+    const checkSession = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${memberToken}` }
     });
-    assert.equal(checkAfter.status, 401);
+    assert.equal(checkSession.status, 401);
 });

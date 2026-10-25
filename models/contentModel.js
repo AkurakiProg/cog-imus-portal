@@ -1,3 +1,16 @@
+const fs = require('fs');
+const path = require('path');
+
+function sanitizeMediaUrl(url) {
+    if (!url || typeof url !== 'string') return '/images/logo.png';
+    if (url.startsWith('/uploads/')) {
+        const fullDiskPath = path.join(__dirname, '..', url.replace(/^\//, ''));
+        if (!fs.existsSync(fullDiskPath)) {
+            return '/images/logo.png';
+        }
+    }
+    return url;
+}
 const { pool } = require('../config/database');
 const FacebookService = require('../utils/facebookService');
 
@@ -555,6 +568,10 @@ const ContentModel = {
         } catch (e) {
             parsed = { raw_body: rows[0].body };
         }
+        if (parsed && typeof parsed === 'object') {
+            if (parsed.logo_icon) parsed.logo_icon = sanitizeMediaUrl(parsed.logo_icon);
+            if (parsed.top_logo) parsed.top_logo = sanitizeMediaUrl(parsed.top_logo);
+        }
         return {
             page_id: rows[0].page_id,
             page_key: rows[0].page_key,
@@ -579,6 +596,12 @@ const ContentModel = {
             } catch (e) {
                 result[r.page_key] = { raw_body: r.body };
             }
+        }
+        if (result.homepage && result.homepage.logo_icon) {
+            result.homepage.logo_icon = sanitizeMediaUrl(result.homepage.logo_icon);
+        }
+        if (result.site_branding && result.site_branding.top_logo) {
+            result.site_branding.top_logo = sanitizeMediaUrl(result.site_branding.top_logo);
         }
         return result;
     },

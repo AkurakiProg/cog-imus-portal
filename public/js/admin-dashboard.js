@@ -9266,8 +9266,12 @@ function populateCmsAllPanels() {
     const hp = data.homepage || {};
     // Logo
     const logoImg = document.getElementById('topLogoPreviewImg');
-    if (logoImg && hp.logo_icon) {
-        logoImg.src = hp.logo_icon;
+    if (logoImg) {
+        logoImg.onerror = function() {
+            this.onerror = null;
+            this.src = '/images/logo.png';
+        };
+        logoImg.src = hp.logo_icon || '/images/logo.png';
     }
     // Hero
     if (hp.hero) {

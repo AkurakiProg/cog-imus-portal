@@ -762,24 +762,31 @@ async function loadWebsiteDynamicContent() {
         const logoHolders = document.querySelectorAll('.navbar .logo, .footer-logo');
         logoHolders.forEach(holder => {
             const existingIcon = holder.querySelector('.logo-icon, .logo-custom-img');
+            const fallbackToCross = (el) => {
+                if (!el || !el.parentNode) return;
+                const div = document.createElement('div');
+                div.className = 'logo-icon';
+                div.innerHTML = '<i class="fa-solid fa-cross"></i>';
+                el.replaceWith(div);
+            };
+
             if (logoIcon && logoIcon !== '/images/logo.png' && logoIcon !== '') {
                 if (existingIcon) {
                     if (existingIcon.tagName === 'IMG') {
+                        existingIcon.onerror = function() { fallbackToCross(this); };
                         existingIcon.src = encodeURI(logoIcon);
                     } else {
                         const img = document.createElement('img');
                         img.src = encodeURI(logoIcon);
                         img.alt = 'Church Logo';
                         img.className = 'logo-custom-img';
+                        img.onerror = function() { fallbackToCross(this); };
                         existingIcon.replaceWith(img);
                     }
                 }
             } else {
                 if (existingIcon && existingIcon.tagName === 'IMG') {
-                    const div = document.createElement('div');
-                    div.className = 'logo-icon';
-                    div.innerHTML = '<i class="fa-solid fa-cross"></i>';
-                    existingIcon.replaceWith(div);
+                    fallbackToCross(existingIcon);
                 }
             }
         });

@@ -487,9 +487,19 @@ async function loadAuthPageDynamicContent() {
         const authBrand = document.querySelector('.auth-brand');
         if (authBrand) {
             const existingIcon = authBrand.querySelector('.auth-brand-icon, .auth-brand-custom-img, #authBrandIcon');
+            const fallbackToCross = (el) => {
+                if (!el || !el.parentNode) return;
+                const div = document.createElement('div');
+                div.id = 'authBrandIcon';
+                div.className = 'auth-brand-icon';
+                div.innerHTML = '<i class="fa-solid fa-cross"></i>';
+                el.replaceWith(div);
+            };
+
             if (logoIcon && logoIcon !== '/images/logo.png' && logoIcon !== '') {
                 if (existingIcon) {
                     if (existingIcon.tagName === 'IMG') {
+                        existingIcon.onerror = function() { fallbackToCross(this); };
                         existingIcon.src = encodeURI(logoIcon);
                     } else {
                         const img = document.createElement('img');
@@ -497,16 +507,13 @@ async function loadAuthPageDynamicContent() {
                         img.src = encodeURI(logoIcon);
                         img.alt = 'Church Logo';
                         img.className = 'auth-brand-custom-img';
+                        img.onerror = function() { fallbackToCross(this); };
                         existingIcon.replaceWith(img);
                     }
                 }
             } else {
                 if (existingIcon && existingIcon.tagName === 'IMG') {
-                    const div = document.createElement('div');
-                    div.id = 'authBrandIcon';
-                    div.className = 'auth-brand-icon';
-                    div.innerHTML = '<i class="fa-solid fa-cross"></i>';
-                    existingIcon.replaceWith(div);
+                    fallbackToCross(existingIcon);
                 }
             }
         }

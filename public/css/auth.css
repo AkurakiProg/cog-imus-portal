@@ -926,6 +926,24 @@ html.dark-mode .alert-badge.badge-password,
     .auth-topbar {
         padding: 0.85rem 1rem;
     }
+    .auth-brand-custom-img {
+        height: 36px;
+        max-height: 36px;
+        max-width: 75px;
+    }
+    .auth-brand-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        font-size: 1rem;
+    }
+    .auth-brand-text h2 {
+        font-size: 1.12rem !important;
+    }
+    .auth-brand-text p {
+        font-size: 0.58rem !important;
+    }
 
     .btn-nav-return span {
         display: none;
