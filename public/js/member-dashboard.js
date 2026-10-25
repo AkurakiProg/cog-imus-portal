@@ -277,6 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initMemberAnnouncementsNotifier();
 
         initMemberRealtimeSync();
+        syncDashboardLogo();
     } catch (err) {
         console.error('Session error:', err);
         sessionStorage.removeItem('church_token');
@@ -340,8 +341,32 @@ function handleRealtimeMemberUpdate(payload) {
     } else if (type === 'ministries') {
         if (typeof loadMyMinistry === 'function') loadMyMinistry();
         if (typeof loadDashboardMinistry === 'function') loadDashboardMinistry();
+    } else if (type === 'content' || type === 'website_content' || type === 'branding') {
+        syncDashboardLogo();
     }
 }
+
+async function syncDashboardLogo() {
+    try {
+        const logoImg = document.getElementById('sidebarLogoImg');
+        if (!logoImg) return;
+        logoImg.onerror = function() {
+            this.onerror = null;
+            this.src = '/images/logo.png';
+        };
+        if (window.api && window.api.public && typeof window.api.public.getWebsiteContent === 'function') {
+            const res = await window.api.public.getWebsiteContent('all');
+            if (res && res.data) {
+                const hp = res.data.homepage || {};
+                const logoUrl = hp.logo_icon || res.data.site_branding?.top_logo;
+                if (logoUrl && typeof logoUrl === 'string') {
+                    logoImg.src = encodeURI(logoUrl);
+                }
+            }
+        }
+    } catch (err) {}
+}
+window.syncDashboardLogo = syncDashboardLogo;
 
 function initMemberRealtimeSync() {
     if (churchBroadcastChannel) {

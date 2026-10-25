@@ -1502,6 +1502,17 @@
     font-size: 1.5rem;
     box-shadow: 0 4px 10px rgba(14, 42, 79, 0.2);
     flex-shrink: 0;
+    overflow: hidden;
+    padding: 3px;
+}
+
+.receipt-logo img,
+.receipt-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    border-radius: 8px;
 }
 
 .receipt-church-name {

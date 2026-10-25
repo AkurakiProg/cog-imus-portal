@@ -536,6 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         initLeaderRealtimeSync();
+        syncDashboardLogo();
     } catch (uiErr) {
         console.warn('Non-fatal error initializing leader dashboard UI:', uiErr);
     }
@@ -597,7 +598,8 @@ function handleRealtimeLeaderUpdate(payload) {
         if (activeView === 'events' && typeof loadEvents === 'function') loadEvents();
     } else if (type === 'announcements') {
         if (activeView === 'announcements' && typeof loadAnnouncements === 'function') loadAnnouncements();
-    } else if (type === 'content' || type === 'sermons') {
+    } else if (type === 'content' || type === 'sermons' || type === 'website_content' || type === 'branding') {
+        syncDashboardLogo();
         if (activeView === 'content') {
             if (typeof loadLiveStreamAdmin === 'function') loadLiveStreamAdmin();
             if (typeof loadSermons === 'function') loadSermons();
@@ -610,6 +612,28 @@ function handleRealtimeLeaderUpdate(payload) {
         if (activeView === 'attendance' && typeof loadAttendance === 'function') loadAttendance();
     }
 }
+
+async function syncDashboardLogo() {
+    try {
+        const logoImg = document.getElementById('sidebarLogoImg');
+        if (!logoImg) return;
+        logoImg.onerror = function() {
+            this.onerror = null;
+            this.src = '/images/logo.png';
+        };
+        if (window.api && window.api.public && typeof window.api.public.getWebsiteContent === 'function') {
+            const res = await window.api.public.getWebsiteContent('all');
+            if (res && res.data) {
+                const hp = res.data.homepage || {};
+                const logoUrl = hp.logo_icon || res.data.site_branding?.top_logo;
+                if (logoUrl && typeof logoUrl === 'string') {
+                    logoImg.src = encodeURI(logoUrl);
+                }
+            }
+        }
+    } catch (err) {}
+}
+window.syncDashboardLogo = syncDashboardLogo;
 
 function initLeaderRealtimeSync() {
     if (churchBroadcastChannel) {
@@ -3528,7 +3552,7 @@ function renderLeaderReceiptPaper(trans) {
             <div class="receipt-header">
                 <div class="receipt-brand">
                     <div class="receipt-logo">
-                        <i class="fa-solid fa-cross"></i>
+                        <img src="/images/logo.png" alt="COG Imus Logo" class="receipt-logo-img" onerror="this.onerror=null; this.src='/images/logo.png';">
                     </div>
                     <div class="receipt-church-info">
                         <h1 class="receipt-church-name">CHURCH OF GOD WORLD MISSIONS PHILIPPINES</h1>
@@ -3741,6 +3765,14 @@ function printLeaderReceipt() {
             justify-content: center;
             font-size: 1.35rem;
             flex-shrink: 0;
+            overflow: hidden;
+            padding: 2px;
+        }
+        .receipt-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
         }
         .receipt-church-name {
             font-size: 0.95rem;

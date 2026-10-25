@@ -400,6 +400,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Initialize real-time synchronization
         initDashboardRealtimeSync();
+        syncDashboardLogo();
     } catch (error) {
         console.error('Session validation failed:', error.message);
         sessionStorage.removeItem('church_token');
@@ -466,7 +467,8 @@ function handleRealtimeDashboardUpdate(payload) {
         if (activeView === 'events' && typeof loadEvents === 'function') loadEvents();
     } else if (type === 'announcements') {
         if (activeView === 'announcements' && typeof loadAnnouncements === 'function') loadAnnouncements();
-    } else if (type === 'content' || type === 'sermons') {
+    } else if (type === 'content' || type === 'sermons' || type === 'website_content' || type === 'branding') {
+        syncDashboardLogo();
         if (activeView === 'content') {
             if (typeof loadLiveStreamAdmin === 'function') loadLiveStreamAdmin();
             if (typeof loadSermons === 'function') loadSermons();
@@ -484,6 +486,28 @@ function handleRealtimeDashboardUpdate(payload) {
         if (activeView === 'users' && typeof loadUsers === 'function') loadUsers();
     }
 }
+
+async function syncDashboardLogo() {
+    try {
+        const logoImg = document.getElementById('sidebarLogoImg');
+        if (!logoImg) return;
+        logoImg.onerror = function() {
+            this.onerror = null;
+            this.src = '/images/logo.png';
+        };
+        if (window.api && window.api.public && typeof window.api.public.getWebsiteContent === 'function') {
+            const res = await window.api.public.getWebsiteContent('all');
+            if (res && res.data) {
+                const hp = res.data.homepage || {};
+                const logoUrl = hp.logo_icon || res.data.site_branding?.top_logo;
+                if (logoUrl && typeof logoUrl === 'string') {
+                    logoImg.src = encodeURI(logoUrl);
+                }
+            }
+        }
+    } catch (err) {}
+}
+window.syncDashboardLogo = syncDashboardLogo;
 
 function initDashboardRealtimeSync() {
     if (churchBroadcastChannel) {
@@ -9273,6 +9297,14 @@ function populateCmsAllPanels() {
         };
         logoImg.src = hp.logo_icon || '/images/logo.png';
     }
+    const sidebarLogo = document.getElementById('sidebarLogoImg');
+    if (sidebarLogo) {
+        sidebarLogo.onerror = function() {
+            this.onerror = null;
+            this.src = '/images/logo.png';
+        };
+        sidebarLogo.src = hp.logo_icon || '/images/logo.png';
+    }
     // Hero
     if (hp.hero) {
         setInputValue('cms_hero_badge', hp.hero.badge || '');
@@ -9666,7 +9698,10 @@ async function handleLogoFileSelect(e) {
             if (!window._cmsData.site_branding) window._cmsData.site_branding = {};
             window._cmsData.site_branding.top_logo = res.data.url;
 
-            showToast('Logo uploaded. Click "Save Changes" to publish across public website.', 'success');
+            const sidebarLogo = document.getElementById('sidebarLogoImg');
+            if (sidebarLogo) sidebarLogo.src = res.data.url;
+
+            showToast('Logo uploaded. Click "Save Changes" to publish across website and dashboards.', 'success');
         }
     } catch (err) {
         console.error('Logo upload error:', err);
@@ -9688,6 +9723,8 @@ async function resetToDefaultLogo() {
 
     const previewImg = document.getElementById('topLogoPreviewImg');
     if (previewImg) previewImg.src = '/images/logo.png';
+    const sidebarLogo = document.getElementById('sidebarLogoImg');
+    if (sidebarLogo) sidebarLogo.src = '/images/logo.png';
     if (!window._cmsData.homepage) window._cmsData.homepage = {};
     window._cmsData.homepage.logo_icon = '/images/logo.png';
     showToast('Reset to default logo. Click "Save Changes" to publish.', 'info');

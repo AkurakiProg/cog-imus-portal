@@ -158,6 +158,10 @@ body.dark-mode .sidebar-header p {
     color: #60A5FA !important;
 }
 
+body.dark-mode .sidebar-header .sidebar-logo-container {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
 body.dark-mode .sidebar-menu a,
 body.dark-mode .sidebar-nav a {
     color: #CBD5E1 !important;

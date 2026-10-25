@@ -95,4 +95,32 @@ test('Mobile Responsiveness Audit & Layout Verification', async (t) => {
             assert.ok(stat.size > 0, `Asset ${assetPath} must have non-zero size (got ${stat.size} bytes)`);
         });
     });
+
+    await t.test('9. Dashboard Sidebar Logo integration across Admin, Leader, and Member portals', () => {
+        const adminHtml = fs.readFileSync(path.join(__dirname, '../public/views/admin-dashboard.html'), 'utf8');
+        const leaderHtml = fs.readFileSync(path.join(__dirname, '../public/views/leader-dashboard.html'), 'utf8');
+        const memberHtml = fs.readFileSync(path.join(__dirname, '../public/views/member-dashboard.html'), 'utf8');
+
+        [
+            { name: 'Admin Dashboard', content: adminHtml },
+            { name: 'Leader Dashboard', content: leaderHtml },
+            { name: 'Member Dashboard', content: memberHtml }
+        ].forEach(dash => {
+            assert.ok(dash.content.includes('sidebar-logo-img'), `${dash.name} contains sidebar-logo-img class`);
+            assert.ok(dash.content.includes('id="sidebarLogoImg"'), `${dash.name} contains id="sidebarLogoImg"`);
+            assert.ok(dash.content.includes('/images/logo.png'), `${dash.name} references /images/logo.png`);
+        });
+
+        const adminCss = fs.readFileSync(path.join(__dirname, '../public/css/admin.css'), 'utf8');
+        assert.ok(adminCss.includes('.sidebar-header .sidebar-logo-container'), 'admin.css styles .sidebar-logo-container');
+        assert.ok(adminCss.includes('.sidebar-header .sidebar-logo-img'), 'admin.css styles .sidebar-logo-img');
+
+        const adminJs = fs.readFileSync(path.join(__dirname, '../public/js/admin-dashboard.js'), 'utf8');
+        const leaderJs = fs.readFileSync(path.join(__dirname, '../public/js/leader-dashboard.js'), 'utf8');
+        const memberJs = fs.readFileSync(path.join(__dirname, '../public/js/member-dashboard.js'), 'utf8');
+
+        assert.ok(adminJs.includes('syncDashboardLogo'), 'admin-dashboard.js includes syncDashboardLogo function');
+        assert.ok(leaderJs.includes('syncDashboardLogo'), 'leader-dashboard.js includes syncDashboardLogo function');
+        assert.ok(memberJs.includes('syncDashboardLogo'), 'member-dashboard.js includes syncDashboardLogo function');
+    });
 });
