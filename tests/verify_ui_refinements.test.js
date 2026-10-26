@@ -207,12 +207,16 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         assert.ok(memberJs.includes('showPrivacyNoticeModal'), 'member-dashboard.js has showPrivacyNoticeModal');
         assert.ok(memberJs.includes('acceptPrivacyNotice'), 'member-dashboard.js has acceptPrivacyNotice');
         assert.ok(memberJs.includes('declinePrivacyNotice'), 'member-dashboard.js has declinePrivacyNotice');
+        assert.ok(!memberJs.match(/declinePrivacyNotice[\s\S]*?confirm\(/), 'declinePrivacyNotice in member dashboard uses custom modal instead of native confirm()');
+        assert.ok(memberJs.includes('showDecisionModal'), 'member-dashboard.js uses showDecisionModal for confirmation');
 
         assert.ok(leaderJs.includes('checkAndPromptPrivacyNotice'), 'leader-dashboard.js checks privacy notice on init');
         assert.ok(leaderJs.includes('cog_privacy_consent_v1_'), 'leader-dashboard.js uses versioned privacy storage key');
         assert.ok(leaderJs.includes('showPrivacyNoticeModal'), 'leader-dashboard.js has showPrivacyNoticeModal');
         assert.ok(leaderJs.includes('acceptPrivacyNotice'), 'leader-dashboard.js has acceptPrivacyNotice');
         assert.ok(leaderJs.includes('declinePrivacyNotice'), 'leader-dashboard.js has declinePrivacyNotice');
+        assert.ok(!leaderJs.match(/declinePrivacyNotice[\s\S]*?confirm\(/), 'declinePrivacyNotice in leader dashboard uses custom modal instead of native confirm()');
+        assert.ok(leaderJs.includes('showDecisionModal'), 'leader-dashboard.js uses showDecisionModal for confirmation');
 
         // Modal backdrop and Escape blocking check
         assert.ok(memberJs.includes("if (overlayId === 'privacyNoticeModal') return;"), 'member-dashboard.js blocks backdrop/Escape bypass');
@@ -224,6 +228,7 @@ test('Website UI & CMS Refinements Verification', async (t) => {
 
         assert.ok(adminCss.includes('.privacy-notice-modal'), 'admin.css has .privacy-notice-modal');
         assert.ok(adminCss.includes('.privacy-consent-box'), 'admin.css has .privacy-consent-box');
+        assert.ok(adminCss.includes('#customConfirmModal {\n    z-index: 12000 !important;\n}') || adminCss.includes('z-index: 12000 !important;'), 'admin.css sets customConfirmModal above privacyNoticeModal');
         assert.ok(darkCss.includes('#privacyNoticeModal'), 'dark-theme.css styles #privacyNoticeModal');
         assert.ok(darkCss.includes('#privacyNoticeModal .privacy-notice-modal'), 'dark-theme.css styles dark modal body');
     });

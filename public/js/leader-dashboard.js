@@ -241,6 +241,7 @@ function playPortalNotificationSound(type = 'announcement') {
 }
 
 // Universal Decision / Confirmation Pop-up Window
+let activeDecisionCleanup = null;
 function showDecisionModal({
     title = 'Confirm Action',
     message = 'Are you sure you want to proceed?',
@@ -301,6 +302,7 @@ function showDecisionModal({
         modal.classList.add('active');
 
         async function cleanup(result) {
+            activeDecisionCleanup = null;
             modal.classList.remove('active');
             modal.style.display = '';
             modal.style.removeProperty('display');
@@ -310,6 +312,8 @@ function showDecisionModal({
             document.removeEventListener('keydown', onKeyDown);
             resolve(result);
         }
+
+        activeDecisionCleanup = cleanup;
 
         async function onConfirm(e) {
             e.stopPropagation();
@@ -386,6 +390,10 @@ const leaderModalCloseMap = {
 };
 
 function closeDecisionModal() {
+    if (typeof activeDecisionCleanup === 'function') {
+        activeDecisionCleanup(false);
+        return;
+    }
     const modal = document.getElementById('customConfirmModal');
     if (modal) {
         modal.classList.remove('active');
@@ -424,6 +432,11 @@ function initLeaderModalBackdropClose() {
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' || e.key === 'Esc') {
+            const confirmModal = document.getElementById('customConfirmModal');
+            if (confirmModal && (confirmModal.classList.contains('active') || confirmModal.style.display === 'flex')) {
+                closeDecisionModal();
+                return;
+            }
             const activeModal = document.querySelector('.modal-overlay.active, .modal-overlay[style*="display: flex"], .modal-overlay[style*="display: block"]');
             if (activeModal) {
                 const overlayId = activeModal.id;
@@ -8116,8 +8129,17 @@ function acceptPrivacyNotice() {
     }
 }
 
-function declinePrivacyNotice() {
-    if (confirm('You must review and accept the Church Data Privacy Notice to use this dashboard. Declining will sign you out. Do you wish to sign out now?')) {
+async function declinePrivacyNotice() {
+    const shouldSignOut = await (window.showConfirmDialog || showDecisionModal)({
+        title: 'Sign Out Confirmation',
+        message: 'You must review and accept the Church Data Privacy Notice to use this dashboard. Declining will sign you out. Do you wish to sign out now?',
+        confirmText: 'Sign Out Now',
+        cancelText: 'Stay & Review',
+        type: 'danger',
+        icon: 'fa-right-from-bracket'
+    });
+
+    if (shouldSignOut) {
         if (typeof logout === 'function') {
             logout();
         } else {
