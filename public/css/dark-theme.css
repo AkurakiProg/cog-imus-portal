@@ -4833,6 +4833,73 @@ body.dark-mode #cmsScheduleTableBody tr {
     border-color: #283548 !important;
 }
 
+/* Privacy Notice Modal Dark Theme */
+body.dark-mode #privacyNoticeModal .privacy-notice-modal,
+body.dark-mode #privacyNoticeModal .modal {
+    background: #1A2230 !important;
+    border: 1px solid #283548 !important;
+    color: #F8FAFC !important;
+}
+
+body.dark-mode #privacyNoticeModal .modal-header {
+    background: #141A24 !important;
+    border-bottom: 2px solid var(--gold) !important;
+}
+
+body.dark-mode #privacyNoticeModal .modal-body {
+    background: #1A2230 !important;
+    color: #E2E8F0 !important;
+}
+
+body.dark-mode #privacyNoticeModal h3,
+body.dark-mode #privacyNoticeModal h4 {
+    color: #F8FAFC !important;
+}
+
+body.dark-mode #privacyNoticeModal .privacy-info-banner {
+    background: rgba(30, 58, 138, 0.25) !important;
+    border-left-color: #3b82f6 !important;
+    color: #E2E8F0 !important;
+}
+
+body.dark-mode #privacyNoticeModal .privacy-info-banner strong {
+    color: #93C5FD !important;
+}
+
+body.dark-mode #privacyNoticeModal .privacy-warning-banner {
+    background: rgba(180, 83, 9, 0.25) !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+    border-left-color: #f59e0b !important;
+    color: #FDE68A !important;
+}
+
+body.dark-mode #privacyNoticeModal .privacy-consent-box {
+    background: #141A24 !important;
+    border-color: #283548 !important;
+}
+
+body.dark-mode #privacyNoticeModal .privacy-consent-box:hover {
+    background: #1E293B !important;
+    border-color: var(--gold) !important;
+}
+
+body.dark-mode #privacyNoticeModal .privacy-consent-box span {
+    color: #F8FAFC !important;
+}
+
+body.dark-mode #privacyNoticeModal ul {
+    color: #94A3B8 !important;
+}
+
+body.dark-mode #privacyNoticeModal ul strong {
+    color: #F1F5F9 !important;
+}
+
+body.dark-mode #privacyNoticeModal .modal-footer {
+    background: #141A24 !important;
+    border-top: 1px solid #283548 !important;
+}
+
 /* ============================================================
    24. Session Terminated / Concurrent Logout Modal Dark Theme
    ============================================================ */

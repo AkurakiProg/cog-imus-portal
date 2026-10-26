@@ -134,6 +134,10 @@
                             <span>Account Security</span>
                             <span class="dropdown-badge-pill">2FA</span>
                         </button>
+                        <button type="button" class="topbar-dropdown-item" onclick="showPrivacyNoticeModal(true)" title="Data Privacy Notice">
+                            <i class="fa-solid fa-file-shield dropdown-item-icon" style="color: var(--gold);"></i>
+                            <span>Privacy Notice</span>
+                        </button>
                         <div class="topbar-dropdown-divider"></div>
                         <button type="button" class="topbar-dropdown-item text-danger" onclick="logout()" title="Logout of session">
                             <i class="fa-solid fa-right-from-bracket dropdown-item-icon"></i>
@@ -952,6 +956,92 @@
             </div>
         </div>
     </div>
+
+    
+    <!-- Privacy Notice & Data Protection Modal (RA 10173 Compliance) -->
+    <div id="privacyNoticeModal" class="modal-overlay" style="z-index: 10001;" aria-modal="true" role="dialog" aria-labelledby="privacyNoticeTitle">
+        <div class="modal privacy-notice-modal">
+            <div class="modal-header" style="background: var(--navy); color: #fff; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gold);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(201, 169, 97, 0.2); display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 1.2rem; flex-shrink: 0;">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <h3 id="privacyNoticeTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff; font-family: 'Cormorant Garamond', serif; letter-spacing: 0.3px;">Church Data Privacy Notice</h3>
+                        <p style="margin: 0; font-size: 0.75rem; color: #cbd5e1;">Republic Act No. 10173 (Data Privacy Act of 2012) • COG Imus</p>
+                    </div>
+                </div>
+                <button type="button" id="btnPrivacyCloseX" class="btn-close" onclick="closePrivacyNoticeModal()" style="display: none; color: #94a3b8; background: none; border: none; font-size: 1.25rem; cursor: pointer;" aria-label="Close Privacy Notice"><i class="fa-solid fa-times"></i></button>
+            </div>
+
+            <div class="modal-body" style="padding: 1.5rem; overflow-y: auto; font-size: 0.88rem; line-height: 1.6; color: var(--text-dark);">
+                <div class="privacy-info-banner">
+                    <strong style="color: var(--navy); display: block; margin-bottom: 0.25rem;"><i class="fa-solid fa-circle-info mr-1 text-gold"></i> Sacred Trust &amp; Confidentiality Commitment</strong>
+                    Church of God World Missions - Imus values your trust and upholds your right to data privacy. In faithful stewardship and in compliance with Philippine Republic Act No. 10173 (Data Privacy Act of 2012), this portal safeguards all personal, ministerial, and fellowship records.
+                </div>
+
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy); margin: 1.2rem 0 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-database text-gold"></i> 1. Information Collected &amp; Processed
+                </h4>
+                <p style="margin-bottom: 0.75rem;">Through this portal, the church processes and maintains:</p>
+                <ul style="padding-left: 1.35rem; margin-bottom: 1rem; color: var(--text-light);">
+                    <li><strong>Personal Identity &amp; Contact:</strong> Full name, verified email, mobile phone number, birthdate, and residential address.</li>
+                    <li><strong>Ministry &amp; Fellowship Information:</strong> Department involvement, WORDA roles, C2S group memberships, and spiritual service commitments.</li>
+                    <li><strong>Spiritual Activities &amp; Records:</strong> Worship attendance tallies, seminary course enrollments, church event schedules, and prayer requests.</li>
+                    <li><strong>Account Security &amp; Activity Logs:</strong> Sign-in timestamps, IP addresses, session identifiers, and security audit trails.</li>
+                </ul>
+
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy); margin: 1.2rem 0 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-cross text-gold"></i> 2. Purpose of Processing
+                </h4>
+                <p style="margin-bottom: 0.75rem;">Your data is processed strictly for legitimate church ministry purposes:</p>
+                <ul style="padding-left: 1.35rem; margin-bottom: 1rem; color: var(--text-light);">
+                    <li>Providing pastoral care, member communications, and fellowship coordination.</li>
+                    <li>Maintaining accurate ministry rosters, attendance metrics, and service records.</li>
+                    <li>Delivering verified church notices, urgent bulletins, and spiritual announcements.</li>
+                    <li>Ensuring portal security, identity verification, and multi-factor protection.</li>
+                </ul>
+
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy); margin: 1.2rem 0 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-lock text-gold"></i> 3. User Code of Confidentiality &amp; Protection
+                </h4>
+                <div class="privacy-warning-banner">
+                    <strong style="display: block; margin-bottom: 0.35rem;"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Solemn User Obligation:</strong>
+                    <ul style="margin: 0; padding-left: 1.2rem;">
+                        <li>You must keep your credentials and security codes strictly confidential. Never share passwords or session access.</li>
+                        <li>All member records, prayer requests, and contact details accessible in this portal are strictly confidential. Unauthorized copying, screenshots, sharing, or public distribution is strictly forbidden under church rules and RA 10173.</li>
+                        <li>Always log out when completing your session on shared, public, or mobile devices.</li>
+                    </ul>
+                </div>
+
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--navy); margin: 1.2rem 0 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-user-shield text-gold"></i> 4. Your Rights Under RA 10173
+                </h4>
+                <p style="margin-bottom: 0.75rem;">
+                    You retain the right to be informed, the right to reasonable access, the right to dispute and rectify inaccuracies, and the right to withdraw consent regarding your personal records by contacting Church Administration at <a href="mailto:contact@cog-imus.org" style="color: var(--navy); font-weight: 600;">contact@cog-imus.org</a>.
+                </p>
+
+                <div class="privacy-consent-box">
+                    <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="privacyNoticeConsentCheckbox" onchange="handlePrivacyConsentToggle(this)" style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--navy); cursor: pointer;" />
+                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--navy); line-height: 1.45;">
+                            I have read, understood, and accept the Church Data Privacy Notice and agree to uphold confidentiality and data security in all church activities.
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <button type="button" id="btnPrivacyDecline" class="btn-secondary" onclick="declinePrivacyNotice()" style="font-size: 0.85rem; padding: 0.6rem 1rem;">
+                    <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Decline &amp; Sign Out
+                </button>
+                <button type="button" id="btnAcceptPrivacyNotice" class="btn-primary" onclick="acceptPrivacyNotice()" disabled style="font-size: 0.88rem; padding: 0.6rem 1.4rem; font-weight: 600; opacity: 0.5; cursor: not-allowed;">
+                    <i class="fa-solid fa-circle-check mr-1"></i> Accept &amp; Continue to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Toast Notification -->
     <div id="toast" class="toast">

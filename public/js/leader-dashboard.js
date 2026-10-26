@@ -408,6 +408,10 @@ function initLeaderModalBackdropClose() {
     document.addEventListener('mouseup', (e) => {
         if (isMouseDownOnBackdrop && e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
             const overlayId = e.target.id;
+            if (overlayId === 'privacyNoticeModal') {
+                isMouseDownOnBackdrop = false;
+                return;
+            }
             if (leaderModalCloseMap[overlayId]) {
                 try { leaderModalCloseMap[overlayId](); } catch (err) {}
             }
@@ -423,6 +427,7 @@ function initLeaderModalBackdropClose() {
             const activeModal = document.querySelector('.modal-overlay.active, .modal-overlay[style*="display: flex"], .modal-overlay[style*="display: block"]');
             if (activeModal) {
                 const overlayId = activeModal.id;
+                if (overlayId === 'privacyNoticeModal') return;
                 if (leaderModalCloseMap[overlayId]) {
                     try { leaderModalCloseMap[overlayId](); } catch (err) {}
                 }
@@ -537,6 +542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         initLeaderRealtimeSync();
         syncDashboardLogo();
+        checkAndPromptPrivacyNotice(user);
     } catch (uiErr) {
         console.warn('Non-fatal error initializing leader dashboard UI:', uiErr);
     }
@@ -8021,3 +8027,121 @@ window.saveSmsSettings = saveSmsSettings;
 window.openTestSmsModal = openTestSmsModal;
 window.closeTestSmsModal = closeTestSmsModal;
 window.dispatchTestSms = dispatchTestSms;
+
+
+// ============================================================
+// DATA PRIVACY NOTICE & RA 10173 COMPLIANCE
+// ============================================================
+function checkAndPromptPrivacyNotice(user) {
+    if (!user) return;
+    const userId = user.user_id || user.id || 'user';
+    const consentKey = 'cog_privacy_consent_v1_' + userId;
+    const hasConsent = localStorage.getItem(consentKey);
+    if (!hasConsent) {
+        showPrivacyNoticeModal(false);
+    }
+}
+
+function showPrivacyNoticeModal(isReviewMode = false) {
+    const modal = document.getElementById('privacyNoticeModal');
+    if (!modal) return;
+    const checkbox = document.getElementById('privacyNoticeConsentCheckbox');
+    const btnAccept = document.getElementById('btnAcceptPrivacyNotice');
+    const btnDecline = document.getElementById('btnPrivacyDecline');
+    const btnCloseX = document.getElementById('btnPrivacyCloseX');
+
+    if (isReviewMode) {
+        if (checkbox) {
+            checkbox.checked = true;
+            checkbox.disabled = true;
+        }
+        if (btnCloseX) btnCloseX.style.display = 'block';
+        if (btnDecline) btnDecline.style.display = 'none';
+        if (btnAccept) {
+            btnAccept.disabled = false;
+            btnAccept.style.opacity = '1';
+            btnAccept.style.cursor = 'pointer';
+            btnAccept.innerHTML = '<i class="fa-solid fa-times mr-1"></i> Close Notice';
+            btnAccept.onclick = () => closePrivacyNoticeModal();
+        }
+    } else {
+        if (checkbox) {
+            checkbox.checked = false;
+            checkbox.disabled = false;
+        }
+        if (btnCloseX) btnCloseX.style.display = 'none';
+        if (btnDecline) btnDecline.style.display = '';
+        if (btnAccept) {
+            btnAccept.disabled = true;
+            btnAccept.style.opacity = '0.5';
+            btnAccept.style.cursor = 'not-allowed';
+            btnAccept.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Accept &amp; Continue to Dashboard';
+            btnAccept.onclick = () => acceptPrivacyNotice();
+        }
+    }
+
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+}
+
+function handlePrivacyConsentToggle(checkbox) {
+    const btn = document.getElementById('btnAcceptPrivacyNotice');
+    if (!btn) return;
+    if (checkbox && checkbox.checked) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    }
+}
+
+function acceptPrivacyNotice() {
+    let userId = 'user';
+    try {
+        const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+        userId = u.user_id || u.id || 'user';
+    } catch (e) {}
+    const consentKey = 'cog_privacy_consent_v1_' + userId;
+    localStorage.setItem(consentKey, JSON.stringify({
+        accepted: true,
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+    }));
+    closePrivacyNoticeModal();
+    if (typeof showToast === 'function') {
+        showToast('Privacy notice accepted. Welcome to your portal!', 'success');
+    }
+}
+
+function declinePrivacyNotice() {
+    if (confirm('You must review and accept the Church Data Privacy Notice to use this dashboard. Declining will sign you out. Do you wish to sign out now?')) {
+        if (typeof logout === 'function') {
+            logout();
+        } else {
+            sessionStorage.removeItem('church_token');
+            sessionStorage.removeItem('church_user');
+            localStorage.removeItem('church_token');
+            localStorage.removeItem('church_user');
+            window.location.href = '/views/login.html';
+        }
+    }
+}
+
+function closePrivacyNoticeModal() {
+    const modal = document.getElementById('privacyNoticeModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        modal.style.removeProperty('display');
+    }
+}
+
+window.checkAndPromptPrivacyNotice = checkAndPromptPrivacyNotice;
+window.showPrivacyNoticeModal = showPrivacyNoticeModal;
+window.handlePrivacyConsentToggle = handlePrivacyConsentToggle;
+window.acceptPrivacyNotice = acceptPrivacyNotice;
+window.declinePrivacyNotice = declinePrivacyNotice;
+window.closePrivacyNoticeModal = closePrivacyNoticeModal;

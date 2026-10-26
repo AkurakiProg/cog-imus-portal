@@ -180,5 +180,52 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         assert.ok(authCss.includes('.alert-role'), 'auth.css styles .alert-role container');
         assert.ok(authCss.includes('.alert-password'), 'auth.css styles .alert-password container');
     });
+
+    await t.test('12. Data Privacy Notice popup in Member and Leader dashboards', () => {
+        const memberHtml = fs.readFileSync(path.join(__dirname, '../public/views/member-dashboard.html'), 'utf8');
+        const leaderHtml = fs.readFileSync(path.join(__dirname, '../public/views/leader-dashboard.html'), 'utf8');
+
+        // Modal markup present in both views
+        assert.ok(memberHtml.includes('id="privacyNoticeModal"'), 'Member dashboard has privacyNoticeModal');
+        assert.ok(memberHtml.includes('id="privacyNoticeConsentCheckbox"'), 'Member dashboard has privacyNoticeConsentCheckbox checkbox');
+        assert.ok(memberHtml.includes('id="btnAcceptPrivacyNotice"'), 'Member dashboard has btnAcceptPrivacyNotice');
+        assert.ok(memberHtml.includes('id="btnPrivacyDecline"'), 'Member dashboard has btnPrivacyDecline');
+        assert.ok(memberHtml.includes('showPrivacyNoticeModal(true)'), 'Member dashboard profile dropdown has Privacy Notice trigger');
+
+        assert.ok(leaderHtml.includes('id="privacyNoticeModal"'), 'Leader dashboard has privacyNoticeModal');
+        assert.ok(leaderHtml.includes('id="privacyNoticeConsentCheckbox"'), 'Leader dashboard has privacyNoticeConsentCheckbox checkbox');
+        assert.ok(leaderHtml.includes('id="btnAcceptPrivacyNotice"'), 'Leader dashboard has btnAcceptPrivacyNotice');
+        assert.ok(leaderHtml.includes('id="btnPrivacyDecline"'), 'Leader dashboard has btnPrivacyDecline');
+        assert.ok(leaderHtml.includes('showPrivacyNoticeModal(true)'), 'Leader dashboard profile dropdown has Privacy Notice trigger');
+
+        // JS logic present in both dashboard scripts
+        const memberJs = fs.readFileSync(path.join(__dirname, '../public/js/member-dashboard.js'), 'utf8');
+        const leaderJs = fs.readFileSync(path.join(__dirname, '../public/js/leader-dashboard.js'), 'utf8');
+
+        assert.ok(memberJs.includes('checkAndPromptPrivacyNotice'), 'member-dashboard.js checks privacy notice on init');
+        assert.ok(memberJs.includes('cog_privacy_consent_v1_'), 'member-dashboard.js uses versioned privacy storage key');
+        assert.ok(memberJs.includes('showPrivacyNoticeModal'), 'member-dashboard.js has showPrivacyNoticeModal');
+        assert.ok(memberJs.includes('acceptPrivacyNotice'), 'member-dashboard.js has acceptPrivacyNotice');
+        assert.ok(memberJs.includes('declinePrivacyNotice'), 'member-dashboard.js has declinePrivacyNotice');
+
+        assert.ok(leaderJs.includes('checkAndPromptPrivacyNotice'), 'leader-dashboard.js checks privacy notice on init');
+        assert.ok(leaderJs.includes('cog_privacy_consent_v1_'), 'leader-dashboard.js uses versioned privacy storage key');
+        assert.ok(leaderJs.includes('showPrivacyNoticeModal'), 'leader-dashboard.js has showPrivacyNoticeModal');
+        assert.ok(leaderJs.includes('acceptPrivacyNotice'), 'leader-dashboard.js has acceptPrivacyNotice');
+        assert.ok(leaderJs.includes('declinePrivacyNotice'), 'leader-dashboard.js has declinePrivacyNotice');
+
+        // Modal backdrop and Escape blocking check
+        assert.ok(memberJs.includes("if (overlayId === 'privacyNoticeModal') return;"), 'member-dashboard.js blocks backdrop/Escape bypass');
+        assert.ok(leaderJs.includes("if (overlayId === 'privacyNoticeModal') return;"), 'leader-dashboard.js blocks backdrop/Escape bypass');
+
+        // Styles exist in admin.css and dark-theme.css
+        const adminCss = fs.readFileSync(path.join(__dirname, '../public/css/admin.css'), 'utf8');
+        const darkCss = fs.readFileSync(path.join(__dirname, '../public/css/dark-theme.css'), 'utf8');
+
+        assert.ok(adminCss.includes('.privacy-notice-modal'), 'admin.css has .privacy-notice-modal');
+        assert.ok(adminCss.includes('.privacy-consent-box'), 'admin.css has .privacy-consent-box');
+        assert.ok(darkCss.includes('#privacyNoticeModal'), 'dark-theme.css styles #privacyNoticeModal');
+        assert.ok(darkCss.includes('#privacyNoticeModal .privacy-notice-modal'), 'dark-theme.css styles dark modal body');
+    });
 });
 

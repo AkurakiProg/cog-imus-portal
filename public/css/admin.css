@@ -3296,6 +3296,52 @@ html.dark-mode .dropdown-user-avatar,
     border-color: #d97706 !important;
 }
 
+/* Privacy Notice Modal */
+.privacy-notice-modal {
+    max-width: 680px !important;
+    width: 92% !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 0 25px 50px -12px rgba(6, 23, 48, 0.45) !important;
+    border: 1px solid var(--border-color) !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.privacy-info-banner {
+    background: rgba(14, 42, 79, 0.05);
+    border-left: 4px solid var(--navy);
+    padding: 0.85rem 1.1rem;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+}
+
+.privacy-warning-banner {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    border-left: 4px solid #f59e0b;
+    padding: 0.85rem 1.1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    color: #92400e;
+    font-size: 0.85rem;
+}
+
+.privacy-consent-box {
+    margin-top: 1.25rem;
+    padding: 1rem 1.1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.privacy-consent-box:hover {
+    border-color: var(--gold);
+    background: #f1f5f9;
+}
+
 /* Notification Dots & Badges */
 .nav-notification-dot {
     width: 8px;
