@@ -103,4 +103,23 @@ test('Semaphore Gateway Unit Tests', async (t) => {
             global.fetch = originalFetch;
         }
     });
+
+    await t.test('5. Formats senderName: No active sender name found array error cleanly', async () => {
+        process.env.SEMAPHORE_API_KEY = 'mock_key';
+        delete process.env.TEXTBEE_API_KEY;
+
+        const originalFetch = global.fetch;
+        global.fetch = async () => ({
+            ok: false,
+            json: async () => [{ senderName: 'No active sender name found. Please apply for a sender name before sending messages.' }]
+        });
+
+        try {
+            const res = await sendSms('09763256103', 'Sender name pending check');
+            assert.strictEqual(res.status, 'Failed');
+            assert.ok(res.gateway_response.includes('Sender Name: No active sender name found'), 'Clean formatted error message');
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
 });

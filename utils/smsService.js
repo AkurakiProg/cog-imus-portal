@@ -89,6 +89,19 @@ async function sendViaTextBee(recipientNumber, message) {
 function formatSemaphoreError(raw) {
     if (!raw) return 'Unknown Semaphore error';
     if (typeof raw === 'string') return raw;
+
+    // If Semaphore returns an array like [{"senderName": "No active sender name found..."}]
+    if (Array.isArray(raw) && raw.length > 0) {
+        const first = raw[0];
+        if (typeof first === 'object' && first !== null) {
+            if (first.senderName) return `Sender Name: ${first.senderName}`;
+            if (first.sendername) return `Sender Name: ${Array.isArray(first.sendername) ? first.sendername.join(', ') : first.sendername}`;
+            if (first.message) return typeof first.message === 'string' ? first.message : JSON.stringify(first.message);
+            if (first.error) return typeof first.error === 'string' ? first.error : JSON.stringify(first.error);
+        }
+    }
+
+    if (raw.senderName) return `Sender Name: ${raw.senderName}`;
     if (raw.error) return typeof raw.error === 'string' ? raw.error : JSON.stringify(raw.error);
     if (raw.message && typeof raw.message === 'string') return raw.message;
     
