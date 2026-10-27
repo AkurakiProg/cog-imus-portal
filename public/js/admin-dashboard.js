@@ -8114,13 +8114,13 @@ async function dispatchTestSms() {
             resultBox.style.border = '1px solid #fde68a';
             resultBox.style.color = '#92400e';
             titleEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Simulation Mode';
-            msgEl.textContent = 'No SMS API Key is configured in .env. The message was logged to the database, but was not transmitted over cellular carriers. Configure a Semaphore API Key to receive real SMS on your mobile phone.';
+            msgEl.textContent = res.message || 'No SMS API Key is configured in environment. The message was logged to the database, but was not transmitted over cellular carriers.';
         } else {
             resultBox.style.background = '#fef2f2';
             resultBox.style.border = '1px solid #fecaca';
             resultBox.style.color = '#b91c1c';
             titleEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Gateway Delivery Error';
-            msgEl.textContent = res.message || 'The gateway returned an error.';
+            msgEl.textContent = res.data?.gateway_response || res.message || 'The gateway returned an error.';
         }
 
         if (res.data?.gateway_response) {

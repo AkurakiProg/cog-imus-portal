@@ -84,11 +84,31 @@ async function sendViaTextBee(recipientNumber, message) {
 }
 
 /**
+ * Formats Semaphore API errors into clean readable messages
+ */
+function formatSemaphoreError(raw) {
+    if (!raw) return 'Unknown Semaphore error';
+    if (typeof raw === 'string') return raw;
+    if (raw.error) return typeof raw.error === 'string' ? raw.error : JSON.stringify(raw.error);
+    if (raw.message && typeof raw.message === 'string') return raw.message;
+    
+    const errors = [];
+    if (Array.isArray(raw.sendername)) errors.push(`Sender Name: ${raw.sendername.join(', ')}`);
+    if (Array.isArray(raw.number)) errors.push(`Phone Number: ${raw.number.join(', ')}`);
+    if (Array.isArray(raw.message)) errors.push(`Message Content: ${raw.message.join(', ')}`);
+    
+    if (errors.length > 0) return errors.join(' | ');
+    return JSON.stringify(raw);
+}
+
+/**
  * Dispatches an SMS message using Semaphore API (Philippine numbers)
  * Docs: https://semaphore.co/docs
  */
 async function sendViaSemaphore(recipientNumber, message) {
-    const apiKey = process.env.SEMAPHORE_API_KEY;
+    const rawKey = process.env.SEMAPHORE_API_KEY;
+    if (!rawKey || !rawKey.trim()) return null;
+    const apiKey = rawKey.replace(/^["']|["']$/g, '').trim();
     if (!apiKey) return null;
 
     const parsed = normalizePhilippineNumber(recipientNumber);
@@ -104,13 +124,33 @@ async function sendViaSemaphore(recipientNumber, message) {
     }
 
     try {
-        const response = await fetch('https://api.semaphore.co/api/v4/messages', {
+        let response = await fetch('https://api.semaphore.co/api/v4/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        let data = await response.json();
+
+        // Self-Healing: If Semaphore rejected the custom sender name because the account does not have
+        // an approved custom sender ID, immediately retry without sendername. Semaphore will
+        // automatically dispatch using the default sender name ('SEMAPHORE').
+        const hasSenderError = data && data.sendername && (
+            (Array.isArray(data.sendername) && data.sendername.some(s => /invalid|unapproved|not found/i.test(s))) ||
+            (typeof data.sendername === 'string' && /invalid|unapproved|not found/i.test(data.sendername))
+        );
+
+        if (hasSenderError && payload.sendername) {
+            logger.warn(`[Semaphore] Sender name "${payload.sendername}" is not approved on your Semaphore account. Automatically retrying with default SEMAPHORE sender...`);
+            delete payload.sendername;
+            response = await fetch('https://api.semaphore.co/api/v4/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            data = await response.json();
+        }
+
         // Semaphore returns an array of message objects on success or an error object
         const isSuccess = response.ok && !data.error && Array.isArray(data) && data.length > 0;
         return {
@@ -246,7 +286,8 @@ async function sendSms(recipientNumber, message) {
         }
 
         // 2. Try Semaphore second (Philippines Primary Carrier API)
-        if (process.env.SEMAPHORE_API_KEY && process.env.SEMAPHORE_API_KEY.trim()) {
+        const hasSemaphoreKey = Boolean(process.env.SEMAPHORE_API_KEY && process.env.SEMAPHORE_API_KEY.replace(/^["']|["']$/g, '').trim());
+        if (hasSemaphoreKey) {
             const semRes = await sendViaSemaphore(recipientNumber, message);
             if (semRes && semRes.success) {
                 return {
@@ -254,6 +295,13 @@ async function sendSms(recipientNumber, message) {
                     gateway_response: `Semaphore Gateway: Dispatched (${JSON.stringify(semRes.raw)})`
                 };
             }
+            // Semaphore was explicitly configured by user, but the gateway returned an error:
+            const errorMsg = formatSemaphoreError(semRes?.raw);
+            logger.warn(`[SMS Service] Semaphore gateway delivery failed: ${errorMsg}`);
+            return {
+                status: 'Failed',
+                gateway_response: `Semaphore Gateway Error: ${errorMsg}`
+            };
         }
 
         // 3. Try Textbelt third (Free 1/day or API key)

@@ -60,7 +60,7 @@ exports.backupDatabase = async (req, res) => {
 exports.getSmsSettings = async (req, res) => {
     try {
         const hasTextBee = Boolean(process.env.TEXTBEE_API_KEY && process.env.TEXTBEE_DEVICE_ID);
-        const hasSemaphore = Boolean(process.env.SEMAPHORE_API_KEY && process.env.SEMAPHORE_API_KEY.trim());
+        const hasSemaphore = Boolean(process.env.SEMAPHORE_API_KEY && process.env.SEMAPHORE_API_KEY.replace(/^["']|["']$/g, '').trim());
         const hasTextbelt = Boolean(process.env.TEXTBELT_API_KEY || process.env.USE_TEXTBELT_FREE === 'true');
         const hasTwilio = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
 
@@ -72,7 +72,7 @@ exports.getSmsSettings = async (req, res) => {
 
         const maskKey = (key, start = 4, end = 4) => {
             if (!key) return '';
-            const trimmed = String(key).trim();
+            const trimmed = String(key).replace(/^["']|["']$/g, '').trim();
             if (trimmed.length <= start + end) return '••••••••';
             return `${trimmed.substring(0, start)}••••••••${trimmed.slice(-end)}`;
         };
@@ -101,7 +101,7 @@ exports.getSmsSettings = async (req, res) => {
             textbee_device_id_masked: maskKey(process.env.TEXTBEE_DEVICE_ID),
             has_semaphore: hasSemaphore,
             semaphore_api_key_masked: maskKey(process.env.SEMAPHORE_API_KEY),
-            semaphore_sender_name: process.env.SEMAPHORE_SENDER_NAME || '',
+            semaphore_sender_name: (process.env.SEMAPHORE_SENDER_NAME || '').replace(/^["']|["']$/g, '').trim(),
             has_textbelt: hasTextbelt,
             textbelt_api_key_masked: maskKey(process.env.TEXTBELT_API_KEY),
             use_textbelt_free: process.env.USE_TEXTBELT_FREE === 'true',
@@ -139,8 +139,8 @@ exports.updateSmsSettings = async (req, res) => {
         const updates = {};
         if (textbee_api_key !== undefined) updates.TEXTBEE_API_KEY = textbee_api_key.trim();
         if (textbee_device_id !== undefined) updates.TEXTBEE_DEVICE_ID = textbee_device_id.trim();
-        if (semaphore_api_key !== undefined) updates.SEMAPHORE_API_KEY = semaphore_api_key.trim();
-        if (semaphore_sender_name !== undefined) updates.SEMAPHORE_SENDER_NAME = semaphore_sender_name.trim();
+        if (semaphore_api_key !== undefined) updates.SEMAPHORE_API_KEY = semaphore_api_key.replace(/^["']|["']$/g, '').trim();
+        if (semaphore_sender_name !== undefined) updates.SEMAPHORE_SENDER_NAME = semaphore_sender_name.replace(/^["']|["']$/g, '').trim();
         if (textbelt_api_key !== undefined) updates.TEXTBELT_API_KEY = textbelt_api_key.trim();
         if (use_textbelt_free !== undefined) updates.USE_TEXTBELT_FREE = String(use_textbelt_free);
         if (twilio_account_sid !== undefined) updates.TWILIO_ACCOUNT_SID = twilio_account_sid.trim();
