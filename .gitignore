@@ -13,4 +13,5 @@ yarn-error.log*
 *.log
 scratch/
 *.tmp
+*.docx
 .vscode/
