@@ -232,5 +232,23 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         assert.ok(darkCss.includes('#privacyNoticeModal'), 'dark-theme.css styles #privacyNoticeModal');
         assert.ok(darkCss.includes('#privacyNoticeModal .privacy-notice-modal'), 'dark-theme.css styles dark modal body');
     });
+
+    await t.test('13. Broadcast audio mixer removed and Sermon Notes textarea height adjusted to 260px (adjustable)', () => {
+        const adminHtml = fs.readFileSync(path.join(__dirname, '../public/views/admin-dashboard.html'), 'utf8');
+        const leaderHtml = fs.readFileSync(path.join(__dirname, '../public/views/leader-dashboard.html'), 'utf8');
+
+        // Audio mixer removed from Content Management in both dashboards
+        assert.ok(!adminHtml.includes('id="liveAudioMixer"'), 'Admin dashboard does not contain liveAudioMixer');
+        assert.ok(!adminHtml.includes('class="broadcast-audio-mixer"'), 'Admin dashboard does not contain broadcast-audio-mixer');
+        assert.ok(!leaderHtml.includes('id="liveAudioMixer"'), 'Leader dashboard does not contain liveAudioMixer');
+        assert.ok(!leaderHtml.includes('class="broadcast-audio-mixer"'), 'Leader dashboard does not contain broadcast-audio-mixer');
+
+        // Sermon Notes textarea height is 260px and still adjustable (resize: vertical)
+        assert.ok(adminHtml.includes('id="live_stream_description"'), 'Admin dashboard has live_stream_description textarea');
+        assert.ok(adminHtml.includes('height: 260px;') && adminHtml.includes('resize: vertical;'), 'Admin live_stream_description textarea is 260px high and adjustable');
+
+        assert.ok(leaderHtml.includes('id="live_stream_description"'), 'Leader dashboard has live_stream_description textarea');
+        assert.ok(leaderHtml.includes('height: 260px;') && leaderHtml.includes('resize: vertical;'), 'Leader live_stream_description textarea is 260px high and adjustable');
+    });
 });
 

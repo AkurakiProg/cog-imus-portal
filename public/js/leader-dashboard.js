@@ -5184,6 +5184,7 @@ async function enumerateRealAudioDevices() {
 
 // Start audio input using Web Audio API interconnecting desktop mic and media stream
 async function startRealAudioInput(deviceId = '') {
+    if (!document.getElementById('liveAudioMixer')) return;
     try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioCtx || audioCtx.state === 'closed') {
@@ -5288,6 +5289,7 @@ function updateChannelGains() {
 // Real-time animation loop measuring physical microphone audio + Facebook media audio interconnected with Master
 function startRealVuMeterLoop() {
     if (audioMeterAnimFrame) cancelAnimationFrame(audioMeterAnimFrame);
+    if (!document.getElementById('liveAudioMixer')) return;
 
     const micFreqData = new Uint8Array(micAnalyserNode ? micAnalyserNode.frequencyBinCount : 128);
 

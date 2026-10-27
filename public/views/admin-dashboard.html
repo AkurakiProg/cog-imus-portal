@@ -1213,20 +1213,17 @@
                                 </div>
                                 <div class="form-group" style="margin: 0;">
                                     <label>Description / Sermon Notes (Optional)</label>
-                                    <textarea id="live_stream_description" oninput="autoSaveLiveStreamDetails()" onchange="autoSaveLiveStreamDetails()" placeholder="Brief service theme, announcements, or scripture passage for viewers..." style="height: 555px; min-height: 120px; resize: vertical;"></textarea>
+                                    <textarea id="live_stream_description" oninput="autoSaveLiveStreamDetails()" onchange="autoSaveLiveStreamDetails()" placeholder="Brief service theme, announcements, or scripture passage for viewers..." style="height: 260px; min-height: 120px; resize: vertical;"></textarea>
                                 </div>
                             </div>
 
-                            <!-- Right Column: Live Media Player Preview & Audio Mixer -->
+                            <!-- Right Column: Live Media Player Preview -->
                             <div style="display: flex; flex-direction: column;">
                                 <div class="flex justify-between items-center" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; min-height: 18px;">
                                     <label style="font-size: 0.7rem; color: var(--text-light, #64748b); margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 5px;">
                                         <i class="fa-solid fa-tv" style="color: #1877f2;"></i> Live Media Player Preview
                                     </label>
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <span id="mediaAudioSyncBadge" style="display: none; font-size: 0.68rem; color: #d97706; background: rgba(217, 119, 6, 0.12); border: 1px solid rgba(217, 119, 6, 0.3); padding: 1px 6px; border-radius: 4px; font-weight: 600; align-items: center; gap: 4px;">
-                                            <i class="fa-solid fa-link"></i> Audio Synced
-                                        </span>
                                         <button type="button" onclick="renderLiveMonitorPlayer()" class="btn-secondary" style="font-size: 0.68rem; padding: 2px 7px; height: 22px; display: inline-flex; align-items: center; gap: 4px;" title="Refresh Player Preview">
                                             <i class="fa-solid fa-arrows-rotate"></i> Refresh
                                         </button>
@@ -1243,111 +1240,6 @@
                                     <a href="/views/sermons.html#livestream" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
                                         Open Sermons Page <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem;"></i>
                                     </a>
-                                </div>
-
-                                <!-- Live Broadcasting Audio Mixer -->
-                                <div id="liveAudioMixer" class="broadcast-audio-mixer">
-                                    <div class="mixer-header">
-                                        <div style="display: flex; align-items: center; gap: 0.45rem;">
-                                            <i class="fa-solid fa-sliders" style="color: #0284c7;"></i>
-                                            <span class="mixer-title-text">Broadcast Audio Mixer</span>
-                                            <span id="audioMixerStatus" style="font-size: 0.7rem; font-weight: 600; color: #10b981; display: inline-flex; align-items: center; gap: 4px; margin-left: 0.4rem;">
-                                                <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Desktop Mic & Media Live
-                                            </span>
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 0.4rem;">
-                                            <button type="button" id="btnSyncMediaAudio" onclick="syncLiveStreamAudioCapture()" class="btn-audio-reset" style="color: #d97706; border-color: rgba(217, 119, 6, 0.4); background: rgba(217, 119, 6, 0.08);" title="Capture and sync Facebook livestream tab audio directly into Media Channel">
-                                                <i class="fa-solid fa-headphones"></i> <span>Sync Audio Feed</span>
-                                            </button>
-                                            <button type="button" onclick="resetAudioMixer()" class="btn-audio-reset" title="Reset Mixer Levels">
-                                                <i class="fa-solid fa-rotate-left"></i> Reset
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- 3 Audio Channels: Master, Desktop Mic, FB Live Media -->
-                                    <div class="audio-channels-grid">
-                                        <!-- Master Output -->
-                                        <div class="audio-channel" id="channelMaster">
-                                            <div class="channel-title-wrap" style="color: #0284c7;">
-                                                <i class="fa-solid fa-volume-high"></i> Master
-                                            </div>
-                                            <div class="fader-meter-well">
-                                                <div class="vu-meter">
-                                                    <div id="vuBarMaster" class="vu-bar" style="height: 0%;"></div>
-                                                </div>
-                                                <div class="fader-scale">
-                                                    <span>+6</span>
-                                                    <span>0</span>
-                                                    <span>-6</span>
-                                                    <span>-12</span>
-                                                    <span>-24</span>
-                                                    <span>-∞</span>
-                                                </div>
-                                                <div class="fader-rail-wrap">
-                                                    <input type="range" min="0" max="100" value="85" id="sliderMaster" class="fader-input" oninput="onAudioMixerChange('master', this.value)" title="Master Output Fader">
-                                                </div>
-                                            </div>
-                                            <div id="labelMaster" class="channel-db-badge">-3 dB</div>
-                                            <button type="button" onclick="toggleAudioMixerMute('master')" id="btnMuteMaster" class="btn-channel-mute" title="Mute Master Output">
-                                                <i class="fa-solid fa-volume-high"></i> <span>MUTE</span>
-                                            </button>
-                                        </div>
-
-                                        <!-- Desktop Mic -->
-                                        <div class="audio-channel" id="channelPulpit">
-                                            <div class="channel-title-wrap" style="color: #7c3aed;">
-                                                <i class="fa-solid fa-microphone"></i> Desktop Mic
-                                            </div>
-                                            <div class="fader-meter-well">
-                                                <div class="vu-meter">
-                                                    <div id="vuBarPulpit" class="vu-bar" style="height: 0%;"></div>
-                                                </div>
-                                                <div class="fader-scale">
-                                                    <span>+6</span>
-                                                    <span>0</span>
-                                                    <span>-6</span>
-                                                    <span>-12</span>
-                                                    <span>-24</span>
-                                                    <span>-∞</span>
-                                                </div>
-                                                <div class="fader-rail-wrap">
-                                                    <input type="range" min="0" max="100" value="80" id="sliderPulpit" class="fader-input" oninput="onAudioMixerChange('pulpit', this.value)" title="Desktop Mic Fader">
-                                                </div>
-                                            </div>
-                                            <div id="labelPulpit" class="channel-db-badge">-5 dB</div>
-                                            <button type="button" onclick="toggleAudioMixerMute('pulpit')" id="btnMutePulpit" class="btn-channel-mute" title="Mute Desktop Mic">
-                                                <i class="fa-solid fa-volume-high"></i> <span>MUTE</span>
-                                            </button>
-                                        </div>
-
-                                        <!-- Media Playback (FB Live Video Audio) -->
-                                        <div class="audio-channel" id="channelMedia">
-                                            <div class="channel-title-wrap" style="color: #d97706;">
-                                                <i class="fa-solid fa-tv"></i> Media (Live)
-                                            </div>
-                                            <div class="fader-meter-well">
-                                                <div class="vu-meter">
-                                                    <div id="vuBarMedia" class="vu-bar" style="height: 0%;"></div>
-                                                </div>
-                                                <div class="fader-scale">
-                                                    <span>+6</span>
-                                                    <span>0</span>
-                                                    <span>-6</span>
-                                                    <span>-12</span>
-                                                    <span>-24</span>
-                                                    <span>-∞</span>
-                                                </div>
-                                                <div class="fader-rail-wrap">
-                                                    <input type="range" min="0" max="100" value="70" id="sliderMedia" class="fader-input" oninput="onAudioMixerChange('media', this.value)" title="Media FB Live Audio Fader">
-                                                </div>
-                                            </div>
-                                            <div id="labelMedia" class="channel-db-badge">-12 dB</div>
-                                            <button type="button" onclick="toggleAudioMixerMute('media')" id="btnMuteMedia" class="btn-channel-mute" title="Mute Media Playback">
-                                                <i class="fa-solid fa-volume-high"></i> <span>MUTE</span>
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
