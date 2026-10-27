@@ -939,7 +939,10 @@ async function loadUsers(page = 1) {
 
     try {
         const res = await api.users.getAll(currentUserPage, USER_PAGE_LIMIT, { search, role, status });
-        const users = res.data || [];
+        let users = res.data || [];
+        if (status && (status.toLowerCase() === 'active' || status === '1')) {
+            users = users.filter(u => Number(u.is_active) === 1 && Number(u.is_verified) === 1);
+        }
         allUsersCache = users;
         renderUsersTable(users);
 

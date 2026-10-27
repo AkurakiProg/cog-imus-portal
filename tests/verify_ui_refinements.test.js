@@ -270,5 +270,22 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         // smsService only attaches sendername if non-empty string is provided
         assert.ok(smsServiceJs.includes('process.env.SEMAPHORE_SENDER_NAME.trim()'), 'smsService validates trimmed sender name');
     });
+
+    await t.test('15. Account management Active status filter shows only active AND verified accounts', () => {
+        const userAccountModelJs = fs.readFileSync(path.join(__dirname, '../models/userAccountModel.js'), 'utf8');
+        const adminDashboardJs = fs.readFileSync(path.join(__dirname, '../public/js/admin-dashboard.js'), 'utf8');
+
+        // userAccountModel requires both is_active = 1 AND is_verified = 1 when filtering by active
+        assert.ok(
+            userAccountModelJs.includes('u.is_active = 1 AND u.is_verified = 1'),
+            'userAccountModel requires both active and verified conditions for active status filter'
+        );
+
+        // admin-dashboard.js enforces defense in depth on loadUsers
+        assert.ok(
+            adminDashboardJs.includes('Number(u.is_active) === 1 && Number(u.is_verified) === 1'),
+            'admin-dashboard.js enforces active and verified filter on client side'
+        );
+    });
 });
 

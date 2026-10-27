@@ -18,7 +18,7 @@ function buildUserWhere(filters = {}) {
         if (s === 'unverified') {
             conditions.push(`u.is_verified = 0`);
         } else if (s === '1' || s.toLowerCase() === 'active') {
-            conditions.push(`u.is_active = 1`);
+            conditions.push(`u.is_active = 1 AND u.is_verified = 1`);
         } else if (s === '0' || s.toLowerCase() === 'inactive') {
             conditions.push(`u.is_active = 0`);
         }
