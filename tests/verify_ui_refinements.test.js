@@ -250,5 +250,25 @@ test('Website UI & CMS Refinements Verification', async (t) => {
         assert.ok(leaderHtml.includes('id="live_stream_description"'), 'Leader dashboard has live_stream_description textarea');
         assert.ok(leaderHtml.includes('height: 260px;') && leaderHtml.includes('resize: vertical;'), 'Leader live_stream_description textarea is 260px high and adjustable');
     });
+
+    await t.test('14. Semaphore SMS Gateway handles optional sender name gracefully without forcing arbitrary default', () => {
+        const adminHtml = fs.readFileSync(path.join(__dirname, '../public/views/admin-dashboard.html'), 'utf8');
+        const leaderHtml = fs.readFileSync(path.join(__dirname, '../public/views/leader-dashboard.html'), 'utf8');
+        const systemControllerJs = fs.readFileSync(path.join(__dirname, '../controllers/systemController.js'), 'utf8');
+        const smsServiceJs = fs.readFileSync(path.join(__dirname, '../utils/smsService.js'), 'utf8');
+
+        // Views mark sender name as optional and default to SEMAPHORE
+        assert.ok(adminHtml.includes('Sender Name (Optional)'), 'Admin dashboard clarifies sender name is optional');
+        assert.ok(adminHtml.includes('Leave blank for SEMAPHORE'), 'Admin dashboard placeholder notes SEMAPHORE default');
+        assert.ok(leaderHtml.includes('Sender Name (Optional)'), 'Leader dashboard clarifies sender name is optional');
+        assert.ok(leaderHtml.includes('Leave blank for SEMAPHORE'), 'Leader dashboard placeholder notes SEMAPHORE default');
+
+        // System controller does not hardcode COGWM fallback
+        assert.ok(!systemControllerJs.includes("SEMAPHORE_SENDER_NAME || 'COGWM'"), 'systemController does not hardcode COGWM fallback');
+        assert.ok(systemControllerJs.includes("SEMAPHORE_SENDER_NAME || ''"), 'systemController defaults to empty string when not set');
+
+        // smsService only attaches sendername if non-empty string is provided
+        assert.ok(smsServiceJs.includes('process.env.SEMAPHORE_SENDER_NAME.trim()'), 'smsService validates trimmed sender name');
+    });
 });
 

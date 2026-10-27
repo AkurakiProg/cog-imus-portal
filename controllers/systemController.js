@@ -101,7 +101,7 @@ exports.getSmsSettings = async (req, res) => {
             textbee_device_id_masked: maskKey(process.env.TEXTBEE_DEVICE_ID),
             has_semaphore: hasSemaphore,
             semaphore_api_key_masked: maskKey(process.env.SEMAPHORE_API_KEY),
-            semaphore_sender_name: process.env.SEMAPHORE_SENDER_NAME || 'COGWM',
+            semaphore_sender_name: process.env.SEMAPHORE_SENDER_NAME || '',
             has_textbelt: hasTextbelt,
             textbelt_api_key_masked: maskKey(process.env.TEXTBELT_API_KEY),
             use_textbelt_free: process.env.USE_TEXTBELT_FREE === 'true',

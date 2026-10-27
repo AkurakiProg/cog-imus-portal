@@ -99,8 +99,8 @@ async function sendViaSemaphore(recipientNumber, message) {
         number: targetNumber,
         message: message
     };
-    if (process.env.SEMAPHORE_SENDER_NAME) {
-        payload.sendername = process.env.SEMAPHORE_SENDER_NAME;
+    if (process.env.SEMAPHORE_SENDER_NAME && process.env.SEMAPHORE_SENDER_NAME.trim()) {
+        payload.sendername = process.env.SEMAPHORE_SENDER_NAME.trim();
     }
 
     try {
