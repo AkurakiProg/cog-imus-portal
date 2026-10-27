@@ -7927,14 +7927,18 @@ async function loadEmailServiceStatus() {
             if (info.configured) {
                 badgeEl.innerHTML = `<span class="badge badge-active"><i class="fa-solid fa-circle-check"></i> Active (${escapeHtml(info.label)})</span>`;
                 if (descEl) {
-                    descEl.textContent = info.provider === 'resend'
-                        ? 'Delivers official church announcements, member verifications, and pastoral alerts via Resend.com HTTPS API (Port 443).'
-                        : 'Delivers official church announcements, member verifications, and pastoral alerts directly to member inboxes.';
+                    if (info.provider === 'gmail_api') {
+                        descEl.textContent = 'Delivers official church announcements, member verifications, and pastoral alerts via Official Google Gmail REST API over HTTPS (Port 443).';
+                    } else if (info.provider === 'resend') {
+                        descEl.textContent = 'Delivers official church announcements, member verifications, and pastoral alerts via Resend.com HTTPS API (Port 443).';
+                    } else {
+                        descEl.textContent = 'Delivers official church announcements, member verifications, and pastoral alerts directly to member inboxes.';
+                    }
                 }
             } else {
                 badgeEl.innerHTML = `<span class="badge badge-inactive"><i class="fa-solid fa-triangle-exclamation"></i> Simulation Mode (No API Key)</span>`;
                 if (descEl) {
-                    descEl.textContent = 'No Resend or SMTP credentials configured. Verification emails will be simulated and logged in database only.';
+                    descEl.textContent = 'No Gmail API, Resend, or SMTP credentials configured. Verification emails will be simulated and logged in database only.';
                 }
             }
         }

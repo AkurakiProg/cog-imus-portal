@@ -1,9 +1,12 @@
 require('dotenv').config();
 const nodemailer = require('nodemailer');
+const MailComposer = require('nodemailer/lib/mail-composer');
 const { Resend } = require('resend');
 
 let transporterInstance = null;
 let resendClient = null;
+let cachedGmailAccessToken = null;
+let gmailTokenExpiresAt = 0;
 
 /**
  * Validate standard email address format
@@ -11,6 +14,141 @@ let resendClient = null;
 function isValidEmail(email) {
     if (!email || typeof email !== 'string') return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+/**
+ * Check if Official Google Gmail REST API credentials are fully configured
+ */
+function isGmailApiConfigured() {
+    const clientId = (process.env.GMAIL_CLIENT_ID || '').trim();
+    const clientSecret = (process.env.GMAIL_CLIENT_SECRET || '').trim();
+    const refreshToken = (process.env.GMAIL_REFRESH_TOKEN || '').trim();
+    return Boolean(clientId && clientSecret && refreshToken);
+}
+
+/**
+ * Obtain a fresh or cached OAuth2 access token for the Gmail REST API (over HTTPS Port 443).
+ * Caches token in memory for up to 55 minutes to minimize network roundtrips.
+ */
+async function getGmailAccessToken() {
+    const clientId = (process.env.GMAIL_CLIENT_ID || '').trim();
+    const clientSecret = (process.env.GMAIL_CLIENT_SECRET || '').trim();
+    const refreshToken = (process.env.GMAIL_REFRESH_TOKEN || '').trim();
+
+    if (!clientId || !clientSecret || !refreshToken) {
+        return null;
+    }
+
+    // Reuse valid cached access token (with 60-second safety buffer)
+    const now = Date.now();
+    if (cachedGmailAccessToken && now < (gmailTokenExpiresAt - 60000)) {
+        return cachedGmailAccessToken;
+    }
+
+    try {
+        const tokenUrl = 'https://oauth2.googleapis.com/token';
+        const params = new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token'
+        });
+
+        const response = await fetch(tokenUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: params.toString()
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.access_token) {
+            const errDetail = data.error_description || data.error || response.statusText || 'Unknown OAuth error';
+            cachedGmailAccessToken = null;
+            gmailTokenExpiresAt = 0;
+            throw new Error(`Gmail OAuth2 Token Refresh Failed (${response.status}): ${errDetail}`);
+        }
+
+        cachedGmailAccessToken = data.access_token;
+        gmailTokenExpiresAt = now + ((data.expires_in || 3600) * 1000);
+        return cachedGmailAccessToken;
+    } catch (err) {
+        cachedGmailAccessToken = null;
+        gmailTokenExpiresAt = 0;
+        throw err;
+    }
+}
+
+/**
+ * Compile email into RFC 2822 format and encode as base64url for Gmail REST API
+ */
+function buildRawEmail({ from, to, subject, html, text, replyTo }) {
+    return new Promise((resolve, reject) => {
+        const recipients = Array.isArray(to) ? to.join(', ') : to;
+        const composer = new MailComposer({
+            from,
+            to: recipients,
+            subject,
+            html,
+            text,
+            replyTo: (replyTo && isValidEmail(replyTo)) ? replyTo : undefined
+        });
+
+        composer.compile().build((err, message) => {
+            if (err) return reject(err);
+            resolve(message.toString('base64url'));
+        });
+    });
+}
+
+/**
+ * Send an email using the Official Google Gmail REST API via HTTPS (Port 443).
+ * Bypasses cloud host SMTP port blocks (Render/AWS/GCP) with zero custom domain requirement.
+ */
+async function sendViaGmailApi({ to, subject, html, text, from = null, replyTo = null }) {
+    const accessToken = await getGmailAccessToken();
+    if (!accessToken) {
+        throw new Error('Gmail REST API credentials (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN) are not configured.');
+    }
+
+    const recipients = Array.isArray(to) ? to.map(e => String(e).trim()) : [String(to).trim()];
+    const fromAddress = from || resolveFromAddress('gmail_api');
+
+    const raw = await buildRawEmail({
+        from: fromAddress,
+        to: recipients,
+        subject: subject,
+        html: html,
+        text: text,
+        replyTo: replyTo
+    });
+
+    const sendUrl = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
+    const response = await fetch(sendUrl, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw })
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.id) {
+        const errMsg = result.error ? (result.error.message || JSON.stringify(result.error)) : (response.statusText || 'Delivery failed');
+        throw new Error(`Gmail REST API Delivery Failed (${response.status}): ${errMsg}`);
+    }
+
+    console.log(`[EMAIL SERVICE: Gmail REST API] Email "${subject}" sent to ${recipients.join(', ')} via HTTPS (Port 443). ID: ${result.id}`);
+
+    return {
+        success: true,
+        provider: 'gmail_api',
+        status: 'Sent',
+        messageId: result.id,
+        recipients: recipients
+    };
 }
 
 /**
@@ -59,6 +197,14 @@ function getTransporter() {
  * Determine currently active email service provider
  */
 function getEmailProviderInfo() {
+    if (isGmailApiConfigured()) {
+        const user = process.env.GMAIL_USER || process.env.SMTP_USER || 'Gmail Sender';
+        return {
+            provider: 'gmail_api',
+            configured: true,
+            label: `Official Gmail REST API (${user}) [HTTPS Port 443]`
+        };
+    }
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim()) {
         return {
             provider: 'resend',
@@ -81,11 +227,26 @@ function getEmailProviderInfo() {
 }
 
 /**
- * Verify email service configuration (Resend or SMTP).
+ * Verify email service configuration (Gmail REST API, Resend, or SMTP).
  */
 async function verifyEmailService() {
     const providerInfo = getEmailProviderInfo();
-    if (providerInfo.provider === 'resend') {
+    if (providerInfo.provider === 'gmail_api') {
+        try {
+            await getGmailAccessToken();
+            return {
+                success: true,
+                provider: 'gmail_api',
+                message: 'Gmail REST API authenticated successfully. Real-time delivery enabled over HTTPS (Port 443).'
+            };
+        } catch (err) {
+            return {
+                success: false,
+                provider: 'gmail_api',
+                message: err.message
+            };
+        }
+    } else if (providerInfo.provider === 'resend') {
         const resend = getResendClient();
         if (!resend) return { success: false, provider: 'resend', message: 'Resend API key is missing or blank.' };
         return {
@@ -99,7 +260,7 @@ async function verifyEmailService() {
         return {
             success: false,
             provider: 'none',
-            message: 'No email provider configured. Please set RESEND_API_KEY in environment configuration.'
+            message: 'No email provider configured. Please set GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN in environment configuration.'
         };
     }
 }
@@ -124,6 +285,13 @@ async function verifySmtp() {
  * Resolve verified sender address
  */
 function resolveFromAddress(provider) {
+    if (provider === 'gmail_api') {
+        const gmailUser = process.env.GMAIL_USER || process.env.SMTP_USER;
+        if (gmailUser) {
+            return `"Church of God World Missions - Imus" <${gmailUser}>`;
+        }
+        return process.env.EMAIL_FROM || '"Church of God World Missions - Imus"';
+    }
     if (provider === 'resend') {
         return (
             process.env.RESEND_FROM ||
@@ -139,8 +307,10 @@ function resolveFromAddress(provider) {
 
 /**
  * Core Real-Time Email Dispatcher:
- * Automatically uses Resend API (Port 443) when RESEND_API_KEY is configured;
- * gracefully falls back to Nodemailer SMTP when Resend is not set.
+ * Automatically uses:
+ * 1. Official Google Gmail REST API (HTTPS Port 443 - zero SMTP port blocking, no domain required)
+ * 2. Resend API (HTTPS Port 443 - when custom domain is set up)
+ * 3. Nodemailer SMTP (Port 465/587 fallback)
  */
 async function sendEmail({ to, subject, html, text, from = null, replyTo = null }) {
     if (!to) {
@@ -155,9 +325,29 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
     }
 
     const plainText = text || (html ? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '');
-    const resend = getResendClient();
 
-    // 1. Primary: Resend API (HTTPS Port 443 - zero SMTP port blocking)
+    // 1. Primary: Official Google Gmail REST API (HTTPS Port 443)
+    if (isGmailApiConfigured()) {
+        try {
+            return await sendViaGmailApi({
+                to: recipients,
+                subject: subject,
+                html: html,
+                text: plainText,
+                from: from,
+                replyTo: replyTo
+            });
+        } catch (gmailErr) {
+            console.error(`[EMAIL SERVICE: Gmail API ERROR] Delivery failed to ${recipients.join(', ')}:`, gmailErr.message);
+            if (!getResendClient() && !getTransporter()) {
+                throw gmailErr;
+            }
+            console.warn('[EMAIL SERVICE] Falling back to secondary email provider...');
+        }
+    }
+
+    // 2. Secondary: Resend API (HTTPS Port 443)
+    const resend = getResendClient();
     if (resend) {
         const fromAddress = from || resolveFromAddress('resend');
         const payload = {
@@ -194,11 +384,14 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
             };
         } catch (resendErr) {
             console.error(`[EMAIL SERVICE: Resend Exception] ${resendErr.message}`);
-            throw resendErr;
+            if (!getTransporter()) {
+                throw resendErr;
+            }
+            console.warn('[EMAIL SERVICE] Falling back to SMTP...');
         }
     }
 
-    // 2. Secondary Fallback: Nodemailer SMTP
+    // 3. Tertiary Fallback: Nodemailer SMTP
     const transporter = getTransporter();
     if (transporter) {
         const fromAddress = from || resolveFromAddress('smtp');
@@ -226,9 +419,9 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
         }
     }
 
-    // 3. Neither configured
+    // 4. Neither configured
     console.warn(`[EMAIL SERVICE] No email provider configured. Email "${subject}" to ${recipients.join(', ')} was not transmitted.`);
-    throw new Error('Email service is not configured. Please set RESEND_API_KEY in environment configuration.');
+    throw new Error('Email service is not configured. Please configure GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN (or RESEND_API_KEY) in environment configuration.');
 }
 
 /**
@@ -614,7 +807,11 @@ function escapeHtmlEmail(str) {
 module.exports = {
     getTransporter,
     getResendClient,
+    getGmailAccessToken,
+    isGmailApiConfigured,
+    sendViaGmailApi,
     getEmailProviderInfo,
+    resolveFromAddress,
     verifySmtp,
     verifyEmailService,
     sendEmail,

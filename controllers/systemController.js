@@ -27,13 +27,13 @@ function updateEnvFile(updates) {
 
 exports.getEmailSettings = async (req, res) => {
     try {
-        const { getEmailProviderInfo } = require('../utils/emailService');
+        const { getEmailProviderInfo, resolveFromAddress } = require('../utils/emailService');
         const info = getEmailProviderInfo();
         return successResponse(res, {
             provider: info.provider,
             configured: info.configured,
             label: info.label,
-            from: process.env.RESEND_FROM || process.env.EMAIL_FROM || (info.provider === 'resend' ? 'onboarding@resend.dev' : 'info@cogwmphimus.org')
+            from: resolveFromAddress(info.provider)
         }, 'Email settings retrieved');
     } catch (error) {
         console.error('getEmailSettings Error:', error);
