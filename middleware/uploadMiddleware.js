@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure base upload directories exist
-const uploadDirs = ['profiles', 'gallery', 'banners', 'documents', 'videos', 'content'];
+const uploadDirs = ['profiles', 'gallery', 'banners', 'documents', 'videos', 'content', 'announcements'];
 uploadDirs.forEach(dir => {
     const fullPath = path.join(__dirname, '..', 'uploads', dir);
     if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath, { recursive: true });
@@ -17,6 +17,8 @@ const storage = multer.diskStorage({
             folder = 'gallery';
         } else if ((req.baseUrl && req.baseUrl.includes('banner')) || file.fieldname === 'banner_image') {
             folder = 'banners';
+        } else if ((req.baseUrl && req.baseUrl.includes('announcements')) || file.fieldname === 'announcement_image') {
+            folder = 'announcements';
         } else if (file.fieldname === 'document') {
             folder = 'documents';
         } else if (file.fieldname === 'content_image' || file.fieldname === 'image' || file.fieldname === 'logo') {
@@ -99,9 +101,40 @@ const uploadWebsiteImage = multer({
     }
 });
 
+// Dedicated Announcement Image Storage (.jpg, .jpeg, .png, .webp, .gif) - Strictly 10 MB Limit
+const announcementImageStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const dest = path.join(__dirname, '..', 'uploads', 'announcements');
+        if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+        cb(null, dest);
+    },
+    filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname || '').toLowerCase() || '.png';
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, `ann-${uniqueSuffix}${ext}`);
+    }
+});
+
+const uploadAnnouncementImage = multer({
+    storage: announcementImageStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+        const validExt = /^\.(jpe?g|png|webp|gif)$/i;
+        const validMime = /^image\/(jpeg|jpg|png|webp|gif)$/i;
+        const extOk = validExt.test(path.extname(file.originalname || ''));
+        const mimeOk = validMime.test(file.mimetype || '');
+
+        if (extOk && mimeOk) {
+            return cb(null, true);
+        }
+        cb(new Error('Only valid image files (.jpg, .jpeg, .png, .webp, .gif) are allowed for announcements.'));
+    }
+});
+
 upload.video = uploadVideo;
 upload.uploadWebsiteVideo = uploadVideo;
 upload.websiteImage = uploadWebsiteImage;
 upload.uploadWebsiteImage = uploadWebsiteImage;
+upload.announcementImage = uploadAnnouncementImage;
 
 module.exports = upload;

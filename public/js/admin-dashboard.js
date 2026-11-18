@@ -322,8 +322,16 @@ function populateCascadingMinistries(dept, minSelectEl, emptyLabel = 'None / Gen
 
 // Session verification on load
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.authSessionSync && typeof window.authSessionSync.hydrateTabSessionIfNeeded === 'function') {
+        const hyd = window.authSessionSync.hydrateTabSessionIfNeeded();
+        if (hyd && hyd.switchedAway) {
+            window.location.replace('/views/login.html');
+            return;
+        }
+    }
+
     // Check sessionStorage (tied to browser tab/window lifecycle)
-    const token = sessionStorage.getItem('church_token') || localStorage.getItem('church_token');
+    const token = sessionStorage.getItem('church_token');
 
     if (!token) {
         window.location.href = '/views/login.html';
@@ -344,9 +352,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Keep local cache fresh with server state
+        // Bind tab identity & keep local cache fresh with server state
         sessionStorage.setItem('church_user', JSON.stringify(user));
         localStorage.removeItem('church_user'); // Keep tabs isolated in sessionStorage
+        if (window.authSessionSync && typeof window.authSessionSync.bindTabUser === 'function') {
+            window.authSessionSync.bindTabUser(user);
+        }
         document.querySelectorAll('#adminName, #adminTopName').forEach(el => el.textContent = user.full_name);
         
         const renderSafeAvatar = (container, imgSrc, name, fallbackChar) => {
@@ -527,7 +538,17 @@ function initDashboardRealtimeSync() {
 
     if (typeof EventSource !== 'undefined') {
         let es = null;
+        let reconnectTimer = null;
+        let stopped = false;
+        window._cleanupDashboardSession = () => {
+            stopped = true;
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            if (es) { try { es.close(); } catch (e) {} es = null; }
+            allUsersCache = [];
+            allAnnouncementsCache = [];
+        };
         function connectSse() {
+            if (stopped) return;
             try {
                 es = new EventSource('/api/realtime/stream');
                 es.onmessage = (e) => {
@@ -538,10 +559,10 @@ function initDashboardRealtimeSync() {
                 };
                 es.onerror = () => {
                     if (es) { es.close(); es = null; }
-                    setTimeout(connectSse, 6000);
+                    if (!stopped) reconnectTimer = setTimeout(connectSse, 6000);
                 };
             } catch (err) {
-                setTimeout(connectSse, 10000);
+                if (!stopped) reconnectTimer = setTimeout(connectSse, 10000);
             }
         }
         connectSse();
@@ -913,13 +934,26 @@ function closeSidebar() {
     if (overlay) overlay.classList.remove('active');
 }
 
-function logout() {
-    sessionStorage.removeItem('church_token');
-    sessionStorage.removeItem('church_user');
-    localStorage.removeItem('church_token');
-    localStorage.removeItem('church_user');
-    localStorage.removeItem('church_active_user_theme');
-    localStorage.removeItem('church_active_user_id');
+async function logout() {
+    let uid = null;
+    try {
+        const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+        uid = u.user_id || u.id || null;
+    } catch (e) {}
+    try {
+        if (typeof window._cleanupDashboardSession === 'function') window._cleanupDashboardSession();
+        if (api && api.auth && api.auth.logout) await api.auth.logout();
+    } catch (e) {}
+    if (window.authSessionSync && typeof window.authSessionSync.broadcastLogout === 'function') {
+        window.authSessionSync.broadcastLogout(uid);
+    } else {
+        sessionStorage.removeItem('church_token');
+        sessionStorage.removeItem('church_user');
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
+        localStorage.removeItem('church_active_user_theme');
+        localStorage.removeItem('church_active_user_id');
+    }
     window.location.href = '/views/login.html';
 }
 
@@ -2337,6 +2371,7 @@ async function saveMinistry() {
         }
         closeMinistryModal();
         await loadMinistries();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('ministries', id ? 'update' : 'create');
     } catch (error) {
         showToast('Error saving ministry: ' + error.message);
     }
@@ -2354,6 +2389,7 @@ async function deleteMinistry(id) {
         await api.ministries.delete(id);
         showToast('Ministry deleted successfully.');
         await loadMinistries();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('ministries', 'delete');
     } catch (error) {
         showToast('Error deleting ministry: ' + error.message);
     }
@@ -2778,6 +2814,7 @@ async function addMemberToRoster(memberId) {
         showToast(`${memberName} assigned as "${role}"!`);
         await loadMinistryRoster(currentMinistryId);
         await loadMinistries(); // update member count in main table and WORDA department accordion
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('ministries', 'assign_member');
     } catch (err) {
         showToast('Error assigning member: ' + err.message);
     }
@@ -2798,6 +2835,7 @@ async function removeMemberFromRoster(mmId, memberName) {
         showToast(`${confirmName} removed from ministry.`);
         await loadMinistryRoster(currentMinistryId);
         await loadMinistries();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('ministries', 'unassign_member');
     } catch (err) {
         showToast('Error removing member: ' + err.message);
     }
@@ -2972,6 +3010,7 @@ async function saveDepartmentHead() {
 
         // Refresh cache and summary counts immediately
         await loadMinistries();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('ministries', 'update_department_head');
 
         // Re-render inline view
         if (selectedWordaDept && selectedWordaDept.toLowerCase() === department.toLowerCase()) {
@@ -5082,7 +5121,7 @@ async function loadAnnouncements(page = 1) {
     }
 
     const tbody = document.getElementById('announcementsTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center p-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading announcements...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading announcements...</td></tr>';
 
     try {
         const res = await api.announcements.getAll(currentAnnouncementsPage, ANNOUNCEMENT_PAGE_LIMIT, filters);
@@ -5135,15 +5174,19 @@ function renderAnnouncementsTable(announcements) {
     if (!tbody) return;
 
     if (!announcements || announcements.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center p-8 text-slate-400">No announcements found matching filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-400">No announcements found matching filters.</td></tr>';
         return;
     }
 
     tbody.innerHTML = announcements.map(a => {
         const isEmailSent = a.email_triggered == 1;
         const isSmsVerified = a.sms_triggered == 1;
+        const thumbHtml = a.image_path
+            ? `<img src="${encodeURI(a.image_path)}" alt="${escapeHtml(a.title)}" style="width: 52px; height: 38px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; display: block;" onerror="this.outerHTML='<div style=\\'width:52px;height:38px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:0.75rem;\\'><i class=\\'fa-regular fa-image\\'></i></div>'">`
+            : `<div style="width: 52px; height: 38px; border-radius: 6px; background: #f1f5f9; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.75rem;" title="No image"><i class="fa-regular fa-image"></i></div>`;
         return `
             <tr>
+                <td class="p-4">${thumbHtml}</td>
                 <td class="p-4 font-medium text-navy">${escapeHtml(a.title)}</td>
                 <td class="p-4"><span class="badge ${getDeptBadgeClass(a.department)}">${escapeHtml(a.department || 'General')}</span></td>
                 <td class="p-4"><span class="badge ${a.ministry_name ? 'badge-ministry-pill' : 'badge-inactive'}">${escapeHtml(a.ministry_name || 'General Church')}</span></td>
@@ -5181,10 +5224,92 @@ function onAnnFormDeptChange() {
     populateCascadingMinistries(dept, minSelect, 'None / General Church', '');
 }
 
+window._adminAnnExistingImage = null;
+window._adminAnnRemoveImage = false;
+
+function handleAdminAnnouncementImageChange(input) {
+    const errEl = document.getElementById('annImageError');
+    const preview = document.getElementById('annImagePreview');
+    const placeholder = document.getElementById('annImagePlaceholder');
+    const clearBtn = document.getElementById('annImageClearBtn');
+    const statusEl = document.getElementById('annImageStatus');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    const file = input && input.files ? input.files[0] : null;
+    if (!file) {
+        if (window._adminAnnExistingImage && !window._adminAnnRemoveImage) {
+            if (preview) { preview.src = encodeURI(window._adminAnnExistingImage); preview.style.display = 'block'; }
+            if (placeholder) placeholder.style.display = 'none';
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
+            if (statusEl) statusEl.textContent = 'Current image retained (choose a file to replace).';
+        } else {
+            if (preview) { preview.src = ''; preview.style.display = 'none'; }
+            if (placeholder) placeholder.style.display = 'block';
+            if (clearBtn) clearBtn.style.display = 'none';
+            if (statusEl) statusEl.textContent = 'Select an announcement image to publish.';
+        }
+        return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedExt = /\.(jpe?g|png|webp|gif)$/i;
+    if (!allowedTypes.includes(file.type) && !allowedExt.test(file.name)) {
+        input.value = '';
+        if (errEl) { errEl.textContent = 'Invalid file format. Allowed: JPG, JPEG, PNG, WebP, GIF.'; errEl.style.display = 'block'; }
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        input.value = '';
+        if (errEl) { errEl.textContent = 'Image file size must not exceed 10MB.'; errEl.style.display = 'block'; }
+        return;
+    }
+
+    window._adminAnnRemoveImage = false;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        if (preview) { preview.src = ev.target.result; preview.style.display = 'block'; }
+        if (placeholder) placeholder.style.display = 'none';
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
+        if (statusEl) statusEl.textContent = `Selected: ${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+    };
+    reader.readAsDataURL(file);
+}
+window.handleAdminAnnouncementImageChange = handleAdminAnnouncementImageChange;
+
+function clearAdminAnnouncementImage() {
+    const fileInput = document.getElementById('ann_image');
+    const errEl = document.getElementById('annImageError');
+    const preview = document.getElementById('annImagePreview');
+    const placeholder = document.getElementById('annImagePlaceholder');
+    const clearBtn = document.getElementById('annImageClearBtn');
+    const statusEl = document.getElementById('annImageStatus');
+
+    if (fileInput) fileInput.value = '';
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    window._adminAnnExistingImage = null;
+    window._adminAnnRemoveImage = true;
+    if (preview) { preview.src = ''; preview.style.display = 'none'; }
+    if (placeholder) placeholder.style.display = 'block';
+    if (clearBtn) clearBtn.style.display = 'none';
+    if (statusEl) statusEl.textContent = 'Announcement image is required * (JPG, PNG, WebP, GIF)';
+}
+window.clearAdminAnnouncementImage = clearAdminAnnouncementImage;
+
 function openAnnouncementModal(a = null) {
     const form = document.getElementById('announcementForm');
     form.reset();
     document.getElementById('announcement_id').value = '';
+
+    const fileInput = document.getElementById('ann_image');
+    const errEl = document.getElementById('annImageError');
+    const preview = document.getElementById('annImagePreview');
+    const placeholder = document.getElementById('annImagePlaceholder');
+    const clearBtn = document.getElementById('annImageClearBtn');
+    const statusEl = document.getElementById('annImageStatus');
+    if (fileInput) fileInput.value = '';
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    window._adminAnnExistingImage = null;
+    window._adminAnnRemoveImage = false;
 
     const deptSelect = document.getElementById('ann_department');
     const minSelect = document.getElementById('ann_ministry_id');
@@ -5204,6 +5329,19 @@ function openAnnouncementModal(a = null) {
         document.getElementById('ann_expiry_date').value = a.expiry_date ? formatLocalDateTime(a.expiry_date) : '';
         document.getElementById('ann_is_pinned').checked = a.is_pinned == 1;
         document.getElementById('ann_is_published').checked = a.is_published == 1;
+
+        if (a.image_path) {
+            window._adminAnnExistingImage = a.image_path;
+            if (preview) { preview.src = encodeURI(a.image_path); preview.style.display = 'block'; }
+            if (placeholder) placeholder.style.display = 'none';
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
+            if (statusEl) statusEl.textContent = 'Current image retained (upload a new file to replace).';
+        } else {
+            if (preview) { preview.src = ''; preview.style.display = 'none'; }
+            if (placeholder) placeholder.style.display = 'block';
+            if (clearBtn) clearBtn.style.display = 'none';
+            if (statusEl) statusEl.textContent = 'No existing image — please upload an announcement image *.';
+        }
     } else {
         document.getElementById('announcementModalTitle').textContent = 'Add Announcement';
         document.getElementById('ann_publish_date').value = formatLocalDateTime(new Date());
@@ -5211,6 +5349,11 @@ function openAnnouncementModal(a = null) {
 
         if (deptSelect) deptSelect.value = '';
         populateCascadingMinistries('', minSelect, 'None / General Church', '');
+
+        if (preview) { preview.src = ''; preview.style.display = 'none'; }
+        if (placeholder) placeholder.style.display = 'block';
+        if (clearBtn) clearBtn.style.display = 'none';
+        if (statusEl) statusEl.textContent = 'Announcement image is required * (JPG, PNG, WebP, GIF)';
     }
     document.getElementById('announcementModal').classList.add('active');
 }
@@ -5232,37 +5375,66 @@ async function saveAnnouncement() {
     const id = document.getElementById('announcement_id').value;
     const deptSelect = document.getElementById('ann_department');
     const minSelect = document.getElementById('ann_ministry_id');
+    const fileInput = document.getElementById('ann_image');
+    const errEl = document.getElementById('annImageError');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
 
-    const data = {
-        title: document.getElementById('ann_title').value,
-        department: deptSelect && deptSelect.value ? deptSelect.value : null,
-        ministry_id: minSelect && minSelect.value ? Number(minSelect.value) : null,
-        category: document.getElementById('ann_category').value,
-        target_audience: document.getElementById('ann_target').value,
-        content: document.getElementById('ann_content').value,
-        publish_date: document.getElementById('ann_publish_date').value,
-        expiry_date: document.getElementById('ann_expiry_date').value,
-        is_pinned: document.getElementById('ann_is_pinned').checked,
-        is_published: document.getElementById('ann_is_published').checked
-    };
-
-    if (!data.title || !data.content) {
+    const title = (document.getElementById('ann_title').value || '').trim();
+    const content = (document.getElementById('ann_content').value || '').trim();
+    if (!title || !content) {
         showToast('Title and Content are required.');
         return;
     }
 
+    const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
+    const hasRetainedImage = Boolean(id && window._adminAnnExistingImage && !window._adminAnnRemoveImage);
+    if (!selectedFile && !hasRetainedImage) {
+        const msg = 'Please upload an announcement image (.jpg, .jpeg, .png, .webp, .gif).';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        showToast(msg);
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('department', deptSelect && deptSelect.value ? deptSelect.value : '');
+    formData.append('ministry_id', minSelect && minSelect.value ? String(minSelect.value) : '');
+    formData.append('category', document.getElementById('ann_category').value || 'General');
+    formData.append('target_audience', document.getElementById('ann_target').value || 'All');
+    formData.append('content', content);
+    formData.append('publish_date', document.getElementById('ann_publish_date').value || '');
+    formData.append('expiry_date', document.getElementById('ann_expiry_date').value || '');
+    formData.append('is_pinned', document.getElementById('ann_is_pinned').checked ? '1' : '0');
+    formData.append('is_published', document.getElementById('ann_is_published').checked ? '1' : '0');
+    if (selectedFile) {
+        formData.append('announcement_image', selectedFile);
+    }
+
+    const saveBtn = document.getElementById('btnSaveAnnouncement');
+    const origHtml = saveBtn ? saveBtn.innerHTML : '';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Saving...';
+    }
+
     try {
         if (id) {
-            await api.announcements.update(id, data);
+            await api.announcements.update(id, formData);
             showToast('Announcement updated successfully!');
         } else {
-            await api.announcements.create(data);
+            await api.announcements.create(formData);
             showToast('Announcement created successfully!');
         }
         closeAnnouncementModal();
         await loadAnnouncements();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('announcements', id ? 'update' : 'create');
     } catch (error) {
         showToast('Error saving announcement: ' + error.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = origHtml || 'Save Announcement';
+        }
     }
 }
 
@@ -5277,6 +5449,7 @@ async function deleteAnnouncement(id) {
     try {
         await api.announcements.delete(id);
         await loadAnnouncements();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('announcements', 'delete');
     } catch (error) {
         showToast('Error deleting announcement: ' + error.message);
     }
@@ -7870,6 +8043,11 @@ function viewAnnouncement(id) {
     
     document.getElementById('viewModalTitle').innerText = 'Announcement Details';
     document.getElementById('viewModalBody').innerHTML = `
+        ${ann.image_path ? `
+        <div style="margin-bottom: 1rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color);">
+            <img src="${encodeURI(ann.image_path)}" alt="${escapeHtml(ann.title)}" style="width: 100%; max-height: 260px; object-fit: cover; display: block;" onerror="this.parentElement.style.display='none'">
+        </div>
+        ` : ''}
         <ul class="view-details-list">
             <li><span class="label">Title</span> <span class="value">${escapeHtml(ann.title)}</span></li>
             <li><span class="label">Category</span> <span class="value">${escapeHtml(ann.category)}</span></li>

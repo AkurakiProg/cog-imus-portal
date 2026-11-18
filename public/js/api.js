@@ -31,19 +31,336 @@ function detectThemeIsDark() {
 
 let _isLoggingOut = false;
 let _activeRequestsCount = 0;
+let _watchdogIntervalId = null;
+let _watchdogEventSource = null;
+
+const BROWSER_CTX_KEY = 'church_browser_ctx_id';
+const ACTIVE_SESSION_META_KEY = 'church_active_session_meta';
+const SHARED_SESSION_STORAGE_KEY = 'church_shared_browser_session';
+const AUTH_SYNC_EVENT_KEY = 'church_auth_sync_event';
+const AUTH_SYNC_CHANNEL_NAME = 'church_auth_sync_channel';
+const TAB_USER_ID_KEY = 'church_tab_user_id';
+const ACCOUNT_SWITCHED_MESSAGE = 'Your session has ended because a different account was logged in using another tab in this browser. Please log in again to continue.';
+
+let _authSyncChannel = null;
+let _tabBoundUserId = null;
+
+function generateClientUuid() {
+    try {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+    } catch (e) {}
+    return 'ctx-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+}
+
+function getBrowserContextId() {
+    try {
+        if (typeof localStorage === 'undefined') return null;
+        let ctx = localStorage.getItem(BROWSER_CTX_KEY);
+        if (!ctx || !/^[a-zA-Z0-9_-]{8,128}$/.test(ctx)) {
+            ctx = generateClientUuid();
+            localStorage.setItem(BROWSER_CTX_KEY, ctx);
+        }
+        return ctx;
+    } catch (e) {
+        return null;
+    }
+}
+
+function parseActiveSessionMeta() {
+    try {
+        const raw = localStorage.getItem(ACTIVE_SESSION_META_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function getSharedBrowserSession() {
+    try {
+        const raw = localStorage.getItem(SHARED_SESSION_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function getBoundTabUserId() {
+    if (_tabBoundUserId) return _tabBoundUserId;
+    try {
+        const stored = sessionStorage.getItem(TAB_USER_ID_KEY);
+        if (stored) {
+            _tabBoundUserId = Number(stored) || stored;
+            return _tabBoundUserId;
+        }
+        const rawUser = sessionStorage.getItem('church_user');
+        if (rawUser) {
+            const u = JSON.parse(rawUser);
+            const uid = u && (u.user_id || u.id);
+            if (uid) {
+                _tabBoundUserId = Number(uid) || uid;
+                return _tabBoundUserId;
+            }
+        }
+    } catch (e) {}
+    return null;
+}
+
+function bindTabUser(user) {
+    if (!user) return;
+    const uid = user.user_id || user.id;
+    if (!uid) return;
+    _tabBoundUserId = Number(uid) || uid;
+    try {
+        sessionStorage.setItem(TAB_USER_ID_KEY, String(_tabBoundUserId));
+        // Ensure localStorage shared/meta exist if this tab was initialized directly after login
+        const token = sessionStorage.getItem('church_token');
+        const meta = parseActiveSessionMeta();
+        if (token && (!meta || String(meta.userId) === String(_tabBoundUserId))) {
+            localStorage.setItem(ACTIVE_SESSION_META_KEY, JSON.stringify({
+                userId: _tabBoundUserId,
+                roleName: user.role_name || null,
+                sessionSyncId: (meta && meta.sessionSyncId) || generateClientUuid(),
+                updatedAt: Date.now()
+            }));
+            localStorage.setItem(SHARED_SESSION_STORAGE_KEY, JSON.stringify({
+                token,
+                user,
+                userId: _tabBoundUserId,
+                updatedAt: Date.now()
+            }));
+        }
+    } catch (e) {}
+}
+
+function hydrateTabSessionIfNeeded() {
+    try {
+        const currentToken = sessionStorage.getItem('church_token');
+        const currentBound = getBoundTabUserId();
+        const shared = getSharedBrowserSession();
+        const meta = parseActiveSessionMeta();
+
+        // Check if active browser user switched away while this tab was inactive or loading
+        if (currentBound && meta && meta.userId && String(meta.userId) !== String(currentBound)) {
+            sessionStorage.removeItem('church_token');
+            sessionStorage.removeItem('church_user');
+            sessionStorage.removeItem(TAB_USER_ID_KEY);
+            sessionStorage.setItem('auth_logout_reason', 'account_switched');
+            return { switchedAway: true };
+        }
+
+        // Same-account multi-tab support: hydrate empty tab from active browser session
+        if (!currentToken && shared && shared.token && shared.user) {
+            const sharedUid = shared.user.user_id || shared.user.id;
+            if (!meta || !meta.userId || String(meta.userId) === String(sharedUid)) {
+                sessionStorage.setItem('church_token', shared.token);
+                sessionStorage.setItem('church_user', JSON.stringify(shared.user));
+                if (sharedUid) {
+                    _tabBoundUserId = Number(sharedUid) || sharedUid;
+                    sessionStorage.setItem(TAB_USER_ID_KEY, String(_tabBoundUserId));
+                }
+                return { hydrated: true, user: shared.user };
+            }
+        }
+    } catch (e) {}
+    return { hydrated: false };
+}
+
+function getAuthSyncChannel() {
+    if (_authSyncChannel) return _authSyncChannel;
+    if (typeof BroadcastChannel !== 'undefined') {
+        try {
+            _authSyncChannel = new BroadcastChannel(AUTH_SYNC_CHANNEL_NAME);
+        } catch (e) {
+            _authSyncChannel = null;
+        }
+    }
+    return _authSyncChannel;
+}
+
+function recordBrowserLogin(token, user, sessionSyncId = null) {
+    if (!token || !user) return;
+    const uid = user.user_id || user.id;
+    const numericUid = uid ? (Number(uid) || uid) : null;
+    const syncId = sessionSyncId || generateClientUuid();
+
+    getBrowserContextId();
+    _tabBoundUserId = numericUid;
+
+    try {
+        sessionStorage.setItem('church_token', token);
+        sessionStorage.setItem('church_user', JSON.stringify(user));
+        if (numericUid) {
+            sessionStorage.setItem(TAB_USER_ID_KEY, String(numericUid));
+        }
+
+        // Purge legacy un-scoped localStorage keys
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
+
+        // Persist active browser-wide session state for same-account tabs & switch detection
+        const metaPayload = {
+            userId: numericUid,
+            roleName: user.role_name || null,
+            sessionSyncId: syncId,
+            updatedAt: Date.now()
+        };
+        localStorage.setItem(ACTIVE_SESSION_META_KEY, JSON.stringify(metaPayload));
+        localStorage.setItem(SHARED_SESSION_STORAGE_KEY, JSON.stringify({
+            token,
+            user,
+            userId: numericUid,
+            updatedAt: Date.now()
+        }));
+
+        // Minimal non-sensitive payload across tabs (never expose token/password/email over BroadcastChannel)
+        const broadcastPayload = {
+            type: 'SESSION_ACCOUNT_ACTIVE',
+            userId: numericUid,
+            roleName: user.role_name || null,
+            sessionSyncId: syncId,
+            timestamp: Date.now()
+        };
+        const bc = getAuthSyncChannel();
+        if (bc) bc.postMessage(broadcastPayload);
+        localStorage.setItem(AUTH_SYNC_EVENT_KEY, JSON.stringify(broadcastPayload));
+    } catch (e) {}
+}
+
+function broadcastLogout(explicitUserId = null) {
+    const uid = explicitUserId || getBoundTabUserId();
+    try {
+        sessionStorage.removeItem('church_token');
+        sessionStorage.removeItem('church_user');
+        sessionStorage.removeItem(TAB_USER_ID_KEY);
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
+        localStorage.removeItem(SHARED_SESSION_STORAGE_KEY);
+        localStorage.removeItem(ACTIVE_SESSION_META_KEY);
+        localStorage.removeItem('church_active_user_theme');
+        localStorage.removeItem('church_active_user_id');
+
+        const payload = {
+            type: 'SESSION_LOGOUT',
+            userId: uid ? (Number(uid) || uid) : null,
+            timestamp: Date.now()
+        };
+        const bc = getAuthSyncChannel();
+        if (bc) bc.postMessage(payload);
+        localStorage.setItem(AUTH_SYNC_EVENT_KEY, JSON.stringify(payload));
+    } catch (e) {}
+}
+
+function checkForAccountSwitchConflict() {
+    if (_isLoggingOut) return true;
+    const path = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
+    if (path.includes('login')) return false;
+
+    const boundUid = getBoundTabUserId();
+    if (!boundUid) return false;
+
+    const meta = parseActiveSessionMeta();
+    if (meta && meta.userId && String(meta.userId) !== String(boundUid)) {
+        triggerConcurrentLogout('account_switched');
+        return true;
+    }
+    return false;
+}
+
+function handleCrossTabAuthSyncEvent(payload) {
+    if (!payload || !payload.type || _isLoggingOut) return;
+    const path = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
+    const isDashboard = path.includes('-dashboard');
+    if (!isDashboard) return;
+
+    const boundUid = getBoundTabUserId();
+    if (!boundUid) return;
+
+    if (payload.type === 'SESSION_ACCOUNT_ACTIVE') {
+        const incomingUid = payload.userId;
+        if (incomingUid && String(incomingUid) !== String(boundUid)) {
+            // Different account logged in using another tab in this browser -> immediately log out THIS tab
+            triggerConcurrentLogout('account_switched');
+        } else if (incomingUid && String(incomingUid) === String(boundUid)) {
+            // Same account refreshed/logged in on another tab -> sync token/user cleanly without logging out
+            const shared = getSharedBrowserSession();
+            if (shared && shared.token && shared.user) {
+                try {
+                    sessionStorage.setItem('church_token', shared.token);
+                    sessionStorage.setItem('church_user', JSON.stringify(shared.user));
+                } catch (e) {}
+            }
+        }
+    } else if (payload.type === 'SESSION_LOGOUT') {
+        if (!payload.userId || String(payload.userId) === String(boundUid)) {
+            triggerConcurrentLogout('tab_logout');
+        }
+    }
+}
+
+const authSessionSync = {
+    ACCOUNT_SWITCHED_MESSAGE,
+    getBrowserContextId,
+    bindTabUser,
+    hydrateTabSessionIfNeeded,
+    recordBrowserLogin,
+    broadcastLogout,
+    checkForAccountSwitchConflict,
+    handleCrossTabAuthSyncEvent
+};
+
+if (typeof window !== 'undefined') {
+    window.authSessionSync = authSessionSync;
+}
 
 async function triggerConcurrentLogout(reason = 'concurrent_login') {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
 
+    if (_watchdogIntervalId) {
+        clearInterval(_watchdogIntervalId);
+        _watchdogIntervalId = null;
+    }
+    if (_watchdogEventSource) {
+        try { _watchdogEventSource.close(); } catch (e) {}
+        _watchdogEventSource = null;
+    }
+    if (typeof window !== 'undefined' && typeof window._cleanupDashboardSession === 'function') {
+        try { window._cleanupDashboardSession(); } catch (e) {}
+    }
+
     sessionStorage.setItem('auth_logout_reason', reason);
+    if (reason === 'account_switched') {
+        sessionStorage.setItem('session_terminated_message', ACCOUNT_SWITCHED_MESSAGE);
+    }
 
     if (window.location.href.includes('login.html')) {
         sessionStorage.removeItem('church_token');
         sessionStorage.removeItem('church_user');
+        sessionStorage.removeItem(TAB_USER_ID_KEY);
         localStorage.removeItem('church_token');
         localStorage.removeItem('church_user');
         return;
+    }
+
+    // Immediately clear tab session credentials and scrub sensitive dashboard view contents
+    sessionStorage.removeItem('church_token');
+    sessionStorage.removeItem('church_user');
+    sessionStorage.removeItem(TAB_USER_ID_KEY);
+    localStorage.removeItem('church_token');
+    localStorage.removeItem('church_user');
+
+    // Only clear shared browser session if this wasn't caused by another tab switching to a new account
+    if (reason === 'tab_logout' || reason === 'role_changed' || reason === 'password_changed') {
+        try {
+            const boundUid = _tabBoundUserId;
+            const meta = parseActiveSessionMeta();
+            if (!meta || !boundUid || String(meta.userId) === String(boundUid)) {
+                localStorage.removeItem(SHARED_SESSION_STORAGE_KEY);
+                localStorage.removeItem(ACTIVE_SESSION_META_KEY);
+            }
+        } catch (e) {}
     }
 
     const isDark = detectThemeIsDark();
@@ -56,7 +373,23 @@ async function triggerConcurrentLogout(reason = 'concurrent_login') {
     let iconColor = isDark ? '#f87171' : '#dc2626';
     let iconBorder = isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca';
 
-    if (reason === 'server_offline') {
+    if (reason === 'account_switched') {
+        title = 'Session Ended — Account Switched';
+        message = ACCOUNT_SWITCHED_MESSAGE;
+        icon = '<i class="fa-solid fa-user-lock"></i>';
+        iconClass = 'session-icon-warning';
+        iconBg = isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7';
+        iconColor = isDark ? '#fbbf24' : '#d97706';
+        iconBorder = isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a';
+    } else if (reason === 'tab_logout') {
+        title = 'Signed Out';
+        message = 'You have been logged out from another tab in this browser. Redirecting to the login page...';
+        icon = '<i class="fa-solid fa-right-from-bracket"></i>';
+        iconClass = 'session-icon-warning';
+        iconBg = isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7';
+        iconColor = isDark ? '#fbbf24' : '#d97706';
+        iconBorder = isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a';
+    } else if (reason === 'server_offline') {
         title = 'Server Disconnected';
         message = 'The Node.js server is currently off or unreachable. For your security, this session has been automatically closed.';
         icon = '<i class="fa-solid fa-power-off"></i>';
@@ -136,11 +469,12 @@ async function triggerConcurrentLogout(reason = 'concurrent_login') {
 
     sessionStorage.removeItem('church_token');
     sessionStorage.removeItem('church_user');
+    sessionStorage.removeItem(TAB_USER_ID_KEY);
     localStorage.removeItem('church_token');
     localStorage.removeItem('church_user');
 
     setTimeout(() => {
-        window.location.href = '/views/login.html';
+        window.location.replace('/views/login.html');
     }, 1400);
 }
 
@@ -149,6 +483,8 @@ let _lastCheckTime = 0;
 
 async function checkSessionStatus() {
     if (_isLoggingOut) return;
+    if (checkForAccountSwitchConflict()) return;
+
     const token = sessionStorage.getItem('church_token');
     if (!token) return;
 
@@ -157,13 +493,20 @@ async function checkSessionStatus() {
     _lastCheckTime = now;
 
     try {
-        const res = await fetch('/api/auth/check-session', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const ctx = getBrowserContextId();
+        if (ctx) headers['X-Browser-Context'] = ctx;
+
+        const res = await fetch('/api/auth/check-session', { headers });
         if (res.status === 401) {
+            const termHeader = res.headers.get('X-Session-Terminated') || '';
             const data = await res.json().catch(() => ({}));
             const msg = data.message || '';
-            if (msg.toLowerCase().includes('password')) {
+            if (termHeader === 'account_switched' || msg.toLowerCase().includes('different account was logged in')) {
+                triggerConcurrentLogout('account_switched');
+            } else if (termHeader === 'explicit_logout') {
+                triggerConcurrentLogout('tab_logout');
+            } else if (msg.toLowerCase().includes('password')) {
                 triggerConcurrentLogout('password_changed');
             } else if (msg.toLowerCase().includes('role')) {
                 triggerConcurrentLogout('role_changed');
@@ -187,45 +530,85 @@ function startSessionWatchdog() {
     if (!sessionStorage.getItem('church_token')) return;
 
     _watchdogStarted = true;
+    getBrowserContextId();
+
+    // Ensure tab user ID is bound
+    getBoundTabUserId();
 
     // 1. Light 15-second heartbeat (reduced from 2.5s to prevent query spam)
-    setInterval(checkSessionStatus, 15000);
+    _watchdogIntervalId = setInterval(checkSessionStatus, 15000);
 
-    // 2. Tab switch / visibility change
+    // 2. Tab switch / visibility change — immediately check local cross-tab state + backend check
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && (Date.now() - _lastCheckTime > 5000)) {
-            checkSessionStatus();
+        if (document.visibilityState === 'visible') {
+            if (checkForAccountSwitchConflict()) return;
+            if (!getSharedBrowserSession()) {
+                triggerConcurrentLogout('tab_logout');
+                return;
+            }
+            if (Date.now() - _lastCheckTime > 5000) {
+                checkSessionStatus();
+            }
         }
     });
 
-    // 3. Window focus
+    // 3. Window focus — immediately check local cross-tab state + backend check
     window.addEventListener('focus', () => {
+        if (checkForAccountSwitchConflict()) return;
+        if (!getSharedBrowserSession()) {
+            triggerConcurrentLogout('tab_logout');
+            return;
+        }
         if (Date.now() - _lastCheckTime > 5000) {
             checkSessionStatus();
         }
     });
 
-    // 4. Cross-tab storage change
+    // 4. Cross-tab auth BroadcastChannel & localStorage event listeners
+    const authBc = getAuthSyncChannel();
+    if (authBc) {
+        authBc.onmessage = (e) => handleCrossTabAuthSyncEvent(e.data);
+    }
+
     window.addEventListener('storage', (e) => {
-        if (e.key === 'church_token' && !e.newValue) {
+        if (e.key === AUTH_SYNC_EVENT_KEY && e.newValue) {
+            try {
+                handleCrossTabAuthSyncEvent(JSON.parse(e.newValue));
+            } catch (err) {}
+        } else if (e.key === ACTIVE_SESSION_META_KEY && e.newValue) {
+            try {
+                const meta = JSON.parse(e.newValue);
+                if (meta && meta.userId) {
+                    handleCrossTabAuthSyncEvent({
+                        type: 'SESSION_ACCOUNT_ACTIVE',
+                        userId: meta.userId,
+                        roleName: meta.roleName,
+                        sessionSyncId: meta.sessionSyncId
+                    });
+                }
+            } catch (err) {}
+        } else if (e.key === SHARED_SESSION_STORAGE_KEY && !e.newValue) {
+            handleCrossTabAuthSyncEvent({ type: 'SESSION_LOGOUT', userId: getBoundTabUserId() });
+        } else if (e.key === 'church_token' && !e.newValue) {
             triggerConcurrentLogout('unauthorized');
+        } else if (e.key === 'church_realtime_ping' && e.newValue) {
+            try {
+                handleForceLogoutEvent(JSON.parse(e.newValue));
+            } catch (err) {}
         }
     });
 
-    // 5. Instant realtime force_logout listener for role changes or deactivations
+    // 5. Instant realtime force_logout listener for role changes, deactivations, or account switches
     const handleForceLogoutEvent = (payload) => {
         if (!payload) return;
         const type = payload.type;
         const data = payload.data || payload;
         if (type === 'force_logout') {
             const targetUserId = data.user_id || payload.user_id;
-            let currentUserId = null;
-            try {
-                const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
-                currentUserId = u.user_id || u.id;
-            } catch (err) {}
+            const currentUserId = getBoundTabUserId();
             if (currentUserId && targetUserId && String(currentUserId) === String(targetUserId)) {
-                triggerConcurrentLogout(data.reason || 'role_changed');
+                const reason = data.reason || 'role_changed';
+                triggerConcurrentLogout(reason === 'explicit_logout' ? 'tab_logout' : reason);
             }
         }
     };
@@ -237,18 +620,10 @@ function startSessionWatchdog() {
         } catch (bcErr) {}
     }
 
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'church_realtime_ping' && e.newValue) {
-            try {
-                handleForceLogoutEvent(JSON.parse(e.newValue));
-            } catch (err) {}
-        }
-    });
-
     if (typeof EventSource !== 'undefined') {
         try {
-            const es = new EventSource('/api/realtime/stream');
-            es.onmessage = (e) => {
+            _watchdogEventSource = new EventSource('/api/realtime/stream');
+            _watchdogEventSource.onmessage = (e) => {
                 try {
                     handleForceLogoutEvent(JSON.parse(e.data));
                 } catch (err) {}
@@ -303,7 +678,13 @@ const api = {
     startSessionWatchdog,
     async request(endpoint, method = 'GET', body = null, requiresAuth = true) {
         const headers = { 'Content-Type': 'application/json' };
+        const browserCtx = getBrowserContextId();
+        if (browserCtx) headers['X-Browser-Context'] = browserCtx;
+
         if (requiresAuth) {
+            if (checkForAccountSwitchConflict()) {
+                throw new Error(ACCOUNT_SWITCHED_MESSAGE);
+            }
             const token = sessionStorage.getItem('church_token');
             if (token) headers['Authorization'] = `Bearer ${token}`;
             else { window.location.href = '/views/login.html'; return; }
@@ -321,7 +702,12 @@ const api = {
         } catch (error) {
             console.error(`[API Error] ${method} ${endpoint}:`, error.message);
             if (response && response.status === 401) {
-                if (error.message && error.message.toLowerCase().includes('password')) {
+                const termHeader = response.headers ? (response.headers.get('X-Session-Terminated') || '') : '';
+                if (termHeader === 'account_switched' || (error.message && error.message.toLowerCase().includes('different account was logged in'))) {
+                    triggerConcurrentLogout('account_switched');
+                } else if (termHeader === 'explicit_logout') {
+                    triggerConcurrentLogout('tab_logout');
+                } else if (error.message && error.message.toLowerCase().includes('password')) {
                     triggerConcurrentLogout('password_changed');
                 } else if (error.message && error.message.toLowerCase().includes('role')) {
                     triggerConcurrentLogout('role_changed');
@@ -340,7 +726,13 @@ const api = {
     // THIS FUNCTION IS REQUIRED FOR FILE UPLOADS AND FORM DATA
     async requestFormData(endpoint, method, formData, requiresAuth = true) {
         const headers = {};
+        const browserCtx = getBrowserContextId();
+        if (browserCtx) headers['X-Browser-Context'] = browserCtx;
+
         if (requiresAuth) {
+            if (checkForAccountSwitchConflict()) {
+                throw new Error(ACCOUNT_SWITCHED_MESSAGE);
+            }
             const token = sessionStorage.getItem('church_token');
             if (token) headers['Authorization'] = `Bearer ${token}`;
             else { window.location.href = '/views/login.html'; return; }
@@ -356,7 +748,12 @@ const api = {
         } catch (error) {
             console.error(`[API Error] ${method} ${endpoint}:`, error.message);
             if (response && response.status === 401) {
-                if (error.message && error.message.toLowerCase().includes('password')) {
+                const termHeader = response.headers ? (response.headers.get('X-Session-Terminated') || '') : '';
+                if (termHeader === 'account_switched' || (error.message && error.message.toLowerCase().includes('different account was logged in'))) {
+                    triggerConcurrentLogout('account_switched');
+                } else if (termHeader === 'explicit_logout') {
+                    triggerConcurrentLogout('tab_logout');
+                } else if (error.message && error.message.toLowerCase().includes('password')) {
                     triggerConcurrentLogout('password_changed');
                 } else if (error.message && error.message.toLowerCase().includes('role')) {
                     triggerConcurrentLogout('role_changed');
@@ -373,15 +770,50 @@ const api = {
     },
 
     auth: {
-        login: (identifier, password) => api.request('/auth/login', 'POST', { identifier, password }, false),
-        register: (data) => api.request('/auth/register', 'POST', data, false),
+        login: (identifier, password) => {
+            const shared = getSharedBrowserSession();
+            const previousToken = sessionStorage.getItem('church_token') || (shared && shared.token) || null;
+            return api.request('/auth/login', 'POST', {
+                identifier,
+                password,
+                browserContextId: getBrowserContextId(),
+                previousToken
+            }, false);
+        },
+        register: (data) => {
+            const shared = getSharedBrowserSession();
+            const previousToken = sessionStorage.getItem('church_token') || (shared && shared.token) || null;
+            return api.request('/auth/register', 'POST', {
+                ...data,
+                browserContextId: getBrowserContextId(),
+                previousToken
+            }, false);
+        },
         logout: () => api.request('/auth/logout', 'POST'),
         checkSession: () => api.request('/auth/check-session', 'GET'),
         getMe: () => api.request('/auth/me', 'GET'),
         updatePassword: (currentPassword, newPassword) => api.request('/auth/update-password', 'PUT', { currentPassword, newPassword }),
         // Multi-Factor Authentication (MFA / 2FA)
-        verifyMfa: (mfaChallengeToken, token) => api.request('/auth/mfa/verify', 'POST', { mfaChallengeToken, token }, false),
-        verifyMfaRecovery: (mfaChallengeToken, recoveryCode) => api.request('/auth/mfa/recovery', 'POST', { mfaChallengeToken, recoveryCode }, false),
+        verifyMfa: (mfaChallengeToken, token) => {
+            const shared = getSharedBrowserSession();
+            const previousToken = sessionStorage.getItem('church_token') || (shared && shared.token) || null;
+            return api.request('/auth/mfa/verify', 'POST', {
+                mfaChallengeToken,
+                token,
+                browserContextId: getBrowserContextId(),
+                previousToken
+            }, false);
+        },
+        verifyMfaRecovery: (mfaChallengeToken, recoveryCode) => {
+            const shared = getSharedBrowserSession();
+            const previousToken = sessionStorage.getItem('church_token') || (shared && shared.token) || null;
+            return api.request('/auth/mfa/recovery', 'POST', {
+                mfaChallengeToken,
+                recoveryCode,
+                browserContextId: getBrowserContextId(),
+                previousToken
+            }, false);
+        },
         getMfaStatus: () => api.request('/auth/mfa/status', 'GET'),
         startMfaEnrollment: () => api.request('/auth/mfa/enroll/start', 'POST'),
         confirmMfaEnrollment: (token) => api.request('/auth/mfa/enroll/confirm', 'POST', { token }),
@@ -489,8 +921,12 @@ const api = {
     announcements: {
         getAll: (page = null, limit = null, filters = {}) => api.request('/announcements' + buildApiQuery(page, limit, filters), 'GET'),
         getById: (id) => api.request(`/announcements/${id}`, 'GET'),
-        create: (data) => api.request('/announcements', 'POST', data),
-        update: (id, data) => api.request(`/announcements/${id}`, 'PUT', data),
+        create: (data) => (typeof FormData !== 'undefined' && data instanceof FormData)
+            ? api.requestFormData('/announcements', 'POST', data)
+            : api.request('/announcements', 'POST', data),
+        update: (id, data) => (typeof FormData !== 'undefined' && data instanceof FormData)
+            ? api.requestFormData(`/announcements/${id}`, 'PUT', data)
+            : api.request(`/announcements/${id}`, 'PUT', data),
         delete: (id) => api.request(`/announcements/${id}`, 'DELETE'),
         triggerEmail: (id) => api.request(`/announcements/${id}/trigger-email`, 'POST'),
         broadcast: (id) => api.request(`/announcements/${id}/trigger-email`, 'POST'),

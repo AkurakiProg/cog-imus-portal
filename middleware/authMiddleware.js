@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { errorResponse } = require('../utils/responseFormatter');
 const { pool } = require('../config/database');
+const browserSessionManager = require('../utils/browserSessionManager');
 
 module.exports = async function(req, res, next) {
     const authHeader = req.header('Authorization');
@@ -41,6 +42,13 @@ module.exports = async function(req, res, next) {
             return errorResponse(res, 'Your account has been deactivated. Please contact the administrator.', 403);
         }
 
+        // Cross-tab browser session check: if this browser context switched to a different account, reject immediately
+        const browserConflict = browserSessionManager.getBrowserContextConflict(req, user.user_id);
+        if (browserConflict.conflicted) {
+            res.setHeader('X-Session-Terminated', 'account_switched');
+            return errorResponse(res, browserSessionManager.ACCOUNT_SWITCHED_MESSAGE, 401);
+        }
+
         // Role change validation: if user's role has changed in database since JWT issuance
         if (decoded.role_id !== undefined && user.role_id !== decoded.role_id) {
             // If this is an active save mutation (POST, PUT, PATCH, DELETE), allow the authorized save to commit first
@@ -62,6 +70,14 @@ module.exports = async function(req, res, next) {
 
         // Concurrent session validation: invalidate previous device/browser sessions or terminated sessions
         if (!user.current_session_token || !decoded.sessionToken || decoded.sessionToken !== user.current_session_token) {
+            if (browserSessionManager.wasInvalidatedByAccountSwitch(user.user_id)) {
+                res.setHeader('X-Session-Terminated', 'account_switched');
+                return errorResponse(res, browserSessionManager.ACCOUNT_SWITCHED_MESSAGE, 401);
+            }
+            if (browserSessionManager.wasExplicitlyLoggedOut(user.user_id)) {
+                res.setHeader('X-Session-Terminated', 'explicit_logout');
+                return errorResponse(res, browserSessionManager.EXPLICIT_LOGOUT_MESSAGE, 401);
+            }
             // If the session token was cleared due to role change or password update, allow in-flight save mutation to commit
             if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS' && !user.current_session_token) {
                 req.user = {

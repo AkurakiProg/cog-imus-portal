@@ -43,9 +43,18 @@ document.addEventListener('DOMContentLoaded', () => {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // Check if session was terminated due to concurrent login, server offline, etc.
+    // Check if session was terminated due to cross-tab account switch, concurrent login, server offline, etc.
     const logoutReason = sessionStorage.getItem('auth_logout_reason');
-    if (logoutReason === 'concurrent_login') {
+    const customTerminationMsg = sessionStorage.getItem('session_terminated_message');
+    if (logoutReason === 'account_switched') {
+        sessionStorage.removeItem('auth_logout_reason');
+        sessionStorage.removeItem('session_terminated_message');
+        const msgText = customTerminationMsg || 'Your session has ended because a different account was logged in using another tab in this browser. Please log in again to continue.';
+        showAlert(`<span class="alert-badge badge-warning"><i class="fa-solid fa-user-lock"></i> Session Ended</span> ${escapeAuthHtml(msgText)}`, 'warning');
+    } else if (logoutReason === 'tab_logout') {
+        sessionStorage.removeItem('auth_logout_reason');
+        showAlert('<span class="alert-badge badge-info"><i class="fa-solid fa-right-from-bracket"></i> Signed Out</span> You were logged out from another tab in this browser.', 'info');
+    } else if (logoutReason === 'concurrent_login') {
         sessionStorage.removeItem('auth_logout_reason');
         showAlert('<span class="alert-badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Security Notice</span> You were logged out because your account logged in on another device or browser.', 'error');
     } else if (logoutReason === 'server_offline') {
@@ -237,9 +246,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Store in sessionStorage so closing the tab or browser app immediately logs out
-                sessionStorage.setItem('church_token', response.data.token);
-                sessionStorage.setItem('church_user', JSON.stringify(response.data.user));
+                // Store session in tab sessionStorage and synchronize browser-wide session state across tabs
+                if (window.authSessionSync && typeof window.authSessionSync.recordBrowserLogin === 'function') {
+                    window.authSessionSync.recordBrowserLogin(response.data.token, response.data.user, response.data.browserSessionSyncId);
+                } else {
+                    sessionStorage.setItem('church_token', response.data.token);
+                    sessionStorage.setItem('church_user', JSON.stringify(response.data.user));
+                }
                 
                 // Store user-scoped theme preference
                 const loggedInUser = response.data.user;
@@ -250,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('church_active_user_id', String(loggedInUser.user_id));
                 }
 
-                // Purge localStorage auth tokens
+                // Purge legacy un-scoped localStorage auth tokens
                 localStorage.removeItem('church_token');
                 localStorage.removeItem('church_user');
                 
@@ -303,8 +316,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     response = await api.auth.verifyMfa(currentMfaChallengeToken, code);
                 }
 
-                sessionStorage.setItem('church_token', response.data.token);
-                sessionStorage.setItem('church_user', JSON.stringify(response.data.user));
+                if (window.authSessionSync && typeof window.authSessionSync.recordBrowserLogin === 'function') {
+                    window.authSessionSync.recordBrowserLogin(response.data.token, response.data.user, response.data.browserSessionSyncId);
+                } else {
+                    sessionStorage.setItem('church_token', response.data.token);
+                    sessionStorage.setItem('church_user', JSON.stringify(response.data.user));
+                }
 
                 // Store user-scoped theme preference
                 const mfaUser = response.data.user;

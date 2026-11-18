@@ -6,6 +6,7 @@ const qrcode = require('qrcode');
 const userModel = require('../models/userModel');
 const { successResponse, errorResponse } = require('../utils/responseFormatter');
 const realtimeBus = require('../utils/realtimeBus');
+const browserSessionManager = require('../utils/browserSessionManager');
 const {
     encryptSecret,
     decryptSecret,
@@ -142,9 +143,27 @@ async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDet
     // Update last login
     await userModel.updateLastLogin(user.user_id);
 
-    // Generate unique session token for single-session enforcement
-    const sessionToken = uuidv4();
-    await userModel.updateSessionToken(user.user_id, sessionToken);
+    // Resolve and activate browser-wide session synchronization:
+    // - Reuses same user's sessionToken if logging in again from same browser context
+    // - Invalidates any DIFFERENT previous account active in the same browser context
+    const { pool } = require('../config/database');
+    const sessionState = await browserSessionManager.resolveAndActivateSession({
+        req,
+        res,
+        user,
+        pool
+    });
+    const sessionToken = sessionState.sessionToken;
+
+    if (sessionState.supersededUserIds && sessionState.supersededUserIds.length > 0) {
+        for (const prevUid of sessionState.supersededUserIds) {
+            realtimeBus.broadcast('force_logout', {
+                user_id: prevUid,
+                reason: 'account_switched',
+                new_user_id: user.user_id
+            });
+        }
+    }
 
     // Log audit trail
     await userModel.logAudit(
@@ -173,7 +192,12 @@ async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDet
     delete user.mfa_secret;
     delete user.mfa_temp_secret;
 
-    return { token, user };
+    return {
+        token,
+        user,
+        browserCtx: sessionState.browserCtx,
+        browserSessionSyncId: sessionToken
+    };
 }
 
 exports.login = async (req, res) => {
@@ -333,9 +357,24 @@ exports.register = async (req, res) => {
             memberId = memberResult.insertId;
         }
 
-        // Generate unique session token for single-session enforcement
-        const sessionToken = uuidv4();
-        await userModel.updateSessionToken(newUserId, sessionToken);
+        // Activate browser-scoped session (invalidating any different prior account in same browser)
+        const sessionState = await browserSessionManager.resolveAndActivateSession({
+            req,
+            res,
+            user: { user_id: newUserId, current_session_token: null },
+            pool
+        });
+        const sessionToken = sessionState.sessionToken;
+
+        if (sessionState.supersededUserIds && sessionState.supersededUserIds.length > 0) {
+            for (const prevUid of sessionState.supersededUserIds) {
+                realtimeBus.broadcast('force_logout', {
+                    user_id: prevUid,
+                    reason: 'account_switched',
+                    new_user_id: newUserId
+                });
+            }
+        }
 
         // Generate JWT
         const payload = {
@@ -461,6 +500,11 @@ exports.logout = async (req, res) => {
     try {
         if (req.user && req.user.id) {
             await userModel.updateSessionToken(req.user.id, null);
+            browserSessionManager.clearBrowserSession({ req, res, userId: req.user.id });
+            realtimeBus.broadcast('force_logout', {
+                user_id: req.user.id,
+                reason: 'explicit_logout'
+            });
             await userModel.logAudit(
                 req.user.id, 'LOGOUT', 'Auth', req.user.id,
                 null, { message: 'User logged out' },

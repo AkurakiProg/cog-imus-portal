@@ -1086,6 +1086,7 @@
                         <table class="w-full text-sm text-left">
                             <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
                                 <tr>
+                                    <th class="p-4">Image</th>
                                     <th class="p-4">Title</th>
                                     <th class="p-4">Department</th>
                                     <th class="p-4">Ministry</th>
@@ -1098,7 +1099,7 @@
                                 </tr>
                             </thead>
                             <tbody id="announcementsTableBody" class="divide-y divide-slate-100">
-                                <tr><td colspan="8" class="text-center p-8 text-slate-400">Loading announcements...</td></tr>
+                                <tr><td colspan="10" class="text-center p-8 text-slate-400">Loading announcements...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2891,13 +2892,13 @@
 
     <!-- Announcement Modal -->
     <div class="modal-overlay" id="announcementModal">
-        <div class="modal">
+        <div class="modal" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h3 id="announcementModalTitle">Add Announcement</h3>
                 <button class="btn-close" onclick="closeAnnouncementModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="announcementForm">
+                <form id="announcementForm" onsubmit="event.preventDefault(); saveAnnouncement();">
                     <input type="hidden" id="announcement_id">
                     <div class="form-grid">
                         <div class="form-group full-width"><label>Title *</label><input type="text" id="ann_title" required></div>
@@ -2905,6 +2906,28 @@
                         <div class="form-group"><label>Ministry</label><select id="ann_ministry_id"><option value="">None / General Church</option></select></div>
                         <div class="form-group"><label>Category</label><select id="ann_category"><option value="General">General</option><option value="Event">Event</option><option value="Urgent">Urgent</option><option value="Ministry">Ministry</option><option value="Finance">Finance</option><option value="Youth">Youth</option></select></div>
                         <div class="form-group"><label>Target Audience</label><select id="ann_target"><option value="All">All</option><option value="Members">Members Only</option><option value="Leaders">Leaders Only</option><option value="Public">Public</option></select></div>
+                        <div class="form-group full-width">
+                            <label>Announcement Image <span style="color: #dc2626;">*</span> <span class="text-xs font-normal text-slate-400">(Required: JPG, PNG, WebP, GIF up to 10MB)</span></label>
+                            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                <div id="annImagePreviewBox" style="width: 150px; height: 96px; border-radius: 10px; border: 2px dashed #cbd5e1; background: #f8fafc; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0;">
+                                    <img id="annImagePreview" src="" alt="Announcement Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                    <div id="annImagePlaceholder" style="text-align: center; color: #94a3b8; font-size: 0.72rem; padding: 0.35rem;">
+                                        <i class="fa-solid fa-image" style="font-size: 1.4rem; display: block; margin-bottom: 0.2rem;"></i>
+                                        Image Required
+                                    </div>
+                                </div>
+                                <div style="flex: 1; min-width: 210px;">
+                                    <input type="file" id="ann_image" name="announcement_image" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" class="cms-file-input" onchange="handleAdminAnnouncementImageChange(this)" style="width: 100%; padding: 0.45rem; font-size: 0.82rem; border-radius: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; flex-wrap: wrap;">
+                                        <span id="annImageStatus" class="text-xs text-slate-500">Select an announcement image to publish.</span>
+                                        <button type="button" id="annImageClearBtn" class="btn-secondary btn-sm" onclick="clearAdminAnnouncementImage()" style="display: none; padding: 0.2rem 0.6rem; font-size: 0.72rem;">
+                                            <i class="fa-solid fa-xmark mr-1"></i> Remove Selection
+                                        </button>
+                                    </div>
+                                    <div id="annImageError" class="text-xs text-rose-600 mt-1" style="display: none; font-weight: 600;"></div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="form-group full-width"><label>Content *</label><textarea id="ann_content" rows="4" required></textarea></div>
                         <div class="form-group"><label>Publish Date</label><input type="datetime-local" id="ann_publish_date"></div>
                         <div class="form-group"><label>Expiry Date</label><input type="datetime-local" id="ann_expiry_date"></div>
@@ -2915,7 +2938,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
-                <button class="btn-primary" onclick="saveAnnouncement()">Save Announcement</button>
+                <button class="btn-primary" id="btnSaveAnnouncement" onclick="saveAnnouncement()">Save Announcement</button>
             </div>
         </div>
     </div>
@@ -4055,8 +4078,8 @@
       <div class="toast-progress"></div>
     </div>
 
-    <script src="/js/api.js?v=20261024_v5"></script>
+    <script src="/js/api.js?v=20261118_v1"></script>
     <script src="/js/mfa-security.js?v=20261024_v5"></script>
-    <script src="/js/admin-dashboard.js?v=20261024_v5"></script>
+    <script src="/js/admin-dashboard.js?v=20261118_v1"></script>
 </body>
 </html>

@@ -211,6 +211,14 @@ function showDecisionModal({
 window.showConfirmDialog = showDecisionModal;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.authSessionSync && typeof window.authSessionSync.hydrateTabSessionIfNeeded === 'function') {
+        const hyd = window.authSessionSync.hydrateTabSessionIfNeeded();
+        if (hyd && hyd.switchedAway) {
+            window.location.replace('/views/login.html');
+            return;
+        }
+    }
+
     const token = sessionStorage.getItem('church_token');
 
     // Purge any lingering legacy session tokens in localStorage
@@ -244,6 +252,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         sessionStorage.setItem('church_user', JSON.stringify(currentUser));
+        if (window.authSessionSync && typeof window.authSessionSync.bindTabUser === 'function') {
+            window.authSessionSync.bindTabUser(currentUser);
+        }
         const memberNameEl = document.getElementById('memberName');
         if (memberNameEl) memberNameEl.textContent = currentUser.full_name;
         document.getElementById('memberFirstName').textContent = currentUser.worda_role || currentUser.full_name.split(' ')[0];
@@ -391,7 +402,20 @@ function initMemberRealtimeSync() {
 
     if (typeof EventSource !== 'undefined') {
         let es = null;
+        let reconnectTimer = null;
+        let stopped = false;
+        window._cleanupDashboardSession = () => {
+            stopped = true;
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            if (typeof memberAnnouncementsPollTimer !== 'undefined' && memberAnnouncementsPollTimer) {
+                clearInterval(memberAnnouncementsPollTimer);
+            }
+            if (es) { try { es.close(); } catch (e) {} es = null; }
+            allMemberAnnouncementsCache = [];
+            currentUser = null;
+        };
         function connectSse() {
+            if (stopped) return;
             try {
                 es = new EventSource('/api/realtime/stream');
                 es.onmessage = (e) => {
@@ -402,10 +426,10 @@ function initMemberRealtimeSync() {
                 };
                 es.onerror = () => {
                     if (es) { es.close(); es = null; }
-                    setTimeout(connectSse, 6000);
+                    if (!stopped) reconnectTimer = setTimeout(connectSse, 6000);
                 };
             } catch (err) {
-                setTimeout(connectSse, 10000);
+                if (!stopped) reconnectTimer = setTimeout(connectSse, 10000);
             }
         }
         connectSse();
@@ -441,15 +465,25 @@ function closeSidebar() {
     if (overlay) overlay.classList.remove('active');
 }
 async function logout() {
+    let uid = null;
     try {
+        const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+        uid = u.user_id || u.id || null;
+    } catch (e) {}
+    try {
+        if (typeof window._cleanupDashboardSession === 'function') window._cleanupDashboardSession();
         if (api.auth && api.auth.logout) await api.auth.logout();
     } catch (e) {}
-    sessionStorage.removeItem('church_token');
-    sessionStorage.removeItem('church_user');
-    localStorage.removeItem('church_token');
-    localStorage.removeItem('church_user');
-    localStorage.removeItem('church_active_user_theme');
-    localStorage.removeItem('church_active_user_id');
+    if (window.authSessionSync && typeof window.authSessionSync.broadcastLogout === 'function') {
+        window.authSessionSync.broadcastLogout(uid);
+    } else {
+        sessionStorage.removeItem('church_token');
+        sessionStorage.removeItem('church_user');
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
+        localStorage.removeItem('church_active_user_theme');
+        localStorage.removeItem('church_active_user_id');
+    }
     window.location.href = '/views/login.html';
 }
 let toastTimeout = null;
@@ -627,6 +661,11 @@ function renderDashboardAnnouncements(announcements) {
                     <span><i class="fa-solid fa-calendar-day" style="color: var(--gold);"></i> ${dateStr}</span>
                     <span><i class="fa-solid fa-users text-slate-400"></i> ${escapeHtml(a.target_audience || 'All Members')}</span>
                 </div>
+                ${a.image_path ? `
+                <div style="margin-bottom: 0.65rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); max-height: 160px;">
+                    <img src="${encodeURI(a.image_path)}" alt="${escapeHtml(a.title)}" style="width: 100%; height: 150px; object-fit: cover; display: block;" onerror="this.parentElement.style.display='none'">
+                </div>
+                ` : ''}
                 <p style="color: var(--text-dark); font-size: 0.875rem; line-height: 1.5; margin: 0 0 0.75rem;">
                     ${escapeHtml(a.content.length > 130 ? a.content.slice(0, 130) + '...' : a.content)}
                 </p>
@@ -2324,6 +2363,11 @@ function renderMemberAnnouncements(list) {
                     <span><i class="fa-solid fa-users" style="color: #64748b; margin-right: 0.25rem;"></i> Audience: ${escapeHtml(a.target_audience || 'All Members')}</span>
                     ${a.department ? `<span><i class="fa-solid fa-building text-slate-400 mr-1"></i>${escapeHtml(a.department)}</span>` : ''}
                 </div>
+                ${a.image_path ? `
+                <div style="margin-bottom: 0.9rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color); max-height: 260px;">
+                    <img src="${encodeURI(a.image_path)}" alt="${escapeHtml(a.title)}" style="width: 100%; max-height: 260px; object-fit: cover; display: block;" onerror="this.parentElement.style.display='none'">
+                </div>
+                ` : ''}
                 <div class="announcement-body" style="font-size: 0.925rem; line-height: 1.6; color: var(--text-dark); margin-bottom: 1rem;">${escapeHtml((a.content || '').length > 250 ? (a.content || '').slice(0, 250) + '...' : (a.content || ''))}</div>
                 <div>
                     <button type="button" class="btn-secondary btn-sm" onclick="openMemberAnnouncementReaderModal(${a.announcement_id})" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">
@@ -2355,7 +2399,11 @@ function openMemberAnnouncementReaderModal(id) {
             <div><i class="fa-solid fa-calendar-day mr-1 text-amber-600"></i> ${dateStr}</div>
             <div><i class="fa-solid fa-church mr-1 text-blue-600"></i> ${escapeHtml(a.department || 'COG Imus Pastoral Office')}</div>
         </div>
-
+        ${a.image_path ? `
+        <div style="margin-bottom: 1.25rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color);">
+            <img src="${encodeURI(a.image_path)}" alt="${escapeHtml(a.title)}" style="width: 100%; max-height: 320px; object-fit: cover; display: block;" onerror="this.parentElement.style.display='none'">
+        </div>
+        ` : ''}
         <div style="font-size: 0.975rem; line-height: 1.8; color: #1e293b; white-space: pre-line; margin-bottom: 1.75rem;">${escapeHtml((a.content || '').trim())}</div>
 
         <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; border-left: 3px solid var(--gold); font-size: 0.85rem; color: #475569;">

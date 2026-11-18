@@ -62,6 +62,46 @@ const MinistryModel = {
         return rows[0];
     },
 
+    async resolveMemberIdForUser(userId) {
+        if (!userId) return null;
+        const [memRows] = await pool.execute(`SELECT member_id FROM members WHERE user_id = ? LIMIT 1`, [userId]);
+        if (memRows.length > 0) {
+            return memRows[0].member_id;
+        }
+
+        // Auto-heal unlinked member record by matching verified email or full name where user_id IS NULL
+        const [userRows] = await pool.execute(`SELECT user_id, email, full_name FROM users WHERE user_id = ? LIMIT 1`, [userId]);
+        if (userRows.length === 0) return null;
+
+        const u = userRows[0];
+        let matchedMemberId = null;
+
+        if (u.email && String(u.email).trim()) {
+            const [byEmail] = await pool.execute(
+                `SELECT member_id FROM members WHERE user_id IS NULL AND LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1`,
+                [u.email]
+            );
+            if (byEmail.length > 0) matchedMemberId = byEmail[0].member_id;
+        }
+
+        if (!matchedMemberId && u.full_name && String(u.full_name).trim()) {
+            const [byName] = await pool.execute(
+                `SELECT member_id FROM members WHERE user_id IS NULL AND LOWER(CONCAT(TRIM(first_name), ' ', TRIM(last_name))) = LOWER(TRIM(?)) LIMIT 2`,
+                [u.full_name]
+            );
+            if (byName.length === 1) matchedMemberId = byName[0].member_id;
+        }
+
+        if (matchedMemberId) {
+            await pool.execute(
+                `UPDATE members SET user_id = ? WHERE member_id = ? AND user_id IS NULL`,
+                [userId, matchedMemberId]
+            );
+        }
+
+        return matchedMemberId;
+    },
+
     async create(data) {
         const { ministry_name, ministry_code, department, description, leader_member_id, meeting_schedule, color_code } = data;
         const [result] = await pool.execute(
@@ -69,7 +109,16 @@ const MinistryModel = {
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [ministry_name, ministry_code || null, department || 'Worship', description || null, leader_member_id || null, meeting_schedule || null, color_code || '#3b82f6']
         );
-        return result.insertId;
+        const ministryId = result.insertId;
+        if (leader_member_id) {
+            await pool.execute(
+                `INSERT INTO ministry_members (ministry_id, member_id, role_in_ministry, joined_date, status)
+                 VALUES (?, ?, 'Ministry Leader', CURDATE(), 'Active')
+                 ON DUPLICATE KEY UPDATE status = 'Active', role_in_ministry = IF(role_in_ministry IS NULL OR role_in_ministry = '' OR role_in_ministry = 'Member', 'Ministry Leader', role_in_ministry)`,
+                [ministryId, leader_member_id]
+            );
+        }
+        return ministryId;
     },
 
     async update(id, data) {
@@ -134,8 +183,7 @@ const MinistryModel = {
     },
     
     async getMyMinistries(userId) {
-        const [memRows] = await pool.execute(`SELECT member_id FROM members WHERE user_id = ?`, [userId]);
-        const memberId = memRows[0]?.member_id;
+        const memberId = await this.resolveMemberIdForUser(userId);
         if (!memberId) return [];
 
         const [rows] = await pool.execute(
@@ -197,8 +245,7 @@ const MinistryModel = {
     },
 
     async getMemberMinistryAttendanceHistory(userId, ministryId) {
-        const [memRows] = await pool.execute(`SELECT member_id FROM members WHERE user_id = ?`, [userId]);
-        const memberId = memRows[0]?.member_id;
+        const memberId = await this.resolveMemberIdForUser(userId);
         if (!memberId) return [];
 
         const [rows] = await pool.execute(
@@ -233,14 +280,22 @@ const MinistryModel = {
     },
 
     async removeMember(ministryMemberId) {
+        const [rows] = await pool.execute(
+            `SELECT ministry_id, member_id FROM ministry_members WHERE ministry_member_id = ? LIMIT 1`,
+            [ministryMemberId]
+        );
         await pool.execute(`DELETE FROM ministry_members WHERE ministry_member_id = ?`, [ministryMemberId]);
+        if (rows.length > 0) {
+            await pool.execute(
+                `UPDATE ministries SET leader_member_id = NULL WHERE ministry_id = ? AND leader_member_id = ?`,
+                [rows[0].ministry_id, rows[0].member_id]
+            );
+        }
     },
 
     // --- Leader Assigned Ministries ---
     async getAssignedMinistriesForLeader(userId) {
-        const [memRows] = await pool.execute(`SELECT member_id FROM members WHERE user_id = ?`, [userId]);
-        const memberId = memRows[0]?.member_id;
-
+        const memberId = await this.resolveMemberIdForUser(userId);
         if (!memberId) {
             return [];
         }
@@ -251,18 +306,22 @@ const MinistryModel = {
                     u.profile_image AS leader_profile_image,
                     leader.contact_number AS leader_contact,
                     leader.email AS leader_email,
+                    COALESCE(
+                        NULLIF(TRIM(my_mm.role_in_ministry), ''),
+                        CASE WHEN m.leader_member_id = ? THEN 'Ministry Leader' ELSE 'Member' END
+                    ) AS my_role_in_ministry,
+                    my_mm.joined_date AS my_joined_date,
+                    (CASE WHEN m.leader_member_id = ? THEN 1 ELSE 0 END) AS is_ministry_head,
                     (SELECT COUNT(*) FROM ministry_members WHERE ministry_id = m.ministry_id AND status = 'Active') AS member_count,
                     (SELECT COUNT(*) FROM ministry_attendance WHERE ministry_id = m.ministry_id) AS total_attendance_sessions
              FROM ministries m
              LEFT JOIN members leader ON m.leader_member_id = leader.member_id
              LEFT JOIN users u ON leader.user_id = u.user_id
+             LEFT JOIN ministry_members my_mm ON my_mm.ministry_id = m.ministry_id AND my_mm.member_id = ? AND my_mm.status = 'Active'
              WHERE m.leader_member_id = ?
-                OR m.ministry_id IN (
-                    SELECT mm.ministry_id FROM ministry_members mm 
-                    WHERE mm.member_id = ? AND mm.status = 'Active' AND mm.role_in_ministry IN ('Leader', 'Assistant Leader', 'Coordinator')
-                )
-             ORDER BY m.ministry_name ASC`,
-            [memberId, memberId]
+                OR my_mm.ministry_member_id IS NOT NULL
+             ORDER BY (CASE WHEN m.leader_member_id = ? THEN 0 ELSE 1 END) ASC, m.ministry_name ASC`,
+            [memberId, memberId, memberId, memberId, memberId]
         );
         return rows;
     },
@@ -551,8 +610,7 @@ const MinistryModel = {
 
     async getLeaderDepartmentOversight(userId) {
         await this.ensureDepartmentHeadsTable();
-        const [memRows] = await pool.execute('SELECT member_id, first_name, last_name, church_role FROM members WHERE user_id = ?', [userId]);
-        const memberId = memRows[0]?.member_id;
+        const memberId = await this.resolveMemberIdForUser(userId);
 
         if (!memberId) {
             return { is_department_head: false, departments: [] };

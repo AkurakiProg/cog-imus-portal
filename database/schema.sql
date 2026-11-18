@@ -49,6 +49,7 @@ CREATE TABLE `announcements` (
   `announcement_id` int(11) NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `content` text NOT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
   `category` enum('General','Event','Urgent','Ministry','Finance','Youth') DEFAULT 'General',
   `department` varchar(100) DEFAULT NULL,
   `ministry_id` int(11) DEFAULT NULL,

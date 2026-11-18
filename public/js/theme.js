@@ -269,12 +269,17 @@ function setAppTheme(mode, e) {
                 // 3. Persist to backend database for this user asynchronously
                 const token = sessionStorage.getItem('church_token');
                 if (token && typeof fetch !== 'undefined') {
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    };
+                    if (typeof window !== 'undefined' && window.authSessionSync && typeof window.authSessionSync.getBrowserContextId === 'function') {
+                        const ctx = window.authSessionSync.getBrowserContextId();
+                        if (ctx) headers['X-Browser-Context'] = ctx;
+                    }
                     fetch('/api/auth/theme', {
                         method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
+                        headers,
                         body: JSON.stringify({ theme: storageVal })
                     }).catch(() => {});
                 }

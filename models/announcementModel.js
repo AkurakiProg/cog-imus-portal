@@ -1,7 +1,35 @@
 const { pool } = require('../config/database');
 
+let _imageColumnEnsured = false;
+
+function toBoolFlag(val, defaultVal = 0) {
+    if (val === undefined || val === null || val === '') return defaultVal;
+    if (val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true') return 1;
+    return 0;
+}
+
+function toNullableInt(val) {
+    if (val === undefined || val === null || String(val).trim() === '' || String(val).toLowerCase() === 'null') return null;
+    const n = parseInt(val, 10);
+    return Number.isNaN(n) ? null : n;
+}
+
 const AnnouncementModel = {
+    async ensureImageColumn() {
+        if (_imageColumnEnsured) return;
+        try {
+            const [cols] = await pool.execute(`SHOW COLUMNS FROM announcements LIKE 'image_path'`);
+            if (cols.length === 0) {
+                await pool.execute(`ALTER TABLE announcements ADD COLUMN image_path VARCHAR(255) DEFAULT NULL AFTER content`);
+            }
+            _imageColumnEnsured = true;
+        } catch (err) {
+            console.error('ensureImageColumn error:', err);
+        }
+    },
+
     async getAll(limit = null, offset = 0, filters = {}) {
+        await this.ensureImageColumn();
         const { whereClause, params } = this.buildWhere(filters);
         let sql = `SELECT a.*, u.full_name AS created_by_name,
                            COALESCE(a.department, m.department) AS department,
@@ -72,6 +100,7 @@ const AnnouncementModel = {
     },
 
     async getById(id) {
+        await this.ensureImageColumn();
         const [rows] = await pool.execute(
             `SELECT a.*, COALESCE(a.department, m.department) AS department, m.ministry_name
              FROM announcements a
@@ -83,23 +112,39 @@ const AnnouncementModel = {
     },
 
     async create(data, userId) {
-        const { title, content, category, department, ministry_id, target_audience, is_pinned, is_published, publish_date, expiry_date } = data;
+        await this.ensureImageColumn();
+        const { title, content, image_path, category, department, ministry_id, target_audience, is_pinned, is_published, publish_date, expiry_date } = data;
+        const pinnedVal = toBoolFlag(is_pinned, 0);
+        const publishedVal = toBoolFlag(is_published, 1);
+        const ministryIdVal = toNullableInt(ministry_id);
+        const deptVal = department && String(department).trim() && String(department).toLowerCase() !== 'null' ? String(department).trim() : null;
+        const pubDateVal = publish_date && String(publish_date).trim() ? publish_date : new Date();
+        const expDateVal = expiry_date && String(expiry_date).trim() && String(expiry_date).toLowerCase() !== 'null' ? expiry_date : null;
+
         const [result] = await pool.execute(
-            `INSERT INTO announcements (title, content, category, department, ministry_id, target_audience, is_pinned, is_published, publish_date, expiry_date, created_by) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [title, content, category || 'General', department || null, ministry_id || null, target_audience || 'All', is_pinned ? 1 : 0, is_published ? 1 : 0, publish_date || new Date(), expiry_date || null, userId]
+            `INSERT INTO announcements (title, content, image_path, category, department, ministry_id, target_audience, is_pinned, is_published, publish_date, expiry_date, created_by) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [title, content, image_path || null, category || 'General', deptVal, ministryIdVal, target_audience || 'All', pinnedVal, publishedVal, pubDateVal, expDateVal, userId]
         );
         return result.insertId;
     },
 
     async update(id, data) {
-        const { title, content, category, department, ministry_id, target_audience, is_pinned, is_published, publish_date, expiry_date } = data;
+        await this.ensureImageColumn();
+        const { title, content, image_path, category, department, ministry_id, target_audience, is_pinned, is_published, publish_date, expiry_date } = data;
+        const pinnedVal = toBoolFlag(is_pinned, 0);
+        const publishedVal = toBoolFlag(is_published, 1);
+        const ministryIdVal = toNullableInt(ministry_id);
+        const deptVal = department && String(department).trim() && String(department).toLowerCase() !== 'null' ? String(department).trim() : null;
+        const pubDateVal = publish_date && String(publish_date).trim() ? publish_date : new Date();
+        const expDateVal = expiry_date && String(expiry_date).trim() && String(expiry_date).toLowerCase() !== 'null' ? expiry_date : null;
+
         await pool.execute(
             `UPDATE announcements SET 
-                title = ?, content = ?, category = ?, department = ?, ministry_id = ?, target_audience = ?, is_pinned = ?, 
+                title = ?, content = ?, image_path = ?, category = ?, department = ?, ministry_id = ?, target_audience = ?, is_pinned = ?, 
                 is_published = ?, publish_date = ?, expiry_date = ? 
              WHERE announcement_id = ?`,
-            [title, content, category || 'General', department || null, ministry_id || null, target_audience || 'All', is_pinned ? 1 : 0, is_published ? 1 : 0, publish_date || new Date(), expiry_date || null, id]
+            [title, content, image_path || null, category || 'General', deptVal, ministryIdVal, target_audience || 'All', pinnedVal, publishedVal, pubDateVal, expDateVal, id]
         );
     },
 

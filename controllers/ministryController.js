@@ -1,5 +1,6 @@
 const ministryModel = require('../models/ministryModel');
 const userModel = require('../models/userModel');
+const realtimeBus = require('../utils/realtimeBus');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseFormatter');
 
 exports.getAllMinistries = async (req, res) => {
@@ -79,6 +80,7 @@ exports.createMinistry = async (req, res) => {
         const newMinistry = await ministryModel.getById(ministryId);
         
         await userModel.logAudit(req.user.id, 'CREATE', 'Ministries', ministryId, null, newMinistry, req.ip, req.headers['user-agent']);
+        realtimeBus.broadcast('ministries', { action: 'create', ministryId });
         return successResponse(res, newMinistry, 'Ministry created successfully', 201);
     } catch (error) {
         console.error('Create Ministry Error:', error);
@@ -96,6 +98,7 @@ exports.updateMinistry = async (req, res) => {
         const updatedMinistry = await ministryModel.getById(id);
 
         await userModel.logAudit(req.user.id, 'UPDATE', 'Ministries', id, oldMinistry, updatedMinistry, req.ip, req.headers['user-agent']);
+        realtimeBus.broadcast('ministries', { action: 'update', ministryId: id });
         return successResponse(res, updatedMinistry, 'Ministry updated successfully');
     } catch (error) {
         console.error('Update Ministry Error:', error);
@@ -111,6 +114,7 @@ exports.deleteMinistry = async (req, res) => {
 
         await ministryModel.delete(id);
         await userModel.logAudit(req.user.id, 'DELETE', 'Ministries', id, ministry, null, req.ip, req.headers['user-agent']);
+        realtimeBus.broadcast('ministries', { action: 'delete', ministryId: id });
         return successResponse(res, null, 'Ministry deleted successfully');
     } catch (error) {
         console.error('Delete Ministry Error:', error);
@@ -136,6 +140,7 @@ exports.addMemberToMinistry = async (req, res) => {
         
         const ministryMemberId = await ministryModel.addMember(id, member_id, role_in_ministry);
         await userModel.logAudit(req.user.id, 'ASSIGN', 'Ministries', id, null, { member_id, role_in_ministry }, req.ip, req.headers['user-agent']);
+        realtimeBus.broadcast('ministries', { action: 'assign_member', ministryId: id, member_id });
         
         return successResponse(res, { ministryMemberId }, 'Member added to ministry successfully', 201);
     } catch (error) {
@@ -149,6 +154,7 @@ exports.removeMemberFromMinistry = async (req, res) => {
         const { ministry_member_id } = req.params;
         await ministryModel.removeMember(ministry_member_id);
         await userModel.logAudit(req.user.id, 'UNASSIGN', 'Ministries', ministry_member_id, null, null, req.ip, req.headers['user-agent']);
+        realtimeBus.broadcast('ministries', { action: 'unassign_member', ministryMemberId: ministry_member_id });
         return successResponse(res, null, 'Member removed from ministry successfully');
     } catch (error) {
         console.error('Remove Member Error:', error);
@@ -248,6 +254,7 @@ exports.recordMinistryAttendance = async (req, res) => {
             null, { attendanceId, session_title, session_date },
             req.ip, req.headers['user-agent']
         );
+        realtimeBus.broadcast('ministries', { action: 'record_attendance', ministryId: id, attendanceId });
 
         return successResponse(res, { attendanceId }, 'Ministry attendance session recorded successfully', 201);
     } catch (error) {
@@ -275,6 +282,7 @@ exports.updateMinistryAttendance = async (req, res) => {
             null, { session_title, session_date },
             req.ip, req.headers['user-agent']
         );
+        realtimeBus.broadcast('ministries', { action: 'update_attendance', attendanceId });
 
         return successResponse(res, null, 'Ministry attendance session updated successfully');
     } catch (error) {
@@ -295,6 +303,7 @@ exports.deleteMinistryAttendance = async (req, res) => {
             req.user.id, 'DELETE_ATTENDANCE', 'Ministries', attendanceId,
             null, null, req.ip, req.headers['user-agent']
         );
+        realtimeBus.broadcast('ministries', { action: 'delete_attendance', attendanceId });
 
         return successResponse(res, null, 'Attendance session deleted successfully');
     } catch (error) {
@@ -355,6 +364,7 @@ exports.updateDepartmentHead = async (req, res) => {
             { department: matchedDept, new_head_id: head_member_id },
             req.ip, req.headers['user-agent']
         );
+        realtimeBus.broadcast('ministries', { action: 'update_department_head', department: matchedDept });
 
         return successResponse(res, updated, `${matchedDept} Department Head updated successfully`);
     } catch (error) {

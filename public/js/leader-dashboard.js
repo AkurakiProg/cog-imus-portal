@@ -456,6 +456,14 @@ function initLeaderModalBackdropClose() {
 // INITIALIZATION ON DOM CONTENT LOADED
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.authSessionSync && typeof window.authSessionSync.hydrateTabSessionIfNeeded === 'function') {
+        const hyd = window.authSessionSync.hydrateTabSessionIfNeeded();
+        if (hyd && hyd.switchedAway) {
+            window.location.replace('/views/login.html');
+            return;
+        }
+    }
+
     // Check sessionStorage (tied to browser tab/window lifecycle)
     const token = sessionStorage.getItem('church_token');
 
@@ -484,6 +492,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         sessionStorage.setItem('church_user', JSON.stringify(user));
+        if (window.authSessionSync && typeof window.authSessionSync.bindTabUser === 'function') {
+            window.authSessionSync.bindTabUser(user);
+        }
     } catch (authErr) {
         console.error('Leader session validation failed:', authErr);
         sessionStorage.removeItem('church_token');
@@ -626,6 +637,12 @@ function handleRealtimeLeaderUpdate(payload) {
     } else if (type === 'c2s') {
         if (activeView === 'c2s' && typeof loadC2SGroups === 'function') loadC2SGroups();
     } else if (type === 'ministries') {
+        leaderAssignedMinistriesCache = [];
+        allLeaderMinistriesCache = [];
+        if (typeof api !== 'undefined' && api.ministries && typeof api.ministries.getAll === 'function') {
+            api.ministries.getAll().then(r => { if (r && r.data) allLeaderMinistriesCache = r.data; }).catch(() => {});
+        }
+        if (typeof loadDashboardSummary === 'function') loadDashboardSummary();
         if (activeView === 'ministries' && typeof loadMinistries === 'function') loadMinistries();
     } else if (type === 'attendance') {
         if (activeView === 'attendance' && typeof loadAttendance === 'function') loadAttendance();
@@ -672,7 +689,20 @@ function initLeaderRealtimeSync() {
 
     if (typeof EventSource !== 'undefined') {
         let es = null;
+        let reconnectTimer = null;
+        let stopped = false;
+        window._cleanupDashboardSession = () => {
+            stopped = true;
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            if (typeof leaderAnnouncementsPollTimer !== 'undefined' && leaderAnnouncementsPollTimer) {
+                clearInterval(leaderAnnouncementsPollTimer);
+            }
+            if (es) { try { es.close(); } catch (e) {} es = null; }
+            allLeaderAnnCache = [];
+            leaderAssignedMinistriesCache = [];
+        };
         function connectSse() {
+            if (stopped) return;
             try {
                 es = new EventSource('/api/realtime/stream');
                 es.onmessage = (e) => {
@@ -683,10 +713,10 @@ function initLeaderRealtimeSync() {
                 };
                 es.onerror = () => {
                     if (es) { es.close(); es = null; }
-                    setTimeout(connectSse, 6000);
+                    if (!stopped) reconnectTimer = setTimeout(connectSse, 6000);
                 };
             } catch (err) {
-                setTimeout(connectSse, 10000);
+                if (!stopped) reconnectTimer = setTimeout(connectSse, 10000);
             }
         }
         connectSse();
@@ -722,15 +752,25 @@ function closeSidebar() {
     if (overlay) overlay.classList.remove('active');
 }
 async function logout() {
+    let uid = null;
     try {
+        const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+        uid = u.user_id || u.id || null;
+    } catch (e) {}
+    try {
+        if (typeof window._cleanupDashboardSession === 'function') window._cleanupDashboardSession();
         if (api.auth && api.auth.logout) await api.auth.logout();
     } catch (e) {}
-    sessionStorage.removeItem('church_token');
-    sessionStorage.removeItem('church_user');
-    localStorage.removeItem('church_token');
-    localStorage.removeItem('church_user');
-    localStorage.removeItem('church_active_user_theme');
-    localStorage.removeItem('church_active_user_id');
+    if (window.authSessionSync && typeof window.authSessionSync.broadcastLogout === 'function') {
+        window.authSessionSync.broadcastLogout(uid);
+    } else {
+        sessionStorage.removeItem('church_token');
+        sessionStorage.removeItem('church_user');
+        localStorage.removeItem('church_token');
+        localStorage.removeItem('church_user');
+        localStorage.removeItem('church_active_user_theme');
+        localStorage.removeItem('church_active_user_id');
+    }
     window.location.href = '/views/login.html';
 }
 let toastTimeout = null;
@@ -2312,7 +2352,7 @@ async function loadLeaderAnnouncements(page = 1) {
     }
 
     const tbody = document.getElementById('leaderAnnTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center p-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading announcements...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading announcements...</td></tr>';
 
     try {
         const res = await api.announcements.getAll(currentLeaderAnnPage, LEADER_ANN_PAGE_LIMIT, filters);
@@ -2359,15 +2399,19 @@ function renderLeaderAnnTable(announcements) {
     if (!tbody) return;
 
     if (!announcements || announcements.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center p-8 text-slate-400">No announcements found matching filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-400">No announcements found matching filters.</td></tr>';
         return;
     }
 
     tbody.innerHTML = announcements.map(a => {
         const isEmailSent = a.email_triggered == 1;
         const isSmsVerified = a.sms_triggered == 1;
+        const thumbHtml = a.image_path
+            ? `<img src="${encodeURI(a.image_path)}" alt="${escapeHtml(a.title)}" style="width: 52px; height: 38px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; display: block;" onerror="this.outerHTML='<div style=\\'width:52px;height:38px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:0.75rem;\\'><i class=\\'fa-regular fa-image\\'></i></div>'">`
+            : `<div style="width: 52px; height: 38px; border-radius: 6px; background: #f1f5f9; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.75rem;" title="No image"><i class="fa-regular fa-image"></i></div>`;
         return `
             <tr>
+                <td class="p-4">${thumbHtml}</td>
                 <td class="p-4 font-medium text-navy">
                     <div style="font-weight: 600; font-size: 0.95rem;">${escapeHtml(a.title)}</div>
                 </td>
@@ -2468,6 +2512,17 @@ function viewLeaderAnnouncement(id) {
     document.getElementById('modalAnnDept').innerHTML = `<span class="badge ${getDeptBadgeClass(ann.department)}">${escapeHtml(ann.department || 'General Church')}</span>`;
     document.getElementById('modalAnnMinistry').innerHTML = `<span class="badge ${ann.ministry_name ? 'badge-ministry-pill' : 'badge-inactive'}">${escapeHtml(ann.ministry_name || 'General Church')}</span>`;
     document.getElementById('modalAnnDate').textContent = new Date(ann.created_at).toLocaleString();
+    const imgContainer = document.getElementById('modalAnnImageContainer');
+    const imgEl = document.getElementById('modalAnnImage');
+    if (imgContainer && imgEl) {
+        if (ann.image_path) {
+            imgEl.src = encodeURI(ann.image_path);
+            imgContainer.style.display = 'block';
+        } else {
+            imgEl.src = '';
+            imgContainer.style.display = 'none';
+        }
+    }
     document.getElementById('modalAnnContent').textContent = ann.content || 'No content provided.';
 
     const modal = document.getElementById('leaderAnnouncementModal');
@@ -2616,6 +2671,10 @@ async function loadMinistries() {
             document.getElementById('sumMinistries').innerText = deptMinCount;
         }
 
+        if (!activeLeaderMinistryId || !leaderAssignedMinistriesCache.some(m => m.ministry_id == activeLeaderMinistryId)) {
+            activeLeaderMinistryId = hasAssignedMinistries ? leaderAssignedMinistriesCache[0].ministry_id : null;
+        }
+
         // Multi-ministry switcher for assigned ministries
         if (hasAssignedMinistries && leaderAssignedMinistriesCache.length > 1) {
             const pillsContainer = document.getElementById('leaderMinistryPills');
@@ -2627,10 +2686,6 @@ async function loadMinistries() {
                     </button>
                 `).join('');
             }
-        }
-
-        if (!activeLeaderMinistryId || !leaderAssignedMinistriesCache.some(m => m.ministry_id == activeLeaderMinistryId)) {
-            activeLeaderMinistryId = hasAssignedMinistries ? leaderAssignedMinistriesCache[0].ministry_id : null;
         }
 
         if (isDeptHead) {
@@ -3031,6 +3086,11 @@ async function renderLeaderMinistryDashboard(minId) {
                                 <span class="badge" style="background: rgba(201, 169, 97, 0.25); color: #fde68a; border: 1px solid rgba(201, 169, 97, 0.4); font-size: 0.75rem;">
                                     <i class="fa-solid fa-sitemap mr-1"></i> ${escapeHtml(m.department || 'WORDA')} Department
                                 </span>
+                                ${m.my_role_in_ministry ? `
+                                <span class="badge" style="background: rgba(59, 130, 246, 0.28); color: #dbeafe; border: 1px solid rgba(147, 197, 253, 0.45); font-size: 0.75rem;">
+                                    <i class="fa-solid fa-id-badge mr-1"></i> Role: ${escapeHtml(m.my_role_in_ministry)}
+                                </span>
+                                ` : ''}
                                 <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.75rem;">
                                     <i class="fa-solid fa-users mr-1"></i> ${activeMinistryRosterCache.length} Active Roster Members
                                 </span>
@@ -7618,6 +7678,77 @@ function populateLeaderMinistriesDropdowns() {
 // ============================================================
 // LEADER ANNOUNCEMENT MANAGEMENT (ADD, EDIT, DELETE)
 // ============================================================
+window._leaderAnnExistingImage = null;
+window._leaderAnnRemoveImage = false;
+
+function handleLeaderAnnouncementImageChange(input) {
+    const errEl = document.getElementById('leaderAnnImageError');
+    const preview = document.getElementById('leaderAnnImagePreview');
+    const placeholder = document.getElementById('leaderAnnImagePlaceholder');
+    const clearBtn = document.getElementById('leaderAnnImageClearBtn');
+    const statusEl = document.getElementById('leaderAnnImageStatus');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    const file = input && input.files ? input.files[0] : null;
+    if (!file) {
+        if (window._leaderAnnExistingImage && !window._leaderAnnRemoveImage) {
+            if (preview) { preview.src = encodeURI(window._leaderAnnExistingImage); preview.style.display = 'block'; }
+            if (placeholder) placeholder.style.display = 'none';
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
+            if (statusEl) statusEl.textContent = 'Current image retained (choose a file to replace).';
+        } else {
+            if (preview) { preview.src = ''; preview.style.display = 'none'; }
+            if (placeholder) placeholder.style.display = 'block';
+            if (clearBtn) clearBtn.style.display = 'none';
+            if (statusEl) statusEl.textContent = 'Select an announcement image to publish.';
+        }
+        return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedExt = /\.(jpe?g|png|webp|gif)$/i;
+    if (!allowedTypes.includes(file.type) && !allowedExt.test(file.name)) {
+        input.value = '';
+        if (errEl) { errEl.textContent = 'Invalid file format. Allowed: JPG, JPEG, PNG, WebP, GIF.'; errEl.style.display = 'block'; }
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        input.value = '';
+        if (errEl) { errEl.textContent = 'Image file size must not exceed 10MB.'; errEl.style.display = 'block'; }
+        return;
+    }
+
+    window._leaderAnnRemoveImage = false;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        if (preview) { preview.src = ev.target.result; preview.style.display = 'block'; }
+        if (placeholder) placeholder.style.display = 'none';
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
+        if (statusEl) statusEl.textContent = `Selected: ${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+    };
+    reader.readAsDataURL(file);
+}
+window.handleLeaderAnnouncementImageChange = handleLeaderAnnouncementImageChange;
+
+function clearLeaderAnnouncementImage() {
+    const fileInput = document.getElementById('leader_ann_image');
+    const errEl = document.getElementById('leaderAnnImageError');
+    const preview = document.getElementById('leaderAnnImagePreview');
+    const placeholder = document.getElementById('leaderAnnImagePlaceholder');
+    const clearBtn = document.getElementById('leaderAnnImageClearBtn');
+    const statusEl = document.getElementById('leaderAnnImageStatus');
+
+    if (fileInput) fileInput.value = '';
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    window._leaderAnnExistingImage = null;
+    window._leaderAnnRemoveImage = true;
+    if (preview) { preview.src = ''; preview.style.display = 'none'; }
+    if (placeholder) placeholder.style.display = 'block';
+    if (clearBtn) clearBtn.style.display = 'none';
+    if (statusEl) statusEl.textContent = 'Announcement image is required * (JPG, PNG, WebP, GIF)';
+}
+window.clearLeaderAnnouncementImage = clearLeaderAnnouncementImage;
+
 async function openLeaderAnnouncementModal(annId = null) {
     if (!allLeaderMinistriesCache || allLeaderMinistriesCache.length === 0) {
         try {
@@ -7632,6 +7763,17 @@ async function openLeaderAnnouncementModal(annId = null) {
     if (form) form.reset();
     document.getElementById('leader_ann_id').value = '';
 
+    const fileInput = document.getElementById('leader_ann_image');
+    const errEl = document.getElementById('leaderAnnImageError');
+    const preview = document.getElementById('leaderAnnImagePreview');
+    const placeholder = document.getElementById('leaderAnnImagePlaceholder');
+    const clearBtn = document.getElementById('leaderAnnImageClearBtn');
+    const statusEl = document.getElementById('leaderAnnImageStatus');
+    if (fileInput) fileInput.value = '';
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    window._leaderAnnExistingImage = null;
+    window._leaderAnnRemoveImage = false;
+
     populateLeaderMinistriesDropdowns();
 
     document.getElementById('leader_ann_pinned').checked = false;
@@ -7639,7 +7781,13 @@ async function openLeaderAnnouncementModal(annId = null) {
 
     if (annId) {
         document.getElementById('leaderAnnModalTitle').textContent = 'Edit Announcement';
-        const a = allLeaderAnnCache.find(x => x.announcement_id == annId);
+        let a = allLeaderAnnCache.find(x => x.announcement_id == annId);
+        if (!a) {
+            try {
+                const res = await api.announcements.getById(annId);
+                a = res?.data || null;
+            } catch (err) {}
+        }
         if (a) {
             document.getElementById('leader_ann_id').value = a.announcement_id;
             document.getElementById('leader_ann_title').value = a.title || '';
@@ -7655,11 +7803,28 @@ async function openLeaderAnnouncementModal(annId = null) {
             
             document.getElementById('leader_ann_pinned').checked = a.is_pinned == 1;
             document.getElementById('leader_ann_published').checked = a.is_published == 1;
+
+            if (a.image_path) {
+                window._leaderAnnExistingImage = a.image_path;
+                if (preview) { preview.src = encodeURI(a.image_path); preview.style.display = 'block'; }
+                if (placeholder) placeholder.style.display = 'none';
+                if (clearBtn) clearBtn.style.display = 'inline-flex';
+                if (statusEl) statusEl.textContent = 'Current image retained (upload a new file to replace).';
+            } else {
+                if (preview) { preview.src = ''; preview.style.display = 'none'; }
+                if (placeholder) placeholder.style.display = 'block';
+                if (clearBtn) clearBtn.style.display = 'none';
+                if (statusEl) statusEl.textContent = 'No existing image — please upload an announcement image *.';
+            }
         }
     } else {
         document.getElementById('leaderAnnModalTitle').textContent = 'Add Announcement';
         const now = new Date();
         document.getElementById('leader_ann_publish_date').value = formatLocalDateTime(now);
+        if (preview) { preview.src = ''; preview.style.display = 'none'; }
+        if (placeholder) placeholder.style.display = 'block';
+        if (clearBtn) clearBtn.style.display = 'none';
+        if (statusEl) statusEl.textContent = 'Announcement image is required * (JPG, PNG, WebP, GIF)';
     }
 
     const modal = document.getElementById('leaderAnnouncementFormModal');
@@ -7685,33 +7850,48 @@ window.closeLeaderAnnouncementModal = closeLeaderAnnouncementModal;
 async function saveLeaderAnnouncement() {
     const id = document.getElementById('leader_ann_id').value;
     const title = document.getElementById('leader_ann_title').value.trim();
-    const department = document.getElementById('leader_ann_department').value || null;
-    const ministry_id = document.getElementById('leader_ann_ministry_id').value ? parseInt(document.getElementById('leader_ann_ministry_id').value, 10) : null;
+    const department = document.getElementById('leader_ann_department').value || '';
+    const ministry_id = document.getElementById('leader_ann_ministry_id').value ? String(parseInt(document.getElementById('leader_ann_ministry_id').value, 10)) : '';
     const category = document.getElementById('leader_ann_category').value;
     const target_audience = document.getElementById('leader_ann_audience').value;
     const content = document.getElementById('leader_ann_content').value.trim();
-    const publish_date = document.getElementById('leader_ann_publish_date').value || null;
-    const expiry_date = document.getElementById('leader_ann_expiry_date').value || null;
-    const is_pinned = document.getElementById('leader_ann_pinned').checked ? 1 : 0;
-    const is_published = document.getElementById('leader_ann_published').checked ? 1 : 0;
+    const publish_date = document.getElementById('leader_ann_publish_date').value || '';
+    const expiry_date = document.getElementById('leader_ann_expiry_date').value || '';
+    const is_pinned = document.getElementById('leader_ann_pinned').checked ? '1' : '0';
+    const is_published = document.getElementById('leader_ann_published').checked ? '1' : '0';
 
     if (!title || !content) {
         showToast('Please provide a title and announcement content.');
         return;
     }
 
-    const payload = {
-        title,
-        department,
-        ministry_id,
-        category,
-        target_audience,
-        content,
-        publish_date,
-        expiry_date,
-        is_pinned,
-        is_published
-    };
+    const fileInput = document.getElementById('leader_ann_image');
+    const errEl = document.getElementById('leaderAnnImageError');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
+    const hasRetainedImage = Boolean(id && window._leaderAnnExistingImage && !window._leaderAnnRemoveImage);
+    if (!selectedFile && !hasRetainedImage) {
+        const msg = 'Please upload an announcement image (.jpg, .jpeg, .png, .webp, .gif).';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        showToast(msg);
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('department', department);
+    formData.append('ministry_id', ministry_id);
+    formData.append('category', category || 'General');
+    formData.append('target_audience', target_audience || 'All');
+    formData.append('content', content);
+    formData.append('publish_date', publish_date);
+    formData.append('expiry_date', expiry_date);
+    formData.append('is_pinned', is_pinned);
+    formData.append('is_published', is_published);
+    if (selectedFile) {
+        formData.append('announcement_image', selectedFile);
+    }
 
     const btn = document.getElementById('btnSaveLeaderAnn');
     const origText = btn.innerHTML;
@@ -7720,15 +7900,16 @@ async function saveLeaderAnnouncement() {
 
     try {
         if (id) {
-            await api.announcements.update(id, payload);
+            await api.announcements.update(id, formData);
             showToast('Announcement updated successfully!');
         } else {
-            await api.announcements.create(payload);
+            await api.announcements.create(formData);
             showToast('Announcement created successfully!');
         }
         closeLeaderAnnouncementModal();
         await loadLeaderAnnouncements();
         await loadDashboardSummary();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('announcements', id ? 'update' : 'create');
     } catch (err) {
         showToast('Error saving announcement: ' + err.message);
     } finally {
@@ -7752,6 +7933,7 @@ async function deleteLeaderAnnouncement(id, title) {
         showToast('Announcement deleted successfully!');
         await loadLeaderAnnouncements();
         await loadDashboardSummary();
+        if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('announcements', 'delete');
     } catch (err) {
         showToast('Error deleting announcement: ' + err.message);
     }
