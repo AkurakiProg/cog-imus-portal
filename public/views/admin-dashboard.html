@@ -1823,14 +1823,8 @@
 
                         <!-- Donation & Payment Information Management -->
                         <div class="card" id="cmsPaymentInfoCard" style="margin-top: 1.5rem;">
-                            <div class="card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                            <div class="card-header">
                                 <h3><i class="fa-solid fa-hand-holding-heart"></i> Donation &amp; Payment Information</h3>
-                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                    <button type="button" class="btn-secondary btn-sm" onclick="previewPaymentInfoPage()" title="Preview payment cards on public Contact page">
-                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Preview Payment Information
-                                    </button>
-                                    <span class="badge badge-info">Public Contact Page</span>
-                                </div>
                             </div>
                             <div style="padding: 1.5rem;">
                                 <div class="cms-sync-notice-banner" style="padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 1.25rem; font-size: 0.85rem; line-height: 1.5;">
@@ -1993,18 +1987,6 @@
                                             <textarea id="cms_payment_bdo_instructions" rows="2" placeholder="Optional bank transfer notes..." oninput="markPaymentProviderEdited('bdo')"></textarea>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="cms-payment-footer-bar">
-                                    <button type="button" class="btn-secondary" onclick="reloadCurrentCmsSection()">
-                                        <i class="fa-solid fa-rotate-left"></i> Cancel / Discard Changes
-                                    </button>
-                                    <button type="button" class="btn-secondary" onclick="previewPaymentInfoPage()">
-                                        <i class="fa-solid fa-eye"></i> Preview Payment Information
-                                    </button>
-                                    <button type="button" class="btn-primary" onclick="saveCurrentCmsSection()">
-                                        <i class="fa-solid fa-floppy-disk"></i> Save Payment &amp; Contact Changes
-                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -105,9 +105,14 @@ test('1. Public Contact Page Payment Section Markup & Safe Sample Placeholder', 
     assert.ok(contactHtml.includes('id="paymentQrModal"'), 'Enlargeable QR lightbox modal present');
     assert.ok(contactHtml.includes('id="paymentEmptyState"'), 'Graceful empty state element present');
     assert.ok(contactHtml.includes('object-fit: contain'), 'QR preserves aspect ratio without cropping/stretching');
+    assert.ok(contactHtml.includes('height: 115px'), 'Prayer request textarea height is 115px');
+    assert.ok(contactHtml.includes('contact-info-items-wrap') && contactHtml.includes('align-items: stretch'), 'Columns match height evenly on desktop');
 
     const adminHtml = fs.readFileSync(path.join(ROOT, 'public/views/admin-dashboard.html'), 'utf8');
     assert.ok(adminHtml.includes('id="cmsPaymentInfoCard"'), 'Admin CMS payment card exists inside Contact CMS panel');
+    assert.ok(!adminHtml.includes('Preview Payment Information'), 'Duplicate Preview Payment Information button removed');
+    assert.ok(!adminHtml.includes('Save Payment &amp; Contact Changes'), 'Duplicate Save Payment & Contact Changes footer bar removed');
+    assert.ok(!adminHtml.includes('Public Contact Page</span>'), 'Public Contact Page badge removed from payment card header');
     for (const provider of ['gcash', 'bpi', 'bdo']) {
         assert.ok(adminHtml.includes(`id="cms_payment_${provider}_enabled"`), `${provider} enabled toggle exists`);
         assert.ok(adminHtml.includes(`id="cms_payment_${provider}_qr_file"`), `${provider} QR file input exists`);
