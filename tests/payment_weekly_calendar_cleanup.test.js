@@ -93,7 +93,9 @@ test('1. Public Contact Page Payment Section Markup & Safe Sample Placeholder', 
 
     const contactHtml = fs.readFileSync(path.join(ROOT, 'public/views/contact.html'), 'utf8');
     assert.ok(contactHtml.includes('id="payment-info"'), '#payment-info section exists');
-    assert.ok(contactHtml.includes('class="contact-left-column"'), 'Payment cards are placed inside the left contact column beneath Church Information');
+    const paymentIdx = contactHtml.indexOf('id="payment-info"');
+    const infoCardIdx = contactHtml.indexOf('class="contact-info-card');
+    assert.ok(paymentIdx > 0 && infoCardIdx > paymentIdx, 'Payment cards sit to the left of Church Information inside .contact-grid');
     assert.ok(!contactHtml.includes('Stewardship &amp; Giving'), 'Header copy removed as requested');
     assert.ok(!contactHtml.includes('Sample Placeholder Notice:'), 'Sample Placeholder Notice banner removed as requested');
     assert.ok(!contactHtml.includes('Sample instruction:'), 'Sample instruction text removed as requested');
