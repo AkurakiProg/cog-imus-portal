@@ -107,6 +107,8 @@ test('1. Public Contact Page Payment Section Markup & Safe Sample Placeholder', 
     assert.ok(contactHtml.includes('object-fit: contain'), 'QR preserves aspect ratio without cropping/stretching');
     assert.ok(contactHtml.includes('height: 115px'), 'Prayer request textarea height is 115px');
     assert.ok(contactHtml.includes('contact-info-items-wrap') && contactHtml.includes('align-items: stretch'), 'Columns match height evenly on desktop');
+    assert.ok(contactHtml.includes('Donation &amp; Payment Information</h3>'), 'Outer Donation & Payment Information card wrapper added');
+    assert.ok(!contactHtml.includes('.payment-card:hover'), 'Payment card hover animation removed');
 
     const adminHtml = fs.readFileSync(path.join(ROOT, 'public/views/admin-dashboard.html'), 'utf8');
     assert.ok(adminHtml.includes('id="cmsPaymentInfoCard"'), 'Admin CMS payment card exists inside Contact CMS panel');
