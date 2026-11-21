@@ -7,6 +7,7 @@ const userModel = require('../models/userModel');
 const { successResponse, errorResponse } = require('../utils/responseFormatter');
 const realtimeBus = require('../utils/realtimeBus');
 const browserSessionManager = require('../utils/browserSessionManager');
+const loginAttemptLimiter = require('../utils/loginAttemptLimiter');
 const {
     encryptSecret,
     decryptSecret,
@@ -199,6 +200,27 @@ async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDet
     };
 }
 
+function sendLoginAttemptStatusResponse(res, attemptStatus) {
+    const statusCode = attemptStatus && attemptStatus.locked ? 429 : 401;
+    if (attemptStatus && attemptStatus.locked && attemptStatus.retryAfterSeconds > 0) {
+        res.set('Retry-After', String(attemptStatus.retryAfterSeconds));
+    }
+    return res.status(statusCode).json({
+        success: false,
+        status: statusCode,
+        message: loginAttemptLimiter.buildFailureMessage(attemptStatus),
+        data: {
+            locked: Boolean(attemptStatus && attemptStatus.locked),
+            attemptsUsed: attemptStatus ? attemptStatus.attemptsUsed : 0,
+            maxAttempts: attemptStatus ? attemptStatus.maxAttempts : loginAttemptLimiter.MAX_LOGIN_ATTEMPTS,
+            attemptsRemaining: attemptStatus ? attemptStatus.attemptsRemaining : 0,
+            retryAfterSeconds: attemptStatus ? attemptStatus.retryAfterSeconds : 0,
+            lockedUntil: attemptStatus ? attemptStatus.lockedUntil : 0
+        },
+        timestamp: new Date().toISOString()
+    });
+}
+
 exports.login = async (req, res) => {
     const identifier = (req.body.identifier || req.body.username || req.body.email || '').toString().trim();
     const password = req.body.password;
@@ -209,14 +231,22 @@ exports.login = async (req, res) => {
 
     try {
         const user = await userModel.findByUsernameOrEmail(identifier);
+        const attemptKeys = loginAttemptLimiter.buildAttemptKeys({ user, identifier, req });
+        const lockStatus = loginAttemptLimiter.checkLock(attemptKeys);
+
+        if (lockStatus.locked) {
+            return sendLoginAttemptStatusResponse(res, lockStatus);
+        }
 
         if (!user) {
-            return errorResponse(res, 'Invalid credentials.', 401);
+            const failureStatus = loginAttemptLimiter.recordFailure(attemptKeys);
+            return sendLoginAttemptStatusResponse(res, failureStatus);
         }
 
         // Exact case-sensitive match for username
         if (user.username !== identifier && user.email.toLowerCase() !== identifier.toLowerCase()) {
-            return errorResponse(res, 'Invalid credentials.', 401);
+            const failureStatus = loginAttemptLimiter.recordFailure(attemptKeys);
+            return sendLoginAttemptStatusResponse(res, failureStatus);
         }
 
         if (!user.is_active) {
@@ -230,8 +260,11 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
-            return errorResponse(res, 'Invalid credentials.', 401);
+            const failureStatus = loginAttemptLimiter.recordFailure(attemptKeys);
+            return sendLoginAttemptStatusResponse(res, failureStatus);
         }
+
+        loginAttemptLimiter.clearAttempts(attemptKeys);
 
         if (user.mfa_enabled && user.mfa_secret) {
             const challengeId = uuidv4();

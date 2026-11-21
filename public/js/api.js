@@ -782,7 +782,13 @@ const api = {
         try {
             response = await fetch(`${API_BASE_URL}${endpoint}`, config);
             const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'An API error occurred');
+            if (!response.ok) {
+                const err = new Error(data.message || 'An API error occurred');
+                err.status = response.status;
+                err.data = data.data || data.errors || null;
+                err.payload = data;
+                throw err;
+            }
             return data;
         } catch (error) {
             console.error(`[API Error] ${method} ${endpoint}:`, error.message);
@@ -862,7 +868,12 @@ const api = {
                 password,
                 browserContextId: getBrowserContextId(),
                 previousToken
-            }, false);
+            }, false).then((res) => {
+                try {
+                    localStorage.removeItem('cog_login_lockout');
+                } catch (e) {}
+                return res;
+            });
         },
         register: (data) => {
             const shared = getSharedBrowserSession();

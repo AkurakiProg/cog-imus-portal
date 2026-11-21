@@ -203,9 +203,156 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const LOGIN_LOCKOUT_STORAGE_KEY = 'cog_login_lockout';
+    const DEFAULT_LOCKOUT_DURATION_MS = 3 * 60 * 1000;
+    let lockoutIntervalId = null;
+
+    function formatLockoutClock(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function getStoredLockoutUntil() {
+        try {
+            const raw = localStorage.getItem(LOGIN_LOCKOUT_STORAGE_KEY);
+            if (!raw) return 0;
+            const parsed = JSON.parse(raw);
+            const until = Number(parsed && parsed.lockedUntil);
+            if (!Number.isFinite(until) || until <= Date.now()) {
+                localStorage.removeItem(LOGIN_LOCKOUT_STORAGE_KEY);
+                return 0;
+            }
+            return until;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    function persistLockoutUntil(lockedUntil) {
+        try {
+            localStorage.setItem(LOGIN_LOCKOUT_STORAGE_KEY, JSON.stringify({ lockedUntil }));
+        } catch (e) {}
+    }
+
+    function clearStoredLockout() {
+        try {
+            localStorage.removeItem(LOGIN_LOCKOUT_STORAGE_KEY);
+        } catch (e) {}
+    }
+
+    function setSubmitButtonReady() {
+        const submitBtn = document.getElementById('btnLogin');
+        if (!submitBtn) return;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Sign In to Portal</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>';
+    }
+
+    function setSubmitButtonLocked(remainingMs) {
+        const submitBtn = document.getElementById('btnLogin');
+        if (!submitBtn) return;
+        const clockText = formatLockoutClock(remainingMs);
+        submitBtn.disabled = true;
+        const existingClock = document.getElementById('btnLoginCountdown');
+        if (existingClock) {
+            existingClock.textContent = clockText;
+        } else {
+            submitBtn.innerHTML = `<i class="fa-solid fa-lock"></i> <span>Try Again in <span id="btnLoginCountdown">${clockText}</span></span>`;
+        }
+    }
+
+    function stopLockoutCountdown({ notifyUnlocked = false } = {}) {
+        if (lockoutIntervalId) {
+            clearInterval(lockoutIntervalId);
+            lockoutIntervalId = null;
+        }
+        clearStoredLockout();
+        const banner = document.getElementById('loginLockoutBanner');
+        if (banner) {
+            banner.style.display = 'none';
+        }
+        setSubmitButtonReady();
+        if (notifyUnlocked) {
+            showAlert('The 3-minute cooldown has ended. You can try logging in again.', 'info');
+        }
+    }
+
+    function renderLockoutTick(lockedUntil, { notifyOnExpire = true } = {}) {
+        const remainingMs = lockedUntil - Date.now();
+        if (remainingMs <= 0) {
+            stopLockoutCountdown({ notifyUnlocked: notifyOnExpire });
+            return false;
+        }
+        const alertEl = document.getElementById('alertMessage');
+        if (alertEl) {
+            alertEl.style.display = 'none';
+        }
+        const banner = document.getElementById('loginLockoutBanner');
+        if (banner) {
+            banner.style.display = 'flex';
+        }
+        const timerEl = document.getElementById('loginLockoutTimer');
+        if (timerEl) {
+            timerEl.textContent = formatLockoutClock(remainingMs);
+        }
+        setSubmitButtonLocked(remainingMs);
+        return true;
+    }
+
+    function startLoginLockout(lockedUntil) {
+        if (!Number.isFinite(lockedUntil) || lockedUntil <= Date.now()) {
+            stopLockoutCountdown({ notifyUnlocked: false });
+            return;
+        }
+        persistLockoutUntil(lockedUntil);
+        if (lockoutIntervalId) {
+            clearInterval(lockoutIntervalId);
+            lockoutIntervalId = null;
+        }
+        if (renderLockoutTick(lockedUntil, { notifyOnExpire: false })) {
+            lockoutIntervalId = setInterval(() => {
+                renderLockoutTick(lockedUntil, { notifyOnExpire: true });
+            }, 1000);
+        }
+    }
+
+    function handleLoginAttemptError(error) {
+        const errData = error && error.data ? error.data : null;
+        const isLocked = (error && error.status === 429) || Boolean(errData && errData.locked);
+        if (!isLocked) return false;
+
+        const retrySec = errData && Number.isFinite(Number(errData.retryAfterSeconds)) && Number(errData.retryAfterSeconds) > 0
+            ? Number(errData.retryAfterSeconds)
+            : Math.ceil(DEFAULT_LOCKOUT_DURATION_MS / 1000);
+        startLoginLockout(Date.now() + retrySec * 1000);
+        return true;
+    }
+
     if (loginForm) {
+        const initialLockedUntil = getStoredLockoutUntil();
+        if (initialLockedUntil > Date.now()) {
+            startLoginLockout(initialLockedUntil);
+        }
+
+        window.addEventListener('storage', (evt) => {
+            if (evt.key !== LOGIN_LOCKOUT_STORAGE_KEY) return;
+            const nextLockedUntil = getStoredLockoutUntil();
+            if (nextLockedUntil > Date.now()) {
+                startLoginLockout(nextLockedUntil);
+            } else if (lockoutIntervalId) {
+                stopLockoutCountdown({ notifyUnlocked: true });
+            }
+        });
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const activeLockedUntil = getStoredLockoutUntil();
+            if (activeLockedUntil > Date.now()) {
+                startLoginLockout(activeLockedUntil);
+                return;
+            }
             
             const identifier = document.getElementById('identifier').value.trim();
             const password = document.getElementById('password').value;
@@ -265,6 +412,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 700);
 
             } catch (error) {
+                if (handleLoginAttemptError(error)) {
+                    return;
+                }
                 showAlert(error.message || 'Login failed. Please verify your credentials.', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<span>Sign In to Portal</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>';

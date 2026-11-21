@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/auth.css?v=20261024_v6">
+    <link rel="stylesheet" href="/css/auth.css?v=20261121_v5">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script>
         document.documentElement.classList.remove('dark-mode');
@@ -96,6 +96,17 @@
 
                 <!-- Alert Message (Dynamic error/success notification) -->
                 <div id="alertMessage" class="alert" role="alert" aria-live="polite"></div>
+
+                <!-- 3-Attempt Cooldown Lockout Banner -->
+                <div id="loginLockoutBanner" class="alert alert-error login-lockout-banner" role="status" aria-live="polite" style="display: none;">
+                    <div class="login-lockout-row">
+                        <span class="alert-badge badge-danger"><i class="fa-solid fa-lock"></i> Login Locked</span>
+                        <span class="login-lockout-clock" id="loginLockoutTimer">03:00</span>
+                    </div>
+                    <p class="login-lockout-text" id="loginLockoutText">
+                        You have used all 3 login attempts. Please wait until the 3-minute cooldown finishes before trying again.
+                    </p>
+                </div>
 
                 <!-- Primary Login Form -->
                 <form id="loginForm" class="auth-reveal auth-reveal-2" novalidate>
@@ -243,8 +254,8 @@
         </div>
     </div>
 
-    <script src="/js/api.js?v=20261121_v4"></script>
-    <script src="/js/auth.js?v=20261121_v4"></script>
+    <script src="/js/api.js?v=20261121_v5"></script>
+    <script src="/js/auth.js?v=20261121_v5"></script>
     <script>
         function openForgotPasswordModal() {
             const m = document.getElementById('forgotPasswordModal');
