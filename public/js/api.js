@@ -30,6 +30,7 @@ function detectThemeIsDark() {
 }
 
 let _isLoggingOut = false;
+let _isVoluntarySelfLogout = false;
 let _activeRequestsCount = 0;
 let _watchdogIntervalId = null;
 let _watchdogEventSource = null;
@@ -265,7 +266,7 @@ function checkForAccountSwitchConflict() {
 }
 
 function handleCrossTabAuthSyncEvent(payload) {
-    if (!payload || !payload.type || _isLoggingOut) return;
+    if (!payload || !payload.type || _isLoggingOut || _isVoluntarySelfLogout) return;
     const path = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
     const isDashboard = path.includes('-dashboard');
     if (!isDashboard) return;
@@ -295,6 +296,54 @@ function handleCrossTabAuthSyncEvent(payload) {
     }
 }
 
+function beginVoluntaryLogout() {
+    _isLoggingOut = true;
+    _isVoluntarySelfLogout = true;
+    if (_watchdogIntervalId) {
+        clearInterval(_watchdogIntervalId);
+        _watchdogIntervalId = null;
+    }
+    if (_watchdogEventSource) {
+        try { _watchdogEventSource.close(); } catch (e) {}
+        _watchdogEventSource = null;
+    }
+    try {
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('auth_logout_reason', 'self_logout');
+            sessionStorage.removeItem('session_terminated_message');
+        }
+    } catch (e) {}
+}
+
+async function performLogout() {
+    let uid = _tabBoundUserId || null;
+    try {
+        const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
+        uid = u.user_id || u.id || uid;
+    } catch (e) {}
+
+    beginVoluntaryLogout();
+
+    try {
+        if (typeof window !== 'undefined' && typeof window._cleanupDashboardSession === 'function') {
+            window._cleanupDashboardSession();
+        }
+        if (sessionStorage.getItem('church_token') && api && api.auth && typeof api.auth.logout === 'function') {
+            await api.auth.logout();
+        }
+    } catch (e) {}
+
+    broadcastLogout(uid);
+    try {
+        sessionStorage.setItem('auth_logout_reason', 'self_logout');
+        sessionStorage.removeItem('session_terminated_message');
+    } catch (e) {}
+
+    if (typeof window !== 'undefined' && window.location) {
+        window.location.href = '/views/login.html';
+    }
+}
+
 const authSessionSync = {
     ACCOUNT_SWITCHED_MESSAGE,
     getBrowserContextId,
@@ -302,6 +351,9 @@ const authSessionSync = {
     hydrateTabSessionIfNeeded,
     recordBrowserLogin,
     broadcastLogout,
+    beginVoluntaryLogout,
+    performLogout,
+    isVoluntaryLogout: () => _isVoluntarySelfLogout,
     checkForAccountSwitchConflict,
     handleCrossTabAuthSyncEvent
 };
@@ -311,7 +363,7 @@ if (typeof window !== 'undefined') {
 }
 
 async function triggerConcurrentLogout(reason = 'concurrent_login') {
-    if (_isLoggingOut) return;
+    if (_isLoggingOut || _isVoluntarySelfLogout) return;
     _isLoggingOut = true;
 
     if (_watchdogIntervalId) {
@@ -477,7 +529,7 @@ let _watchdogStarted = false;
 let _lastCheckTime = 0;
 
 async function checkSessionStatus() {
-    if (_isLoggingOut) return;
+    if (_isLoggingOut || _isVoluntarySelfLogout) return;
     if (checkForAccountSwitchConflict()) return;
 
     const token = sessionStorage.getItem('church_token');
@@ -531,6 +583,7 @@ function startSessionWatchdog() {
     _watchdogIntervalId = setInterval(checkSessionStatus, 15000);
 
     document.addEventListener('visibilitychange', () => {
+        if (_isLoggingOut || _isVoluntarySelfLogout) return;
         if (document.visibilityState === 'visible') {
             if (checkForAccountSwitchConflict()) return;
             if (!getSharedBrowserSession()) {
@@ -544,6 +597,7 @@ function startSessionWatchdog() {
     });
 
     window.addEventListener('focus', () => {
+        if (_isLoggingOut || _isVoluntarySelfLogout) return;
         if (checkForAccountSwitchConflict()) return;
         if (!getSharedBrowserSession()) {
             triggerConcurrentLogout('tab_logout');
@@ -560,6 +614,7 @@ function startSessionWatchdog() {
     }
 
     window.addEventListener('storage', (e) => {
+        if (_isLoggingOut || _isVoluntarySelfLogout) return;
         if (e.key === AUTH_SYNC_EVENT_KEY && e.newValue) {
             try {
                 handleCrossTabAuthSyncEvent(JSON.parse(e.newValue));
@@ -588,7 +643,7 @@ function startSessionWatchdog() {
     });
 
     const handleForceLogoutEvent = (payload) => {
-        if (!payload) return;
+        if (!payload || _isLoggingOut || _isVoluntarySelfLogout) return;
         const type = payload.type;
         const data = payload.data || payload;
         if (type === 'force_logout') {
@@ -670,7 +725,7 @@ const api = {
         if (browserCtx) headers['X-Browser-Context'] = browserCtx;
 
         if (requiresAuth) {
-            if (checkForAccountSwitchConflict()) {
+            if (!options?.skipConflictCheck && checkForAccountSwitchConflict()) {
                 throw new Error(ACCOUNT_SWITCHED_MESSAGE);
             }
             const token = sessionStorage.getItem('church_token');
@@ -690,7 +745,7 @@ const api = {
             return data;
         } catch (error) {
             console.error(`[API Error] ${method} ${endpoint}:`, error.message);
-            if (response && response.status === 401) {
+            if (response && response.status === 401 && !_isVoluntarySelfLogout) {
                 const termHeader = response.headers ? (response.headers.get('X-Session-Terminated') || '') : '';
                 if (termHeader === 'account_switched' || (error.message && error.message.toLowerCase().includes('different account was logged in'))) {
                     triggerConcurrentLogout('account_switched');
@@ -777,7 +832,7 @@ const api = {
                 previousToken
             }, false);
         },
-        logout: () => api.request('/auth/logout', 'POST'),
+        logout: () => api.request('/auth/logout', 'POST', null, true, { skipConflictCheck: true }),
         checkSession: () => api.request('/auth/check-session', 'GET'),
         getMe: () => api.request('/auth/me', 'GET'),
         updatePassword: (currentPassword, newPassword) => api.request('/auth/update-password', 'PUT', { currentPassword, newPassword }),

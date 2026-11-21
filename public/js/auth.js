@@ -47,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionStorage.removeItem('session_terminated_message');
         const msgText = customTerminationMsg || 'Your session has ended because a different account was logged in using another tab in this browser. Please log in again to continue.';
         showAlert(`<span class="alert-badge badge-warning"><i class="fa-solid fa-user-lock"></i> Session Ended</span> ${escapeAuthHtml(msgText)}`, 'warning');
+    } else if (logoutReason === 'self_logout') {
+        sessionStorage.removeItem('auth_logout_reason');
+        showAlert('<span class="alert-badge badge-info"><i class="fa-solid fa-right-from-bracket"></i> Signed Out</span> You have been signed out successfully.', 'info');
     } else if (logoutReason === 'tab_logout') {
         sessionStorage.removeItem('auth_logout_reason');
         showAlert('<span class="alert-badge badge-info"><i class="fa-solid fa-right-from-bracket"></i> Signed Out</span> You were logged out from another tab in this browser.', 'info');

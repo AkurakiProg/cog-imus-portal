@@ -574,6 +574,9 @@ function handleRealtimeLeaderUpdate(payload) {
     const type = payload.type;
 
     if (type === 'force_logout') {
+        if (window.authSessionSync && typeof window.authSessionSync.isVoluntaryLogout === 'function' && window.authSessionSync.isVoluntaryLogout()) {
+            return;
+        }
         const data = payload.data || payload;
         const targetUserId = data.user_id || payload.user_id;
         let currentUserId = null;
@@ -582,10 +585,11 @@ function handleRealtimeLeaderUpdate(payload) {
             currentUserId = u.user_id || u.id;
         } catch (err) {}
         if (currentUserId && targetUserId && String(currentUserId) === String(targetUserId)) {
+            const normalizedReason = data.reason === 'explicit_logout' ? 'tab_logout' : (data.reason || 'role_changed');
             if (typeof triggerConcurrentLogout === 'function') {
-                triggerConcurrentLogout(data.reason || 'role_changed');
+                triggerConcurrentLogout(normalizedReason);
             } else {
-                sessionStorage.setItem('auth_logout_reason', data.reason || 'role_changed');
+                sessionStorage.setItem('auth_logout_reason', normalizedReason);
                 window.location.href = '/views/login.html';
             }
             return;
@@ -725,25 +729,10 @@ function closeSidebar() {
     if (overlay) overlay.classList.remove('active');
 }
 async function logout() {
-    let uid = null;
-    try {
-        const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');
-        uid = u.user_id || u.id || null;
-    } catch (e) {}
-    try {
-        if (typeof window._cleanupDashboardSession === 'function') window._cleanupDashboardSession();
-        if (api.auth && api.auth.logout) await api.auth.logout();
-    } catch (e) {}
-    if (window.authSessionSync && typeof window.authSessionSync.broadcastLogout === 'function') {
-        window.authSessionSync.broadcastLogout(uid);
-    } else {
-        sessionStorage.removeItem('church_token');
-        sessionStorage.removeItem('church_user');
-        localStorage.removeItem('church_token');
-        localStorage.removeItem('church_user');
-        localStorage.removeItem('church_active_user_theme');
-        localStorage.removeItem('church_active_user_id');
+    if (window.authSessionSync && typeof window.authSessionSync.performLogout === 'function') {
+        return window.authSessionSync.performLogout();
     }
+    sessionStorage.setItem('auth_logout_reason', 'self_logout');
     window.location.href = '/views/login.html';
 }
 let toastTimeout = null;

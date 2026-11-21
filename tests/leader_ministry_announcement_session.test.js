@@ -686,3 +686,113 @@ test('5.C Frontend Client Sync Simulation: api.js authSessionSync synchronizes t
     assert.equal(tab1.sessionStorage.getItem('auth_logout_reason'), 'account_switched');
     assert.equal(tab1.sessionStorage.getItem('session_terminated_message'), ACCOUNT_SWITCHED_MESSAGE);
 });
+
+test('5.D Voluntary Button Logout sets self_logout (not tab_logout) while notifying sibling tabs', async () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'api.js'), 'utf8');
+    const authCode = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'auth.js'), 'utf8');
+
+    const makeStorage = () => {
+        const map = new Map();
+        return {
+            getItem: (k) => (map.has(k) ? map.get(k) : null),
+            setItem: (k, v) => map.set(k, String(v)),
+            removeItem: (k) => map.delete(k)
+        };
+    };
+    const sharedLocal = makeStorage();
+    const postedBroadcasts = [];
+    const sseInstances = [];
+    let logoutEndpointCalled = 0;
+
+    function createTab(pathname) {
+        const tabSession = makeStorage();
+        const sandbox = {
+            window: {
+                location: { pathname, href: pathname, replace: (u) => { sandbox.redirectedTo = u; } },
+                addEventListener: () => {}
+            },
+            document: {
+                readyState: 'complete',
+                addEventListener: () => {},
+                querySelectorAll: () => [],
+                getElementById: () => null,
+                body: { appendChild: () => {}, classList: { contains: () => false } },
+                documentElement: { classList: { contains: () => false }, getAttribute: () => 'light' },
+                createElement: () => ({ style: {}, setAttribute: () => {}, appendChild: () => {} })
+            },
+            localStorage: sharedLocal,
+            sessionStorage: tabSession,
+            BroadcastChannel: function(name) {
+                return {
+                    name,
+                    postMessage: (msg) => postedBroadcasts.push({ channel: name, msg }),
+                    onmessage: null
+                };
+            },
+            EventSource: function(url) {
+                const esObj = {
+                    url,
+                    closed: false,
+                    onmessage: null,
+                    close: () => { esObj.closed = true; }
+                };
+                sseInstances.push(esObj);
+                return esObj;
+            },
+            fetch: async (url) => {
+                if (String(url).includes('/api/auth/logout')) {
+                    logoutEndpointCalled++;
+                    // Simulate backend SSE broadcast firing right as /auth/logout runs
+                    for (const es of sseInstances) {
+                        if (!es.closed && typeof es.onmessage === 'function') {
+                            es.onmessage({ data: JSON.stringify({ type: 'force_logout', data: { user_id: 30, reason: 'explicit_logout' } }) });
+                        }
+                    }
+                }
+                return { ok: true, status: 200, headers: { get: () => '' }, json: async () => ({ success: true }) };
+            },
+            console,
+            setTimeout: () => 0,
+            setInterval: () => 0,
+            clearInterval: () => {},
+            redirectedTo: null
+        };
+        sandbox.window.localStorage = sharedLocal;
+        sandbox.window.sessionStorage = tabSession;
+        sandbox.window.location = new Proxy(sandbox.window.location, {
+            set(target, prop, val) {
+                target[prop] = val;
+                if (prop === 'href') sandbox.redirectedTo = val;
+                return true;
+            }
+        });
+        vm.createContext(sandbox);
+        vm.runInContext(apiCode, sandbox);
+        return sandbox;
+    }
+
+    const tabA = createTab('/views/leader-dashboard.html');
+    const tabB = createTab('/views/leader-dashboard.html');
+    const userObj = { user_id: 30, role_name: 'Church Leader', full_name: 'Leader Test' };
+    tabA.window.authSessionSync.recordBrowserLogin('tok-30', userObj, 'sync-30');
+    tabA.window.authSessionSync.bindTabUser(userObj);
+    tabB.window.authSessionSync.recordBrowserLogin('tok-30', userObj, 'sync-30');
+    tabB.window.authSessionSync.bindTabUser(userObj);
+
+    // User clicks Logout button in Tab A
+    await tabA.window.authSessionSync.performLogout();
+
+    assert.equal(logoutEndpointCalled, 1, 'POST /api/auth/logout must still execute on server');
+    assert.equal(tabA.sessionStorage.getItem('auth_logout_reason'), 'self_logout', 'Tab A must set self_logout instead of tab_logout');
+    assert.equal(tabA.window.location.href, '/views/login.html');
+
+    // Sibling Tab B receives the broadcast and treats it as tab_logout
+    const logoutBroadcast = postedBroadcasts.find(p => p.msg && p.msg.type === 'SESSION_LOGOUT');
+    assert.ok(logoutBroadcast, 'SESSION_LOGOUT must still be broadcast to sibling tabs');
+    tabB.window.authSessionSync.handleCrossTabAuthSyncEvent(logoutBroadcast.msg);
+    assert.equal(tabB.sessionStorage.getItem('auth_logout_reason'), 'tab_logout', 'Sibling Tab B still sees tab_logout');
+
+    // Login page renders calm self_logout notice instead of "another tab"
+    assert.ok(authCode.includes("logoutReason === 'self_logout'"), 'auth.js handles self_logout explicitly');
+    assert.ok(authCode.includes('You have been signed out successfully.'), 'auth.js displays clear voluntary sign-out message');
+});
