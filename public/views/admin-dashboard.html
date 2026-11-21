@@ -53,7 +53,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/admin.css?v=20261121_v1">
+    <link rel="stylesheet" href="/css/admin.css?v=20261121_v2">
     <link rel="stylesheet" href="/css/dark-theme.css?v=20261121_v1">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2712,15 +2712,30 @@
 
                 <!-- Gallery Photos Grid Section -->
                 <div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <div class="album-photos-header-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
                         <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fa-solid fa-photo-film" style="color: var(--primary);"></i> Current Photos in Album 
                             <span class="badge badge-info" id="albumPhotosCountBadge" style="font-size: 0.75rem; padding: 2px 8px;">
                                 <span id="albumPhotosCount">0</span> photos
                             </span>
                         </h4>
-                        <span class="text-xs text-slate-400">Hover photo to view delete action</span>
+                        <div id="albumPhotosBulkToolbar" class="album-photos-bulk-toolbar" style="display: none;">
+                            <label class="album-select-all-label" title="Select or deselect all photos in this album">
+                                <input type="checkbox" id="selectAllAlbumPhotos" onchange="window.AlbumPhotosManager && window.AlbumPhotosManager.toggleSelectAll(this.checked)">
+                                <span>Select All</span>
+                            </label>
+                            <span class="album-selected-summary" id="albumSelectedSummary">0 selected</span>
+                            <button type="button" id="btnClearPhotoSelection" class="btn-album-clear-selection" onclick="window.AlbumPhotosManager && window.AlbumPhotosManager.clearSelection()" style="display: none;">
+                                Clear
+                            </button>
+                            <button type="button" id="btnDeleteSelectedPhotos" class="btn-album-delete-selected" onclick="deleteSelectedAlbumPhotos()" disabled>
+                                <i class="fa-solid fa-trash-can"></i> Delete Selected (<span id="selectedPhotosCount">0</span>)
+                            </button>
+                        </div>
                     </div>
+                    <p id="albumPhotosHint" class="text-xs text-slate-400" style="margin: -0.25rem 0 0.75rem; display: none;">
+                        Click photos or checkboxes to select multiple (hold Shift to select a range), then click Delete Selected.
+                    </p>
                     <div id="albumPhotosGrid" class="photos-grid-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 1rem; max-height: 400px; overflow-y: auto; padding: 4px;">
                         <div class="p-8 text-center text-slate-400 col-span-full" style="grid-column: 1 / -1;">
                             <i class="fa-solid fa-spinner fa-spin text-xl text-primary mb-2"></i>
@@ -4248,8 +4263,9 @@
       <div class="toast-progress"></div>
     </div>
 
-    <script src="/js/api.js?v=20261121_v5"></script>
+    <script src="/js/api.js?v=20261121_v6"></script>
     <script src="/js/mfa-security.js?v=20261121_v1"></script>
-    <script src="/js/admin-dashboard.js?v=20261121_v4"></script>
+    <script src="/js/album-photos-helper.js?v=20261121_v1"></script>
+    <script src="/js/admin-dashboard.js?v=20261121_v5"></script>
 </body>
 </html>

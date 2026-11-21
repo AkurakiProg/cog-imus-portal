@@ -52,7 +52,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/admin.css?v=20261121_v1">
+    <link rel="stylesheet" href="/css/admin.css?v=20261121_v2">
     <link rel="stylesheet" href="/css/leader.css?v=20261121_v1">
     <link rel="stylesheet" href="/css/dark-theme.css?v=20261121_v1">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -1618,7 +1618,25 @@
                 </div>
 
                 <!-- Photos Grid -->
-                <h4 class="font-semibold text-navy text-sm mb-3">Current Photos in Album (<span id="albumPhotosCount">0</span>)</h4>
+                <div class="album-photos-header-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <h4 class="font-semibold text-navy text-sm" style="margin: 0;">Current Photos in Album (<span id="albumPhotosCount">0</span>)</h4>
+                    <div id="albumPhotosBulkToolbar" class="album-photos-bulk-toolbar" style="display: none;">
+                        <label class="album-select-all-label" title="Select or deselect all photos in this album">
+                            <input type="checkbox" id="selectAllAlbumPhotos" onchange="window.AlbumPhotosManager && window.AlbumPhotosManager.toggleSelectAll(this.checked)">
+                            <span>Select All</span>
+                        </label>
+                        <span class="album-selected-summary" id="albumSelectedSummary">0 selected</span>
+                        <button type="button" id="btnClearPhotoSelection" class="btn-album-clear-selection" onclick="window.AlbumPhotosManager && window.AlbumPhotosManager.clearSelection()" style="display: none;">
+                            Clear
+                        </button>
+                        <button type="button" id="btnDeleteSelectedPhotos" class="btn-album-delete-selected" onclick="deleteSelectedAlbumPhotos()" disabled>
+                            <i class="fa-solid fa-trash-can"></i> Delete Selected (<span id="selectedPhotosCount">0</span>)
+                        </button>
+                    </div>
+                </div>
+                <p id="albumPhotosHint" class="text-xs text-slate-400" style="margin: -0.25rem 0 0.75rem; display: none;">
+                    Click photos or checkboxes to select multiple (hold Shift to select a range), then click Delete Selected.
+                </p>
                 <div id="albumPhotosGrid" class="photos-grid-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; max-height: 380px; overflow-y: auto;">
                     <p class="text-slate-400 p-4">No photos yet.</p>
                 </div>
@@ -2497,9 +2515,10 @@
 
     <!-- External Libraries & Dashboard Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="/js/api.js?v=20261121_v5"></script>
+    <script src="/js/api.js?v=20261121_v6"></script>
     <script src="/js/mfa-security.js?v=20261121_v1"></script>
-    <script src="/js/leader-dashboard.js?v=20261121_v4"></script>
+    <script src="/js/album-photos-helper.js?v=20261121_v1"></script>
+    <script src="/js/leader-dashboard.js?v=20261121_v5"></script>
 
     <!-- Leader Event Add/Edit Modal (Matching Admin Event Modal) -->
     <div class="modal-overlay" id="leaderEventFormModal">

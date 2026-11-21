@@ -1084,7 +1084,8 @@ const api = {
         deleteAlbum: (id) => api.request(`/gallery/${id}`, 'DELETE'),
         getImages: (albumId) => api.request(`/gallery/${albumId}/images`, 'GET'),
         uploadImage: (albumId, formData) => api.requestFormData(`/gallery/${albumId}/images`, 'POST', formData),
-        deleteImage: (imageId) => api.request(`/gallery/images/${imageId}`, 'DELETE')
+        deleteImage: (imageId) => api.request(`/gallery/images/${imageId}`, 'DELETE'),
+        deleteImagesBulk: (imageIds, albumId = null) => api.request('/gallery/images/bulk-delete', 'POST', { imageIds, albumId })
     },
     system: {
         backup: () => `${API_BASE_URL}/system/backup`,

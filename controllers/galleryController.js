@@ -97,6 +97,57 @@ exports.addImage = async (req, res) => {
     }
 };
 
+/**
+ * Delete multiple gallery photos in bulk, optionally scoped to an album ID.
+ */
+exports.deleteImagesBulk = async (req, res) => {
+    try {
+        const body = req.body || {};
+        const rawIds = body.imageIds || body.image_ids || body.ids;
+        const cleanIds = Array.isArray(rawIds)
+            ? Array.from(new Set(rawIds.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0)))
+            : [];
+
+        if (cleanIds.length === 0) {
+            return errorResponse(res, 'Please select at least one photo to delete.', 400);
+        }
+        if (cleanIds.length > 500) {
+            return errorResponse(res, 'You can delete up to 500 photos at a time.', 400);
+        }
+
+        const rawAlbumId = req.params.id || body.albumId || body.album_id || null;
+        const { deletedCount, deletedIds } = await galleryModel.deleteImages(cleanIds, rawAlbumId);
+
+        if (deletedCount === 0) {
+            return errorResponse(res, 'No matching photos found to delete.', 404);
+        }
+
+        await userModel.logAudit(
+            req.user.id,
+            'DELETE_IMAGES_BULK',
+            'Gallery',
+            rawAlbumId ? Number(rawAlbumId) : deletedIds[0],
+            null,
+            {
+                album_id: rawAlbumId ? Number(rawAlbumId) : null,
+                deleted_ids: deletedIds,
+                deleted_count: deletedCount
+            },
+            req.ip,
+            req.headers['user-agent']
+        );
+
+        return successResponse(
+            res,
+            { deletedCount, deletedIds },
+            `${deletedCount} ${deletedCount === 1 ? 'photo' : 'photos'} deleted successfully`
+        );
+    } catch (error) {
+        console.error('Gallery deleteImagesBulk error:', error);
+        return errorResponse(res, 'Failed to delete selected photos', 500);
+    }
+};
+
 exports.deleteImage = async (req, res) => {
     try {
         await galleryModel.deleteImage(req.params.imageId);

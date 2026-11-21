@@ -7551,6 +7551,7 @@ async function deleteAlbum(id) {
 
 async function openAlbumPhotosModal(albumId) {
     currentAlbumId = albumId;
+    if (window.AlbumPhotosManager) window.AlbumPhotosManager.reset();
     const album = allAlbumsCache.find(a => a.album_id == albumId);
     if (album) {
         document.getElementById('albumPhotosTitle').textContent = `Manage Photos: ${album.title}`;
@@ -7566,6 +7567,7 @@ async function openAlbumPhotosModal(albumId) {
 
 function closeAlbumPhotosModal() {
     document.getElementById('albumPhotosModal').classList.remove('active');
+    if (window.AlbumPhotosManager) window.AlbumPhotosManager.reset();
     loadAlbumsAdmin();
 }
 
@@ -7579,23 +7581,7 @@ async function loadAlbumPhotos(albumId) {
         const grid = document.getElementById('albumPhotosGrid');
         if (!grid) return;
 
-        if (images.length === 0) {
-            grid.innerHTML = '<p class="text-slate-400 p-4 col-span-full">No photos in this album yet. Select image files above to upload.</p>';
-            return;
-        }
-
-        grid.innerHTML = images.map(img => `
-            <div class="album-photo-card">
-                <img src="${escapeHtml(img.image_path)}" alt="${escapeHtml(img.caption || 'Album Photo')}" loading="lazy" onerror="this.onerror=null; this.src='/images/sermon-placeholder.jpg';">
-                <div class="album-photo-overlay">
-                    <span class="text-xs text-white truncate" style="max-width: 110px; font-weight: 500;">${escapeHtml(img.caption || '')}</span>
-                    <button type="button" onclick="deleteAlbumPhoto(${img.image_id})" title="Delete this photo" 
-                            style="background: rgba(239, 68, 68, 0.9); color: #ffffff; border: none; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        window.AlbumPhotosManager.renderGrid(grid, images, escapeHtml);
     } catch (error) {
         console.error('Error loading album photos:', error);
         showToast('Error loading photos: ' + error.message);
@@ -7646,10 +7632,25 @@ async function deleteAlbumPhoto(imageId) {
     if (!ok) return;
     try {
         await api.gallery.deleteImage(imageId);
+        if (window.AlbumPhotosManager) window.AlbumPhotosManager.deselectId(imageId);
         showToast('Photo deleted successfully!');
         if (currentAlbumId) await loadAlbumPhotos(currentAlbumId);
     } catch (error) {
         showToast('Error deleting photo: ' + error.message);
+    }
+}
+
+async function deleteSelectedAlbumPhotos() {
+    try {
+        await window.AlbumPhotosManager.deleteSelected({
+            albumId: currentAlbumId,
+            apiClient: api,
+            confirmModal: showDecisionModal,
+            notify: showToast,
+            reloadPhotos: loadAlbumPhotos
+        });
+    } catch (error) {
+        showToast('Error deleting selected photos: ' + error.message);
     }
 }
 

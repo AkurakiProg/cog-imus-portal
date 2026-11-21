@@ -11,14 +11,16 @@ router.route('/')
     .get(ctrl.getAlbums)
     .post(upload.single('cover_image'), ctrl.createAlbum);
 
+router.post('/images/bulk-delete', ctrl.deleteImagesBulk);
+router.delete('/images/:imageId', ctrl.deleteImage);
+
 router.route('/:id')
     .put(upload.single('cover_image'), ctrl.updateAlbum)
     .delete(ctrl.deleteAlbum);
 
 router.route('/:id/images')
     .get(ctrl.getImages)
-    .post(upload.any(), ctrl.addImage);
-
-router.delete('/images/:imageId', ctrl.deleteImage);
+    .post(upload.any(), ctrl.addImage)
+    .delete(ctrl.deleteImagesBulk);
 
 module.exports = router;

@@ -73,4 +73,54 @@ const GalleryModel = {
     }
 };
 
+/**
+ * Delete multiple gallery photos in a single query, optionally scoped to an album.
+ * @param {Array<number|string>} imageIds
+ * @param {number|string|null} [albumId]
+ * @returns {Promise<{deletedCount: number, deletedIds: number[]}>}
+ */
+GalleryModel.deleteImages = async function (imageIds, albumId = null) {
+    const cleanIds = Array.from(new Set(
+        (Array.isArray(imageIds) ? imageIds : [])
+            .map((id) => Number(id))
+            .filter((id) => Number.isInteger(id) && id > 0)
+    ));
+    if (cleanIds.length === 0) {
+        return { deletedCount: 0, deletedIds: [] };
+    }
+
+    const placeholders = cleanIds.map(() => '?').join(', ');
+    const params = [...cleanIds];
+    let whereSql = `image_id IN (${placeholders})`;
+
+    if (albumId !== null && albumId !== undefined && albumId !== '') {
+        const parsedAlbumId = Number(albumId);
+        if (!Number.isInteger(parsedAlbumId) || parsedAlbumId <= 0) {
+            return { deletedCount: 0, deletedIds: [] };
+        }
+        whereSql += ' AND album_id = ?';
+        params.push(parsedAlbumId);
+    }
+
+    const [existingRows] = await pool.execute(
+        `SELECT image_id FROM gallery_images WHERE ${whereSql}`,
+        params
+    );
+    const existingIds = existingRows.map((row) => row.image_id);
+    if (existingIds.length === 0) {
+        return { deletedCount: 0, deletedIds: [] };
+    }
+
+    const deletePlaceholders = existingIds.map(() => '?').join(', ');
+    const [result] = await pool.execute(
+        `DELETE FROM gallery_images WHERE image_id IN (${deletePlaceholders})`,
+        existingIds
+    );
+
+    return {
+        deletedCount: result.affectedRows || existingIds.length,
+        deletedIds: existingIds
+    };
+};
+
 module.exports = GalleryModel;

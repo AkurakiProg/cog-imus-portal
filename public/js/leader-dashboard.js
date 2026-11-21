@@ -6811,6 +6811,7 @@ async function deleteAlbum(id) {
 
 async function openAlbumPhotosModal(albumId) {
     currentAlbumId = albumId;
+    if (window.AlbumPhotosManager) window.AlbumPhotosManager.reset();
     const album = allAlbumsCache.find(a => a.album_id == albumId);
     if (album) {
         document.getElementById('albumPhotosTitle').textContent = `Manage Photos: ${album.title}`;
@@ -6826,6 +6827,7 @@ async function openAlbumPhotosModal(albumId) {
 
 function closeAlbumPhotosModal() {
     document.getElementById('albumPhotosModal').classList.remove('active');
+    if (window.AlbumPhotosManager) window.AlbumPhotosManager.reset();
     loadAlbumsAdmin();
 }
 
@@ -6839,20 +6841,7 @@ async function loadAlbumPhotos(albumId) {
         const grid = document.getElementById('albumPhotosGrid');
         if (!grid) return;
 
-        if (images.length === 0) {
-            grid.innerHTML = '<p class="text-slate-400 p-4 col-span-full">No photos in this album yet. Select image files above to upload.</p>';
-            return;
-        }
-
-        grid.innerHTML = images.map(img => `
-            <div style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; aspect-ratio: 1/1;">
-                <img src="${escapeHtml(img.image_path)}" alt="Photo" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/images/sermon-placeholder.jpg';">
-                <button onclick="deleteAlbumPhoto(${img.image_id})" title="Delete Photo" 
-                        style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.85); color: #fff; border: none; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;">
-                    <i class="fa-solid fa-trash text-xs"></i>
-                </button>
-            </div>
-        `).join('');
+        window.AlbumPhotosManager.renderGrid(grid, images, escapeHtml);
     } catch (error) {
         console.error('Error loading album photos:', error);
         showToast('Error loading photos: ' + error.message);
@@ -6903,10 +6892,25 @@ async function deleteAlbumPhoto(imageId) {
     if (!ok) return;
     try {
         await api.gallery.deleteImage(imageId);
+        if (window.AlbumPhotosManager) window.AlbumPhotosManager.deselectId(imageId);
         showToast('Photo deleted successfully!');
         if (currentAlbumId) await loadAlbumPhotos(currentAlbumId);
     } catch (error) {
         showToast('Error deleting photo: ' + error.message);
+    }
+}
+
+async function deleteSelectedAlbumPhotos() {
+    try {
+        await window.AlbumPhotosManager.deleteSelected({
+            albumId: currentAlbumId,
+            apiClient: api,
+            confirmModal: showDecisionModal,
+            notify: showToast,
+            reloadPhotos: loadAlbumPhotos
+        });
+    } catch (error) {
+        showToast('Error deleting selected photos: ' + error.message);
     }
 }
 
