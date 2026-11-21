@@ -10095,7 +10095,7 @@ const CMS_PAYMENT_PROVIDER_DEFAULTS = {
         defaultAccountName: 'Sample Church Account Name',
         defaultAccountNumber: '09XX-XXX-XXXX (Sample)',
         defaultBranch: '',
-        defaultInstructions: 'Sample instruction: Scan this placeholder QR or update with official church GCash details via Admin CMS.'
+        defaultInstructions: ''
     },
     bpi: {
         provider: 'bpi',
@@ -10104,7 +10104,7 @@ const CMS_PAYMENT_PROVIDER_DEFAULTS = {
         defaultAccountName: 'Sample Church Account Name',
         defaultAccountNumber: 'XXXX-XXXX-XX (Sample)',
         defaultBranch: 'Sample Imus Branch',
-        defaultInstructions: 'Sample instruction: Enter official BPI account details and branch in Admin CMS before accepting live transfers.'
+        defaultInstructions: ''
     },
     bdo: {
         provider: 'bdo',
@@ -10113,7 +10113,7 @@ const CMS_PAYMENT_PROVIDER_DEFAULTS = {
         defaultAccountName: 'Sample Church Account Name',
         defaultAccountNumber: 'XXXX-XXXX-XXXX (Sample)',
         defaultBranch: 'Sample Imus Branch',
-        defaultInstructions: 'Sample instruction: Enter official BDO account details and branch in Admin CMS before accepting live transfers.'
+        defaultInstructions: ''
     }
 };
 

@@ -1044,7 +1044,6 @@ window._publicPaymentInfo = null;
 function renderPublicPaymentInfo(paymentInfo) {
     const gridEl = document.getElementById('paymentCardsGrid');
     const emptyEl = document.getElementById('paymentEmptyState');
-    const bannerEl = document.getElementById('paymentSampleBanner');
     if (!gridEl) return;
 
     const info = (paymentInfo && typeof paymentInfo === 'object') ? paymentInfo : {};
@@ -1057,7 +1056,6 @@ function renderPublicPaymentInfo(paymentInfo) {
     ];
 
     let visibleCount = 0;
-    let hasSampleVisible = false;
 
     for (const p of providers) {
         const entry = info[p.key] || {};
@@ -1073,7 +1071,6 @@ function renderPublicPaymentInfo(paymentInfo) {
         cardEl.style.display = 'flex';
         visibleCount++;
         const isSample = entry.is_sample === true;
-        if (isSample) hasSampleVisible = true;
 
         const badgeEl = document.getElementById(`paymentBadge${p.suffix}`);
         if (badgeEl) {
@@ -1089,13 +1086,13 @@ function renderPublicPaymentInfo(paymentInfo) {
                     <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('${p.key}')" aria-label="Enlarge ${escapeHtml(p.label)} QR Code">
                         <img id="paymentQrImg${p.suffix}" src="${escapeHtml(qrUrl)}" alt="${escapeHtml(p.label)} QR Code">
                     </button>
-                    <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Click or tap QR to enlarge</span>
+                    <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Enlarge QR</span>
                 `;
             } else {
                 qrWrapEl.innerHTML = `
                     <div class="payment-qr-empty">
                         <i class="fa-regular fa-image"></i>
-                        <span>No QR code uploaded. Use the account details below.</span>
+                        <span>No QR uploaded</span>
                     </div>
                 `;
             }
@@ -1133,13 +1130,8 @@ function renderPublicPaymentInfo(paymentInfo) {
         }
     }
 
-    gridEl.classList.remove('is-single-card', 'is-two-cards');
-    if (visibleCount === 1) gridEl.classList.add('is-single-card');
-    else if (visibleCount === 2) gridEl.classList.add('is-two-cards');
-
     gridEl.style.display = visibleCount > 0 ? 'grid' : 'none';
     if (emptyEl) emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
-    if (bannerEl) bannerEl.style.display = hasSampleVisible ? 'flex' : 'none';
 }
 
 function openPaymentQrModal(providerKey) {

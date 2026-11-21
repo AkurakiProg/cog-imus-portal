@@ -93,7 +93,10 @@ test('1. Public Contact Page Payment Section Markup & Safe Sample Placeholder', 
 
     const contactHtml = fs.readFileSync(path.join(ROOT, 'public/views/contact.html'), 'utf8');
     assert.ok(contactHtml.includes('id="payment-info"'), '#payment-info section exists');
-    assert.ok(contactHtml.includes('Church Donation &amp; Payment Information'), 'Payment section heading present');
+    assert.ok(contactHtml.includes('class="contact-left-column"'), 'Payment cards are placed inside the left contact column beneath Church Information');
+    assert.ok(!contactHtml.includes('Stewardship &amp; Giving'), 'Header copy removed as requested');
+    assert.ok(!contactHtml.includes('Sample Placeholder Notice:'), 'Sample Placeholder Notice banner removed as requested');
+    assert.ok(!contactHtml.includes('Sample instruction:'), 'Sample instruction text removed as requested');
     assert.ok(contactHtml.includes('id="paymentCardGcash"'), 'GCash card rendered');
     assert.ok(contactHtml.includes('id="paymentCardBpi"'), 'BPI card rendered');
     assert.ok(contactHtml.includes('id="paymentCardBdo"'), 'BDO card rendered');
@@ -360,7 +363,7 @@ test('6. Frontend JS Functional Execution: Public Payment Hydration, Empty State
     });
 
     const ids = [
-        'paymentCardsGrid', 'paymentEmptyState', 'paymentSampleBanner',
+        'paymentCardsGrid', 'paymentEmptyState',
         'paymentQrModal', 'paymentQrModalImg', 'paymentQrModalTitle', 'paymentQrModalSub', 'paymentQrModalNum'
     ];
     for (const suf of ['Gcash', 'Bpi', 'Bdo']) {
@@ -392,13 +395,12 @@ test('6. Frontend JS Functional Execution: Public Payment Hydration, Empty State
     };
     vm.runInNewContext(publicJs, sandbox);
 
-    // Case A: Sample state renders 3 cards + sample banner
+    // Case A: Sample state renders 3 cards without banner or empty state
     sandbox.window.renderPublicPaymentInfo({
         gcash: { enabled: true, account_name: 'Sample Church', account_number: '09XX-XXX-XXXX', qr_image_url: '/images/sample-qr-placeholder.svg', is_sample: true },
         bpi: { enabled: true, account_name: 'Sample BPI', account_number: 'XXXX-XX', branch: 'Imus', qr_image_url: '/images/sample-qr-placeholder.svg', is_sample: true },
         bdo: { enabled: true, account_name: 'Sample BDO', account_number: 'XXXX-XXXX', branch: 'Imus', qr_image_url: '/images/sample-qr-placeholder.svg', is_sample: true }
     });
-    assert.equal(domMap.get('paymentSampleBanner').style.display, 'flex');
     assert.equal(domMap.get('paymentBadgeGcash').textContent, 'Sample Placeholder');
     assert.equal(domMap.get('paymentEmptyState').style.display, 'none');
 
@@ -408,9 +410,8 @@ test('6. Frontend JS Functional Execution: Public Payment Hydration, Empty State
         bpi: { enabled: true, account_name: 'COG BPI', account_number: '1111-2222-33', branch: '', qr_image_url: '', is_sample: false },
         bdo: { enabled: false, account_name: 'Off', account_number: '0', is_sample: false }
     });
-    assert.equal(domMap.get('paymentSampleBanner').style.display, 'none');
     assert.equal(domMap.get('paymentCardBdo').style.display, 'none');
-    assert.ok(domMap.get('paymentCardsGrid').classList.contains('is-two-cards'));
+    assert.equal(domMap.get('paymentCardsGrid').style.display, 'grid');
     assert.equal(domMap.get('paymentBadgeGcash').textContent, 'Official Account');
     assert.ok(domMap.get('paymentQrWrapBpi').innerHTML.includes('payment-qr-empty'));
     assert.equal(domMap.get('paymentBranchRowBpi').style.display, 'none');

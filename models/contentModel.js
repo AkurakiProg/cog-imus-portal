@@ -38,7 +38,7 @@ function getDefaultPaymentInfo() {
             account_name: 'Sample Church Account Name',
             account_number: '09XX-XXX-XXXX (Sample)',
             branch: '',
-            instructions: 'Sample instruction: Scan this placeholder QR or update with official church GCash details via Admin CMS.',
+            instructions: '',
             qr_image_url: '/images/sample-qr-placeholder.svg',
             is_sample: true,
             updated_at: null
@@ -50,7 +50,7 @@ function getDefaultPaymentInfo() {
             account_name: 'Sample Church Account Name',
             account_number: 'XXXX-XXXX-XX (Sample)',
             branch: 'Sample Imus Branch',
-            instructions: 'Sample instruction: Enter official BPI account details and branch in Admin CMS before accepting live transfers.',
+            instructions: '',
             qr_image_url: '/images/sample-qr-placeholder.svg',
             is_sample: true,
             updated_at: null
@@ -62,7 +62,7 @@ function getDefaultPaymentInfo() {
             account_name: 'Sample Church Account Name',
             account_number: 'XXXX-XXXX-XXXX (Sample)',
             branch: 'Sample Imus Branch',
-            instructions: 'Sample instruction: Enter official BDO account details and branch in Admin CMS before accepting live transfers.',
+            instructions: '',
             qr_image_url: '/images/sample-qr-placeholder.svg',
             is_sample: true,
             updated_at: null

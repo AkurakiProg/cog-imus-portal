@@ -122,100 +122,43 @@
         }
 
         /* Church Donation & Payment Information */
-        .payment-section {
-            margin-top: 4rem;
-            padding-top: 3.5rem;
-            border-top: 1px solid var(--border);
-        }
-        .payment-section-header {
-            text-align: center;
-            max-width: 720px;
-            margin: 0 auto 2rem;
-        }
-        .payment-section-eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.4px;
-            color: var(--gold);
-            margin-bottom: 0.65rem;
-        }
-        .payment-section-header h2 {
-            font-family: var(--serif);
-            font-size: clamp(1.75rem, 3vw, 2.35rem);
-            color: var(--navy);
-            margin-bottom: 0.75rem;
-        }
-        .payment-section-header p {
-            color: var(--text-muted);
-            font-size: 0.96rem;
-            line-height: 1.65;
-        }
-        .payment-sample-banner {
+        .contact-left-column {
             display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-            max-width: 900px;
-            margin: 0 auto 2rem;
-            padding: 0.9rem 1.2rem;
-            border-radius: 12px;
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            color: #92400e;
-            font-size: 0.88rem;
-            line-height: 1.55;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-width: 0;
         }
-        .payment-sample-banner i {
-            font-size: 1rem;
-            margin-top: 0.18rem;
-            color: #d97706;
-            flex-shrink: 0;
+        .payment-section {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
         }
         .payment-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 1.75rem;
+            grid-template-columns: 1fr;
+            gap: 1rem;
             align-items: stretch;
-        }
-        .payment-grid.is-single-card {
-            grid-template-columns: minmax(0, 440px);
-            justify-content: center;
-        }
-        .payment-grid.is-two-cards {
-            grid-template-columns: repeat(2, minmax(0, 440px));
-            justify-content: center;
         }
         .payment-card {
             background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: var(--shadow-lg);
-            padding: 1.75rem 1.5rem;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-top: 4px solid var(--navy);
+            border-radius: 14px;
+            box-shadow: var(--shadow-card);
+            padding: 1.1rem 1.25rem;
             display: flex;
             flex-direction: column;
-            gap: 1.15rem;
-            position: relative;
-            overflow: hidden;
+            gap: 0.85rem;
+            min-width: 0;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .payment-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
         }
-        .payment-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: var(--navy);
-        }
-        .payment-card--gcash::before { background: linear-gradient(90deg, #007dfe, #0055c4); }
-        .payment-card--bpi::before { background: linear-gradient(90deg, #b11116, #7a0b10); }
-        .payment-card--bdo::before { background: linear-gradient(90deg, #003a8c, #001f4d); }
+        .payment-card--gcash { border-top-color: #007dfe; }
+        .payment-card--bpi { border-top-color: #9e1b32; }
+        .payment-card--bdo { border-top-color: #003a8c; }
         .payment-card-head {
             display: flex;
             align-items: center;
@@ -225,43 +168,51 @@
         .payment-brand {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.7rem;
+            min-width: 0;
         }
         .payment-brand-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 11px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 0.92rem;
-            letter-spacing: 0.5px;
+            font-size: 0.86rem;
+            letter-spacing: 0.4px;
             color: #ffffff;
             flex-shrink: 0;
         }
         .payment-card--gcash .payment-brand-icon { background: #007dfe; }
         .payment-card--bpi .payment-brand-icon { background: #9e1b32; }
         .payment-card--bdo .payment-brand-icon { background: #003a8c; }
+        .payment-brand-title {
+            min-width: 0;
+        }
         .payment-brand-title h3 {
             margin: 0;
-            font-size: 1.15rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--navy);
+            line-height: 1.25;
         }
         .payment-brand-title span {
-            font-size: 0.78rem;
+            display: block;
+            font-size: 0.76rem;
             color: var(--text-muted);
+            line-height: 1.3;
         }
         .payment-status-pill {
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
-            padding: 0.25rem 0.65rem;
+            gap: 0.3rem;
+            padding: 0.24rem 0.65rem;
             border-radius: 999px;
             font-size: 0.72rem;
             font-weight: 700;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         .payment-status-pill.is-sample {
             background: #fef3c7;
@@ -273,23 +224,29 @@
             color: #166534;
             border: 1px solid #bbf7d0;
         }
+        .payment-card-body {
+            display: grid;
+            grid-template-columns: 122px minmax(0, 1fr);
+            gap: 0.95rem;
+            align-items: start;
+        }
         .payment-qr-frame {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 0.85rem;
+            border-radius: 10px;
+            padding: 0.5rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.55rem;
+            gap: 0.4rem;
         }
         .payment-qr-button {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 0.5rem;
+            border-radius: 8px;
+            padding: 0.35rem;
             width: 100%;
-            max-width: 220px;
+            max-width: 112px;
             aspect-ratio: 1 / 1;
             display: flex;
             align-items: center;
@@ -312,17 +269,18 @@
             display: block;
         }
         .payment-qr-caption {
-            font-size: 0.76rem;
+            font-size: 0.72rem;
             color: var(--text-muted);
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
+            gap: 0.3rem;
+            white-space: nowrap;
         }
         .payment-qr-empty {
             width: 100%;
-            max-width: 220px;
+            max-width: 112px;
             aspect-ratio: 1 / 1;
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1.5px dashed #cbd5e1;
             background: #ffffff;
             display: flex;
@@ -330,61 +288,64 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 1rem;
+            padding: 0.5rem;
             color: var(--text-muted);
-            font-size: 0.8rem;
-            gap: 0.45rem;
+            font-size: 0.72rem;
+            gap: 0.35rem;
         }
         .payment-qr-empty i {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             color: #94a3b8;
         }
         .payment-details-list {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
-            flex: 1;
+            gap: 0.5rem;
+            min-width: 0;
         }
         .payment-detail-row {
-            background: var(--light-bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 0.65rem 0.85rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            padding: 0.5rem 0.75rem;
+            min-width: 0;
         }
         .payment-detail-label {
             display: block;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.55px;
             color: var(--text-muted);
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.15rem;
         }
         .payment-detail-value-wrap {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.5rem;
+            min-width: 0;
         }
         .payment-detail-value {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 700;
             color: var(--navy);
-            word-break: break-word;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
         }
         .payment-copy-btn {
             background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            padding: 0.3rem 0.55rem;
-            font-size: 0.74rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.72rem;
             font-weight: 600;
             color: var(--navy);
             cursor: pointer;
             flex-shrink: 0;
             display: inline-flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.25rem;
             transition: background 0.15s ease, border-color 0.15s ease;
         }
         .payment-copy-btn:hover {
@@ -395,25 +356,23 @@
             background: #f8fafc;
             border-left: 3px solid var(--gold);
             border-radius: 0 8px 8px 0;
-            padding: 0.65rem 0.85rem;
-            font-size: 0.83rem;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
-            line-height: 1.5;
+            line-height: 1.45;
         }
         .payment-empty-state {
             text-align: center;
-            padding: 2.5rem 1.5rem;
+            padding: 2rem 1.25rem;
             background: var(--white);
-            border: 1px dashed var(--border);
-            border-radius: 16px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px;
             color: var(--text-muted);
-            max-width: 680px;
-            margin: 0 auto;
         }
         .payment-empty-state i {
-            font-size: 2rem;
+            font-size: 1.75rem;
             color: #94a3b8;
-            margin-bottom: 0.65rem;
+            margin-bottom: 0.5rem;
         }
         .payment-qr-modal {
             position: fixed;
@@ -474,27 +433,16 @@
             object-fit: contain;
             display: block;
         }
-        @media (max-width: 1024px) {
-            .payment-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+        @media (max-width: 520px) {
+            .payment-card-head {
+                flex-wrap: wrap;
             }
-            .payment-grid.is-two-cards {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-        @media (max-width: 680px) {
-            .payment-section {
-                margin-top: 2.75rem;
-                padding-top: 2.5rem;
-            }
-            .payment-grid,
-            .payment-grid.is-single-card,
-            .payment-grid.is-two-cards {
+            .payment-card-body {
                 grid-template-columns: 1fr;
             }
             .payment-qr-button,
             .payment-qr-empty {
-                max-width: 240px;
+                max-width: 180px;
             }
         }
     </style>
@@ -533,57 +481,196 @@
     <!-- Contact & Prayer Request Section -->
     <section class="section section-subtle">
         <div class="contact-grid">
-            <!-- Left: Church Information -->
-            <div class="contact-info-card reveal">
-                <h3 style="font-size: 1.6rem; color: var(--navy); margin-bottom: 0.5rem;">Church Information</h3>
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Visit us for our weekly worship or reach out to our team.</p>
+            <!-- Left Column: Church Information & Payment Channels -->
+            <div class="contact-left-column">
+                <div class="contact-info-card reveal">
+                    <h3 style="font-size: 1.6rem; color: var(--navy); margin-bottom: 0.5rem;">Church Information</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Visit us for our weekly worship or reach out to our team.</p>
 
-                <div class="contact-info-item">
-                    <div class="contact-icon"><i class="fa-solid fa-location-dot"></i></div>
-                    <div>
-                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Location</h4>
-                        <p id="contactCardLocation" style="color: var(--text-dark); margin: 0; font-size: 0.92rem; line-height: 1.5;">Emilio Aguinaldo Highway, Palico, Imus, Cavite, Philippines</p>
+                    <div class="contact-info-item">
+                        <div class="contact-icon"><i class="fa-solid fa-location-dot"></i></div>
+                        <div>
+                            <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Location</h4>
+                            <p id="contactCardLocation" style="color: var(--text-dark); margin: 0; font-size: 0.92rem; line-height: 1.5;">Emilio Aguinaldo Highway, Palico, Imus, Cavite, Philippines</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-info-item">
+                        <div class="contact-icon"><i class="fa-solid fa-phone"></i></div>
+                        <div>
+                            <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Phone / Mobile</h4>
+                            <p id="contactCardPhone" style="color: var(--text-dark); margin: 0; font-size: 0.92rem;">+63 46 471 2345 &bull; +63 917 123 4567</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-info-item">
+                        <div class="contact-icon"><i class="fa-solid fa-envelope"></i></div>
+                        <div>
+                            <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Email Address</h4>
+                            <p id="contactCardEmail" style="color: var(--text-dark); margin: 0; font-size: 0.92rem;"><a href="mailto:contact@cogimus.org" style="color: inherit; text-decoration: none;">contact@cogimus.org</a></p>
+                        </div>
+                    </div>
+
+                    <div class="contact-info-item">
+                        <div class="contact-icon"><i class="fa-solid fa-business-time"></i></div>
+                        <div>
+                            <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Office &amp; Ministry Hours</h4>
+                            <p id="contactCardHours" style="color: var(--text-dark); margin: 0; font-size: 0.92rem;">Tuesday &ndash; Saturday: 9:00 AM &ndash; 5:00 PM | Sunday: 7:00 AM &ndash; 1:00 PM</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-info-item">
+                        <div class="contact-icon"><i class="fa-solid fa-clock"></i></div>
+                        <div>
+                            <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Weekly Worship Services</h4>
+                            <p id="contactCardServices" style="color: var(--text-dark); margin: 0; font-size: 0.92rem; line-height: 1.6;">
+                                <strong>Sunday:</strong> 9:00 AM &bull; 3:00 PM<br>
+                                <strong>Wednesday:</strong> 7:00 PM (Midweek Prayer)<br>
+                                <strong>Saturday:</strong> 4:00 PM (Youth Alive)
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="contact-info-item">
-                    <div class="contact-icon"><i class="fa-solid fa-phone"></i></div>
-                    <div>
-                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Phone / Mobile</h4>
-                        <p id="contactCardPhone" style="color: var(--text-dark); margin: 0; font-size: 0.92rem;">+63 46 471 2345 &bull; +63 917 123 4567</p>
-                    </div>
-                </div>
+                <!-- Payment Cards directly underneath Church Information -->
+                <div id="payment-info" class="payment-section" aria-label="Church Donation and Payment Information">
+                    <div id="paymentCardsGrid" class="payment-grid">
+                        <!-- GCash Card -->
+                        <article id="paymentCardGcash" class="payment-card payment-card--gcash" data-provider="gcash">
+                            <div class="payment-card-head">
+                                <div class="payment-brand">
+                                    <div class="payment-brand-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                                    <div class="payment-brand-title">
+                                        <h3>GCash</h3>
+                                        <span>Mobile E-Wallet</span>
+                                    </div>
+                                </div>
+                                <span id="paymentBadgeGcash" class="payment-status-pill is-sample">Sample Placeholder</span>
+                            </div>
+                            <div class="payment-card-body">
+                                <div class="payment-qr-frame" id="paymentQrWrapGcash">
+                                    <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('gcash')" aria-label="Enlarge GCash QR Code">
+                                        <img id="paymentQrImgGcash" src="/images/sample-qr-placeholder.svg" alt="GCash QR Code">
+                                    </button>
+                                    <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Enlarge QR</span>
+                                </div>
+                                <div class="payment-details-list">
+                                    <div class="payment-detail-row">
+                                        <span class="payment-detail-label">Account Name</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentAccNameGcash">Sample Church Account Name</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-detail-row">
+                                        <span class="payment-detail-label">GCash Mobile Number</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentAccNumGcash">09XX-XXX-XXXX (Sample)</span>
+                                            <button type="button" class="payment-copy-btn" onclick="copyPaymentField('paymentAccNumGcash', this)" title="Copy number"><i class="fa-regular fa-copy"></i> Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="payment-instructions" id="paymentInstGcash" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </article>
 
-                <div class="contact-info-item">
-                    <div class="contact-icon"><i class="fa-solid fa-envelope"></i></div>
-                    <div>
-                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Email Address</h4>
-                        <p id="contactCardEmail" style="color: var(--text-dark); margin: 0; font-size: 0.92rem;"><a href="mailto:contact@cogimus.org" style="color: inherit; text-decoration: none;">contact@cogimus.org</a></p>
-                    </div>
-                </div>
+                        <!-- BPI Card -->
+                        <article id="paymentCardBpi" class="payment-card payment-card--bpi" data-provider="bpi">
+                            <div class="payment-card-head">
+                                <div class="payment-brand">
+                                    <div class="payment-brand-icon" aria-hidden="true">BPI</div>
+                                    <div class="payment-brand-title">
+                                        <h3>BPI</h3>
+                                        <span>Bank of the Philippine Islands</span>
+                                    </div>
+                                </div>
+                                <span id="paymentBadgeBpi" class="payment-status-pill is-sample">Sample Placeholder</span>
+                            </div>
+                            <div class="payment-card-body">
+                                <div class="payment-qr-frame" id="paymentQrWrapBpi">
+                                    <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('bpi')" aria-label="Enlarge BPI QR Code">
+                                        <img id="paymentQrImgBpi" src="/images/sample-qr-placeholder.svg" alt="BPI QR Code">
+                                    </button>
+                                    <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Enlarge QR</span>
+                                </div>
+                                <div class="payment-details-list">
+                                    <div class="payment-detail-row">
+                                        <span class="payment-detail-label">Account Name</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentAccNameBpi">Sample Church Account Name</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-detail-row">
+                                        <span class="payment-detail-label">Bank Account Number</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentAccNumBpi">XXXX-XXXX-XX (Sample)</span>
+                                            <button type="button" class="payment-copy-btn" onclick="copyPaymentField('paymentAccNumBpi', this)" title="Copy account number"><i class="fa-regular fa-copy"></i> Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="payment-detail-row" id="paymentBranchRowBpi">
+                                        <span class="payment-detail-label">Branch</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentBranchBpi">Sample Imus Branch</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-instructions" id="paymentInstBpi" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </article>
 
-                <div class="contact-info-item">
-                    <div class="contact-icon"><i class="fa-solid fa-business-time"></i></div>
-                    <div>
-                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Office &amp; Ministry Hours</h4>
-                        <p id="contactCardHours" style="color: var(--text-dark); margin: 0; font-size: 0.92rem;">Tuesday &ndash; Saturday: 9:00 AM &ndash; 5:00 PM | Sunday: 7:00 AM &ndash; 1:00 PM</p>
+                        <!-- BDO Card -->
+                        <article id="paymentCardBdo" class="payment-card payment-card--bdo" data-provider="bdo">
+                            <div class="payment-card-head">
+                                <div class="payment-brand">
+                                    <div class="payment-brand-icon" aria-hidden="true">BDO</div>
+                                    <div class="payment-brand-title">
+                                        <h3>BDO</h3>
+                                        <span>Banco de Oro</span>
+                                    </div>
+                                </div>
+                                <span id="paymentBadgeBdo" class="payment-status-pill is-sample">Sample Placeholder</span>
+                            </div>
+                            <div class="payment-card-body">
+                                <div class="payment-qr-frame" id="paymentQrWrapBdo">
+                                    <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('bdo')" aria-label="Enlarge BDO QR Code">
+                                        <img id="paymentQrImgBdo" src="/images/sample-qr-placeholder.svg" alt="BDO QR Code">
+                                    </button>
+                                    <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Enlarge QR</span>
+                                </div>
+                                <div class="payment-details-list">
+                                    <div class="payment-detail-row">
+                                        <span class="payment-detail-label">Account Name</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentAccNameBdo">Sample Church Account Name</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-detail-row">
+                                        <span class="payment-detail-label">Bank Account Number</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentAccNumBdo">XXXX-XXXX-XXXX (Sample)</span>
+                                            <button type="button" class="payment-copy-btn" onclick="copyPaymentField('paymentAccNumBdo', this)" title="Copy account number"><i class="fa-regular fa-copy"></i> Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="payment-detail-row" id="paymentBranchRowBdo">
+                                        <span class="payment-detail-label">Branch</span>
+                                        <div class="payment-detail-value-wrap">
+                                            <span class="payment-detail-value" id="paymentBranchBdo">Sample Imus Branch</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-instructions" id="paymentInstBdo" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </article>
                     </div>
-                </div>
 
-                <div class="contact-info-item">
-                    <div class="contact-icon"><i class="fa-solid fa-clock"></i></div>
-                    <div>
-                        <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 0.2rem;">Weekly Worship Services</h4>
-                        <p id="contactCardServices" style="color: var(--text-dark); margin: 0; font-size: 0.92rem; line-height: 1.6;">
-                            <strong>Sunday:</strong> 9:00 AM &bull; 3:00 PM<br>
-                            <strong>Wednesday:</strong> 7:00 PM (Midweek Prayer)<br>
-                            <strong>Saturday:</strong> 4:00 PM (Youth Alive)
-                        </p>
+                    <div id="paymentEmptyState" class="payment-empty-state" style="display: none;">
+                        <i class="fa-solid fa-building-columns"></i>
+                        <h3 style="margin-bottom: 0.4rem; color: var(--navy);">Payment Channels Unavailable</h3>
+                        <p style="margin: 0;">Online donation and payment details are currently hidden or being updated by the Church Administrator. Please contact our church office for assistance.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Right: Contact & Prayer Request Form -->
+            <!-- Right Column: Contact & Prayer Request Form -->
             <div class="contact-form-card reveal">
                 <h3 style="font-size: 1.6rem; color: var(--navy); margin-bottom: 0.5rem;">Send a Message or Prayer Request</h3>
                 <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.75rem;">Our ministry and pastoral team reads and prays over every message.</p>
@@ -620,156 +707,6 @@
                         <i class="fa-solid fa-paper-plane"></i> Send Message
                     </button>
                 </form>
-            </div>
-
-            <!-- Church Donation & Payment Information -->
-            <div id="payment-info" class="payment-section" aria-labelledby="paymentSectionTitle">
-                <div class="payment-section-header">
-                    <span class="payment-section-eyebrow"><i class="fa-solid fa-hand-holding-heart"></i> Stewardship &amp; Giving</span>
-                    <h2 id="paymentSectionTitle">Church Donation &amp; Payment Information</h2>
-                    <p>Support our church ministries and community outreach through our official GCash, BPI, and BDO channels below.</p>
-                </div>
-
-                <div id="paymentSampleBanner" class="payment-sample-banner">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <div>
-                        <strong>Sample Placeholder Notice:</strong> Payment credentials marked <strong>Sample Placeholder</strong> are illustrative examples only and do not represent active church accounts. Official account details and verified QR codes are updated by the Church Administrator.
-                    </div>
-                </div>
-
-                <div id="paymentCardsGrid" class="payment-grid">
-                    <!-- GCash Card -->
-                    <article id="paymentCardGcash" class="payment-card payment-card--gcash" data-provider="gcash">
-                        <div class="payment-card-head">
-                            <div class="payment-brand">
-                                <div class="payment-brand-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></div>
-                                <div class="payment-brand-title">
-                                    <h3>GCash</h3>
-                                    <span>Mobile E-Wallet</span>
-                                </div>
-                            </div>
-                            <span id="paymentBadgeGcash" class="payment-status-pill is-sample">Sample Placeholder</span>
-                        </div>
-                        <div class="payment-qr-frame" id="paymentQrWrapGcash">
-                            <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('gcash')" aria-label="Enlarge GCash QR Code">
-                                <img id="paymentQrImgGcash" src="/images/sample-qr-placeholder.svg" alt="GCash QR Code">
-                            </button>
-                            <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Click or tap QR to enlarge</span>
-                        </div>
-                        <div class="payment-details-list">
-                            <div class="payment-detail-row">
-                                <span class="payment-detail-label">Account Name</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentAccNameGcash">Sample Church Account Name</span>
-                                </div>
-                            </div>
-                            <div class="payment-detail-row">
-                                <span class="payment-detail-label">GCash Mobile Number</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentAccNumGcash">09XX-XXX-XXXX (Sample)</span>
-                                    <button type="button" class="payment-copy-btn" onclick="copyPaymentField('paymentAccNumGcash', this)" title="Copy number"><i class="fa-regular fa-copy"></i> Copy</button>
-                                </div>
-                            </div>
-                            <div class="payment-instructions" id="paymentInstGcash">
-                                Sample instruction: Scan this placeholder QR or update with official church GCash details via Admin CMS.
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- BPI Card -->
-                    <article id="paymentCardBpi" class="payment-card payment-card--bpi" data-provider="bpi">
-                        <div class="payment-card-head">
-                            <div class="payment-brand">
-                                <div class="payment-brand-icon" aria-hidden="true">BPI</div>
-                                <div class="payment-brand-title">
-                                    <h3>BPI</h3>
-                                    <span>Bank of the Philippine Islands</span>
-                                </div>
-                            </div>
-                            <span id="paymentBadgeBpi" class="payment-status-pill is-sample">Sample Placeholder</span>
-                        </div>
-                        <div class="payment-qr-frame" id="paymentQrWrapBpi">
-                            <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('bpi')" aria-label="Enlarge BPI QR Code">
-                                <img id="paymentQrImgBpi" src="/images/sample-qr-placeholder.svg" alt="BPI QR Code">
-                            </button>
-                            <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Click or tap QR to enlarge</span>
-                        </div>
-                        <div class="payment-details-list">
-                            <div class="payment-detail-row">
-                                <span class="payment-detail-label">Account Name</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentAccNameBpi">Sample Church Account Name</span>
-                                </div>
-                            </div>
-                            <div class="payment-detail-row">
-                                <span class="payment-detail-label">Bank Account Number</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentAccNumBpi">XXXX-XXXX-XX (Sample)</span>
-                                    <button type="button" class="payment-copy-btn" onclick="copyPaymentField('paymentAccNumBpi', this)" title="Copy account number"><i class="fa-regular fa-copy"></i> Copy</button>
-                                </div>
-                            </div>
-                            <div class="payment-detail-row" id="paymentBranchRowBpi">
-                                <span class="payment-detail-label">Branch</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentBranchBpi">Sample Imus Branch</span>
-                                </div>
-                            </div>
-                            <div class="payment-instructions" id="paymentInstBpi">
-                                Sample instruction: Enter official BPI account details and branch in Admin CMS before accepting live transfers.
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- BDO Card -->
-                    <article id="paymentCardBdo" class="payment-card payment-card--bdo" data-provider="bdo">
-                        <div class="payment-card-head">
-                            <div class="payment-brand">
-                                <div class="payment-brand-icon" aria-hidden="true">BDO</div>
-                                <div class="payment-brand-title">
-                                    <h3>BDO</h3>
-                                    <span>Banco de Oro</span>
-                                </div>
-                            </div>
-                            <span id="paymentBadgeBdo" class="payment-status-pill is-sample">Sample Placeholder</span>
-                        </div>
-                        <div class="payment-qr-frame" id="paymentQrWrapBdo">
-                            <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('bdo')" aria-label="Enlarge BDO QR Code">
-                                <img id="paymentQrImgBdo" src="/images/sample-qr-placeholder.svg" alt="BDO QR Code">
-                            </button>
-                            <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Click or tap QR to enlarge</span>
-                        </div>
-                        <div class="payment-details-list">
-                            <div class="payment-detail-row">
-                                <span class="payment-detail-label">Account Name</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentAccNameBdo">Sample Church Account Name</span>
-                                </div>
-                            </div>
-                            <div class="payment-detail-row">
-                                <span class="payment-detail-label">Bank Account Number</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentAccNumBdo">XXXX-XXXX-XXXX (Sample)</span>
-                                    <button type="button" class="payment-copy-btn" onclick="copyPaymentField('paymentAccNumBdo', this)" title="Copy account number"><i class="fa-regular fa-copy"></i> Copy</button>
-                                </div>
-                            </div>
-                            <div class="payment-detail-row" id="paymentBranchRowBdo">
-                                <span class="payment-detail-label">Branch</span>
-                                <div class="payment-detail-value-wrap">
-                                    <span class="payment-detail-value" id="paymentBranchBdo">Sample Imus Branch</span>
-                                </div>
-                            </div>
-                            <div class="payment-instructions" id="paymentInstBdo">
-                                Sample instruction: Enter official BDO account details and branch in Admin CMS before accepting live transfers.
-                            </div>
-                        </div>
-                    </article>
-                </div>
-
-                <div id="paymentEmptyState" class="payment-empty-state" style="display: none;">
-                    <i class="fa-solid fa-building-columns"></i>
-                    <h3 style="margin-bottom: 0.4rem; color: var(--navy);">Payment Channels Unavailable</h3>
-                    <p style="margin: 0;">Online donation and payment details are currently hidden or being updated by the Church Administrator. Please contact our church office for assistance.</p>
-                </div>
             </div>
         </div>
     </section>
@@ -847,6 +784,6 @@
     </footer>
 
     <script src="/js/api.js?v=20261121_v1"></script>
-    <script src="/js/public.js?v=20261121_v1"></script>
+    <script src="/js/public.js?v=20261121_v2"></script>
 </body>
 </html>
