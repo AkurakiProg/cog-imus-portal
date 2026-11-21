@@ -16,11 +16,9 @@ function handleAnnouncementImageUpload(req, res, next) {
     });
 }
 
-// View announcements - Available to Admin, Leader, and Member
 router.get('/', authMiddleware, roleMiddleware('Admin', 'Church Leader', 'Church Member'), announcementController.getAll);
 router.get('/:id', authMiddleware, roleMiddleware('Admin', 'Church Leader', 'Church Member'), announcementController.getById);
 
-// Create, Update, Delete, Email Broadcast - Admin and Church Leader
 router.post('/', authMiddleware, roleMiddleware('Admin', 'Church Leader'), handleAnnouncementImageUpload, announcementController.create);
 router.put('/:id', authMiddleware, roleMiddleware('Admin', 'Church Leader'), handleAnnouncementImageUpload, announcementController.update);
 router.delete('/:id', authMiddleware, roleMiddleware('Admin', 'Church Leader'), announcementController.delete);

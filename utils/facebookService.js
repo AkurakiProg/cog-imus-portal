@@ -3,13 +3,10 @@ const { pool } = require('../config/database');
 function extractFacebookVideoId(urlOrKey) {
     if (!urlOrKey) return '';
     const str = String(urlOrKey).trim();
-    // 1. Direct Video URL: /videos/123456789/ or watch/?v=123456789 or fb.watch/123456789
     const vMatch = str.match(/(?:videos\/|watch\/?\?v=|fb\.watch\/)(\d+)/i);
     if (vMatch && vMatch[1]) return vMatch[1];
-    // 2. Stream Key pattern: FB-123456789-...
     const keyMatch = str.match(/^FB-(\d+)-/i);
     if (keyMatch && keyMatch[1]) return keyMatch[1];
-    // 3. Fallback: isolated sequence of 9-25 digits
     const digitsMatch = str.match(/\b\d{9,25}\b/);
     if (digitsMatch) return digitsMatch[0];
     return '';
@@ -67,7 +64,7 @@ const FacebookService = {
         const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(cleanId)}?fields=id,live_views,views,status,title,description&access_token=${encodeURIComponent(accessToken.trim())}`;
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
         try {
             const resp = await fetch(url, {
@@ -164,7 +161,6 @@ const FacebookService = {
         const totalViews = Number(metrics.views || 0);
 
         try {
-            // Update today's record in livestream_daily_views
             await pool.execute(
                 `INSERT INTO livestream_daily_views (view_date, views_count, peak_viewers, fb_views_count, fb_peak_viewers, fb_synced_at, stream_title, notes)
                  VALUES (?, 0, 0, ?, ?, NOW(), ?, 'Facebook Live Metrics Synced')
@@ -175,7 +171,6 @@ const FacebookService = {
                 [todayStr, totalViews, liveViews, targetStream.title || 'Livestream Broadcast']
             );
 
-            // Update livestream_broadcast table
             await pool.execute(
                 `UPDATE livestream_broadcast 
                  SET fb_live_views = ?, fb_total_views = ?, fb_synced_at = NOW()

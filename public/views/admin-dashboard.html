@@ -53,8 +53,8 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/admin.css?v=20261024_v5">
-    <link rel="stylesheet" href="/css/dark-theme.css?v=20261024_v5">
+    <link rel="stylesheet" href="/css/admin.css?v=20261121_v1">
+    <link rel="stylesheet" href="/css/dark-theme.css?v=20261121_v1">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/theme.js?v=20261024_v5"></script>
@@ -1817,6 +1817,194 @@
                                         <label>Office & Ministry Working Hours *</label>
                                         <input type="text" id="cms_contact_hours" placeholder="Tuesday – Saturday: 9:00 AM – 5:00 PM | Sunday: 7:00 AM – 1:00 PM">
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Donation & Payment Information Management -->
+                        <div class="card" id="cmsPaymentInfoCard" style="margin-top: 1.5rem;">
+                            <div class="card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                                <h3><i class="fa-solid fa-hand-holding-heart"></i> Donation &amp; Payment Information</h3>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn-secondary btn-sm" onclick="previewPaymentInfoPage()" title="Preview payment cards on public Contact page">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Preview Payment Information
+                                    </button>
+                                    <span class="badge badge-info">Public Contact Page</span>
+                                </div>
+                            </div>
+                            <div style="padding: 1.5rem;">
+                                <div class="cms-sync-notice-banner" style="padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 1.25rem; font-size: 0.85rem; line-height: 1.5;">
+                                    <i class="fa-solid fa-shield-halved" style="color: var(--gold); margin-right: 0.35rem;"></i>
+                                    Manage the <strong>GCash</strong>, <strong>BPI</strong>, and <strong>BDO</strong> cards displayed underneath Contact Information on the public Contact page. Accepted QR image formats: <strong>PNG, JPG/JPEG, WEBP, GIF</strong> (max 10 MB). Visitors see clearly labeled <em>Sample Placeholder</em> notices until updated and saved.
+                                </div>
+
+                                <div class="cms-payment-grid">
+                                    <!-- GCash Admin Card -->
+                                    <div class="cms-card-inner cms-payment-card" data-provider="gcash">
+                                        <div class="cms-payment-card-head">
+                                            <div class="cms-payment-provider-title">
+                                                <i class="fa-solid fa-mobile-screen-button" style="color: #007dfe;"></i>
+                                                <span>GCash</span>
+                                            </div>
+                                            <span id="cms_payment_gcash_badge" class="cms-payment-badge is-sample">Sample Placeholder</span>
+                                        </div>
+
+                                        <div class="cms-payment-toggle-row">
+                                            <label style="display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; font-weight: 600;">
+                                                <input type="checkbox" id="cms_payment_gcash_enabled" checked>
+                                                Enable Card
+                                            </label>
+                                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.78rem;" title="Automatically unchecks when you enter official details or upload a QR">
+                                                <input type="checkbox" id="cms_payment_gcash_is_sample" checked onchange="syncPaymentSampleBadge('gcash')">
+                                                Sample Mode
+                                            </label>
+                                        </div>
+
+                                        <div class="cms-payment-qr-box" id="cms_payment_gcash_qr_box">
+                                            <div class="cms-payment-qr-thumb">
+                                                <img id="cms_payment_gcash_qr_preview" src="/images/sample-qr-placeholder.svg" alt="GCash QR Preview">
+                                                <span id="cms_payment_gcash_qr_empty" class="cms-payment-qr-empty" style="display: none;">No QR Uploaded</span>
+                                            </div>
+                                            <input type="file" id="cms_payment_gcash_qr_file" class="cms-file-input" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handlePaymentQrUpload('gcash', this)" style="width: 100%; font-size: 0.78rem;">
+                                            <div class="cms-payment-qr-actions">
+                                                <span id="cms_payment_gcash_upload_status" class="cms-payment-upload-status"></span>
+                                                <button type="button" id="cms_payment_gcash_qr_remove_btn" class="btn-secondary btn-sm" onclick="removePaymentQrImage('gcash')" style="color: #dc2626;">
+                                                    <i class="fa-solid fa-trash-can"></i> Remove QR
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Account Name *</label>
+                                            <input type="text" id="cms_payment_gcash_account_name" placeholder="Church Account Name" oninput="markPaymentProviderEdited('gcash')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>GCash Mobile Number *</label>
+                                            <input type="text" id="cms_payment_gcash_account_number" placeholder="09XX-XXX-XXXX" oninput="markPaymentProviderEdited('gcash')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Payment Instructions (Optional)</label>
+                                            <textarea id="cms_payment_gcash_instructions" rows="2" placeholder="Optional instructions for donors..." oninput="markPaymentProviderEdited('gcash')"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- BPI Admin Card -->
+                                    <div class="cms-card-inner cms-payment-card" data-provider="bpi">
+                                        <div class="cms-payment-card-head">
+                                            <div class="cms-payment-provider-title">
+                                                <i class="fa-solid fa-building-columns" style="color: #9e1b32;"></i>
+                                                <span>BPI</span>
+                                            </div>
+                                            <span id="cms_payment_bpi_badge" class="cms-payment-badge is-sample">Sample Placeholder</span>
+                                        </div>
+
+                                        <div class="cms-payment-toggle-row">
+                                            <label style="display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; font-weight: 600;">
+                                                <input type="checkbox" id="cms_payment_bpi_enabled" checked>
+                                                Enable Card
+                                            </label>
+                                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.78rem;">
+                                                <input type="checkbox" id="cms_payment_bpi_is_sample" checked onchange="syncPaymentSampleBadge('bpi')">
+                                                Sample Mode
+                                            </label>
+                                        </div>
+
+                                        <div class="cms-payment-qr-box" id="cms_payment_bpi_qr_box">
+                                            <div class="cms-payment-qr-thumb">
+                                                <img id="cms_payment_bpi_qr_preview" src="/images/sample-qr-placeholder.svg" alt="BPI QR Preview">
+                                                <span id="cms_payment_bpi_qr_empty" class="cms-payment-qr-empty" style="display: none;">No QR Uploaded</span>
+                                            </div>
+                                            <input type="file" id="cms_payment_bpi_qr_file" class="cms-file-input" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handlePaymentQrUpload('bpi', this)" style="width: 100%; font-size: 0.78rem;">
+                                            <div class="cms-payment-qr-actions">
+                                                <span id="cms_payment_bpi_upload_status" class="cms-payment-upload-status"></span>
+                                                <button type="button" id="cms_payment_bpi_qr_remove_btn" class="btn-secondary btn-sm" onclick="removePaymentQrImage('bpi')" style="color: #dc2626;">
+                                                    <i class="fa-solid fa-trash-can"></i> Remove QR
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Account Name *</label>
+                                            <input type="text" id="cms_payment_bpi_account_name" placeholder="Church BPI Account Name" oninput="markPaymentProviderEdited('bpi')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Bank Account Number *</label>
+                                            <input type="text" id="cms_payment_bpi_account_number" placeholder="XXXX-XXXX-XX" oninput="markPaymentProviderEdited('bpi')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Branch (Optional)</label>
+                                            <input type="text" id="cms_payment_bpi_branch" placeholder="e.g., Imus Nueno Branch" oninput="markPaymentProviderEdited('bpi')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Payment Instructions (Optional)</label>
+                                            <textarea id="cms_payment_bpi_instructions" rows="2" placeholder="Optional bank transfer notes..." oninput="markPaymentProviderEdited('bpi')"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- BDO Admin Card -->
+                                    <div class="cms-card-inner cms-payment-card" data-provider="bdo">
+                                        <div class="cms-payment-card-head">
+                                            <div class="cms-payment-provider-title">
+                                                <i class="fa-solid fa-landmark" style="color: #003a8c;"></i>
+                                                <span>BDO</span>
+                                            </div>
+                                            <span id="cms_payment_bdo_badge" class="cms-payment-badge is-sample">Sample Placeholder</span>
+                                        </div>
+
+                                        <div class="cms-payment-toggle-row">
+                                            <label style="display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; font-weight: 600;">
+                                                <input type="checkbox" id="cms_payment_bdo_enabled" checked>
+                                                Enable Card
+                                            </label>
+                                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.78rem;">
+                                                <input type="checkbox" id="cms_payment_bdo_is_sample" checked onchange="syncPaymentSampleBadge('bdo')">
+                                                Sample Mode
+                                            </label>
+                                        </div>
+
+                                        <div class="cms-payment-qr-box" id="cms_payment_bdo_qr_box">
+                                            <div class="cms-payment-qr-thumb">
+                                                <img id="cms_payment_bdo_qr_preview" src="/images/sample-qr-placeholder.svg" alt="BDO QR Preview">
+                                                <span id="cms_payment_bdo_qr_empty" class="cms-payment-qr-empty" style="display: none;">No QR Uploaded</span>
+                                            </div>
+                                            <input type="file" id="cms_payment_bdo_qr_file" class="cms-file-input" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handlePaymentQrUpload('bdo', this)" style="width: 100%; font-size: 0.78rem;">
+                                            <div class="cms-payment-qr-actions">
+                                                <span id="cms_payment_bdo_upload_status" class="cms-payment-upload-status"></span>
+                                                <button type="button" id="cms_payment_bdo_qr_remove_btn" class="btn-secondary btn-sm" onclick="removePaymentQrImage('bdo')" style="color: #dc2626;">
+                                                    <i class="fa-solid fa-trash-can"></i> Remove QR
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Account Name *</label>
+                                            <input type="text" id="cms_payment_bdo_account_name" placeholder="Church BDO Account Name" oninput="markPaymentProviderEdited('bdo')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Bank Account Number *</label>
+                                            <input type="text" id="cms_payment_bdo_account_number" placeholder="XXXX-XXXX-XXXX" oninput="markPaymentProviderEdited('bdo')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Branch (Optional)</label>
+                                            <input type="text" id="cms_payment_bdo_branch" placeholder="e.g., Imus Aguinaldo Hwy Branch" oninput="markPaymentProviderEdited('bdo')">
+                                        </div>
+                                        <div class="form-group" style="margin: 0;">
+                                            <label>Payment Instructions (Optional)</label>
+                                            <textarea id="cms_payment_bdo_instructions" rows="2" placeholder="Optional bank transfer notes..." oninput="markPaymentProviderEdited('bdo')"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="cms-payment-footer-bar">
+                                    <button type="button" class="btn-secondary" onclick="reloadCurrentCmsSection()">
+                                        <i class="fa-solid fa-rotate-left"></i> Cancel / Discard Changes
+                                    </button>
+                                    <button type="button" class="btn-secondary" onclick="previewPaymentInfoPage()">
+                                        <i class="fa-solid fa-eye"></i> Preview Payment Information
+                                    </button>
+                                    <button type="button" class="btn-primary" onclick="saveCurrentCmsSection()">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save Payment &amp; Contact Changes
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -4078,8 +4266,8 @@
       <div class="toast-progress"></div>
     </div>
 
-    <script src="/js/api.js?v=20261118_v1"></script>
-    <script src="/js/mfa-security.js?v=20261024_v5"></script>
-    <script src="/js/admin-dashboard.js?v=20261118_v1"></script>
+    <script src="/js/api.js?v=20261121_v1"></script>
+    <script src="/js/mfa-security.js?v=20261121_v1"></script>
+    <script src="/js/admin-dashboard.js?v=20261121_v1"></script>
 </body>
 </html>

@@ -181,14 +181,12 @@ const UserAccountModel = {
         try {
             await conn.beginTransaction();
 
-            // 1. Verify user exists
             const [users] = await conn.execute('SELECT user_id, username, email FROM users WHERE user_id = ?', [id]);
             if (users.length === 0) {
                 await conn.rollback();
                 return false;
             }
 
-            // Ensure fallbackAdminId is valid and not the user being deleted
             let safeAdminId = parseInt(fallbackAdminId, 10);
             if (!safeAdminId || safeAdminId === id) {
                 const [admins] = await conn.execute('SELECT user_id FROM users WHERE user_id != ? AND role_id = 1 LIMIT 1', [id]);
@@ -206,17 +204,13 @@ const UserAccountModel = {
             await conn.execute('UPDATE sms_logs SET triggered_by = ? WHERE triggered_by = ?', [safeAdminId, id]);
             await conn.execute('UPDATE content_pages SET updated_by = ? WHERE updated_by = ?', [safeAdminId, id]);
 
-            // 3. Unlink member records if linked
             await conn.execute('UPDATE members SET user_id = NULL WHERE user_id = ?', [id]);
 
-            // 4. Clean user MFA challenges and recovery codes
             await conn.execute('DELETE FROM user_mfa_recovery_codes WHERE user_id = ?', [id]);
             await conn.execute('DELETE FROM mfa_login_challenges WHERE user_id = ?', [id]);
 
-            // 5. Nullify audit trail entries
             await conn.execute('UPDATE audit_trail SET user_id = NULL WHERE user_id = ?', [id]);
 
-            // 6. Delete user account
             await conn.execute('DELETE FROM users WHERE user_id = ?', [id]);
 
             await conn.commit();

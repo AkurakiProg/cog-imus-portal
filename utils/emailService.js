@@ -326,7 +326,6 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
 
     const plainText = text || (html ? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '');
 
-    // 1. Primary: Official Google Gmail REST API (HTTPS Port 443)
     if (isGmailApiConfigured()) {
         try {
             return await sendViaGmailApi({
@@ -346,7 +345,6 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
         }
     }
 
-    // 2. Secondary: Resend API (HTTPS Port 443)
     const resend = getResendClient();
     if (resend) {
         const fromAddress = from || resolveFromAddress('resend');
@@ -391,7 +389,6 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
         }
     }
 
-    // 3. Tertiary Fallback: Nodemailer SMTP
     const transporter = getTransporter();
     if (transporter) {
         const fromAddress = from || resolveFromAddress('smtp');
@@ -419,7 +416,6 @@ async function sendEmail({ to, subject, html, text, from = null, replyTo = null 
         }
     }
 
-    // 4. Neither configured
     console.warn(`[EMAIL SERVICE] No email provider configured. Email "${subject}" to ${recipients.join(', ')} was not transmitted.`);
     throw new Error('Email service is not configured. Please configure GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN (or RESEND_API_KEY) in environment configuration.');
 }

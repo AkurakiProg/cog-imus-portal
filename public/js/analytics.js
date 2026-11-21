@@ -1,15 +1,11 @@
-// public/js/analytics.js
-// Can be imported on any page that needs to render finance charts.
 
 function renderFinanceCharts(summary, trends, breakdown) {
-    // Format currency for axes
     const formatCurrency = (value) => {
         if (value >= 1000000) return '₱' + (value / 1000000).toFixed(1) + 'M';
         if (value >= 1000) return '₱' + (value / 1000).toFixed(1) + 'K';
         return '₱' + value;
     };
 
-    // Render Trends Chart
     const trendsCtx = document.getElementById('trendsChart');
     if (trendsCtx) {
         if (window.trendsChartInstance) window.trendsChartInstance.destroy();
@@ -33,7 +29,6 @@ function renderFinanceCharts(summary, trends, breakdown) {
         });
     }
 
-    // Render Breakdown Doughnut Chart
     const breakdownCtx = document.getElementById('breakdownChart');
     if (breakdownCtx) {
         if (window.breakdownChartInstance) window.breakdownChartInstance.destroy();

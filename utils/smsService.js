@@ -1,4 +1,3 @@
-// utils/smsService.js
 const logger = require('./logger');
 
 /**
@@ -9,33 +8,26 @@ function normalizePhilippineNumber(number) {
     if (!number) return null;
     let clean = String(number).replace(/[^\d+]/g, '');
     
-    // Remove leading '+' if present for parsing
     if (clean.startsWith('+')) clean = clean.substring(1);
     
-    // Check patterns
     if (clean.startsWith('63') && clean.length === 12) {
-        // e.g. 639763256103
         const local = '0' + clean.substring(2);
         return { international: '+' + clean, local, valid: true };
     }
     if (clean.startsWith('09') && clean.length === 11) {
-        // e.g. 09763256103
         const international = '+63' + clean.substring(1);
         return { international, local: clean, valid: true };
     }
     if (clean.startsWith('9') && clean.length === 10) {
-        // e.g. 9763256103
         const local = '0' + clean;
         const international = '+63' + clean;
         return { international, local, valid: true };
     }
 
-    // International numbers (e.g., US/Canada or other countries)
     if (clean.length >= 10 && clean.length <= 15) {
         return { international: '+' + clean, local: clean, valid: true };
     }
 
-    // Default return
     return { international: '+' + clean, local: clean, valid: false };
 }
 
@@ -90,7 +82,6 @@ function formatSemaphoreError(raw) {
     if (!raw) return 'Unknown Semaphore error';
     if (typeof raw === 'string') return raw;
 
-    // If Semaphore returns an array like [{"senderName": "No active sender name found..."}]
     if (Array.isArray(raw) && raw.length > 0) {
         const first = raw[0];
         if (typeof first === 'object' && first !== null) {
@@ -146,8 +137,6 @@ async function sendViaSemaphore(recipientNumber, message) {
         let data = await response.json();
 
         // Self-Healing: If Semaphore rejected the custom sender name because the account does not have
-        // an approved custom sender ID, immediately retry without sendername. Semaphore will
-        // automatically dispatch using the default sender name ('SEMAPHORE').
         const hasSenderError = data && data.sendername && (
             (Array.isArray(data.sendername) && data.sendername.some(s => /invalid|unapproved|not found/i.test(s))) ||
             (typeof data.sendername === 'string' && /invalid|unapproved|not found/i.test(data.sendername))
@@ -164,7 +153,6 @@ async function sendViaSemaphore(recipientNumber, message) {
             data = await response.json();
         }
 
-        // Semaphore returns an array of message objects on success or an error object
         const isSuccess = response.ok && !data.error && Array.isArray(data) && data.length > 0;
         return {
             success: isSuccess,
@@ -287,7 +275,6 @@ async function sendSms(recipientNumber, message) {
     }
 
     try {
-        // 1. Try TextBee first (Free Android SMS Gateway)
         if (process.env.TEXTBEE_API_KEY && process.env.TEXTBEE_DEVICE_ID) {
             const tbRes = await sendViaTextBee(recipientNumber, message);
             if (tbRes && tbRes.success) {
@@ -298,7 +285,6 @@ async function sendSms(recipientNumber, message) {
             }
         }
 
-        // 2. Try Semaphore second (Philippines Primary Carrier API)
         const hasSemaphoreKey = Boolean(process.env.SEMAPHORE_API_KEY && process.env.SEMAPHORE_API_KEY.replace(/^["']|["']$/g, '').trim());
         if (hasSemaphoreKey) {
             const semRes = await sendViaSemaphore(recipientNumber, message);
@@ -308,7 +294,6 @@ async function sendSms(recipientNumber, message) {
                     gateway_response: `Semaphore Gateway: Dispatched (${JSON.stringify(semRes.raw)})`
                 };
             }
-            // Semaphore was explicitly configured by user, but the gateway returned an error:
             const errorMsg = formatSemaphoreError(semRes?.raw);
             logger.warn(`[SMS Service] Semaphore gateway delivery failed: ${errorMsg}`);
             return {
@@ -317,7 +302,6 @@ async function sendSms(recipientNumber, message) {
             };
         }
 
-        // 3. Try Textbelt third (Free 1/day or API key)
         if (process.env.TEXTBELT_API_KEY || process.env.USE_TEXTBELT_FREE === 'true') {
             const tbeltRes = await sendViaTextbelt(recipientNumber, message);
             if (tbeltRes && tbeltRes.success) {
@@ -328,7 +312,6 @@ async function sendSms(recipientNumber, message) {
             }
         }
 
-        // 4. Try Twilio fourth (if configured)
         if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
             const twilioRes = await sendViaTwilio(recipientNumber, message);
             if (twilioRes && twilioRes.success) {
@@ -339,7 +322,6 @@ async function sendSms(recipientNumber, message) {
             }
         }
 
-        // 5. Simulation Sandbox Fallback
         // Logs verification in database so testing and announcements never fail
         logger.info(`[SMS Service] Simulated verified delivery to ${recipientNumber}: "${message.substring(0, 60)}..."`);
         return {

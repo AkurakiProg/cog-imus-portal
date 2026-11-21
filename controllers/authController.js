@@ -27,7 +27,6 @@ async function getWordaRoleForUser(userId) {
         if (memberRows.length > 0) {
             const memberId = memberRows[0].member_id;
 
-            // 0. Check if member is appointed as a WORDA Department Head
             const [deptHeads] = await pool.execute(
                 `SELECT department FROM department_heads WHERE head_member_id = ? LIMIT 1`,
                 [memberId]
@@ -45,7 +44,6 @@ async function getWordaRoleForUser(userId) {
                 };
             }
 
-            // 1. Check active ministry membership for custom/specific role
             const [minMembers] = await pool.execute(
                 `SELECT mm.role_in_ministry, min.ministry_name, min.department, min.color_code,
                         (CASE WHEN min.leader_member_id = mm.member_id THEN 1 ELSE 0 END) AS is_leader
@@ -62,7 +60,6 @@ async function getWordaRoleForUser(userId) {
                 [memberId]
             );
 
-            // 2. Also check if member is assigned as the designated leader in ministries
             const [ledMinistries] = await pool.execute(
                 `SELECT ministry_name, department, color_code 
                  FROM ministries 
@@ -129,7 +126,6 @@ async function getWordaRoleForUser(userId) {
 exports.getWordaRoleForUser = getWordaRoleForUser;
 
 async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDetails = {}) {
-    // Retrieve WORDA ministry role dynamically
     const wordaInfo = await getWordaRoleForUser(user.user_id);
     user.worda_role = wordaInfo.worda_role;
     user.worda_department = wordaInfo.worda_department;
@@ -140,12 +136,9 @@ async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDet
     if (wordaInfo.member_id) user.member_id = wordaInfo.member_id;
     if (wordaInfo.church_role) user.church_role = wordaInfo.church_role;
     user.is_department_head = !!wordaInfo.is_department_head;
-    // Update last login
     await userModel.updateLastLogin(user.user_id);
 
     // Resolve and activate browser-wide session synchronization:
-    // - Reuses same user's sessionToken if logging in again from same browser context
-    // - Invalidates any DIFFERENT previous account active in the same browser context
     const { pool } = require('../config/database');
     const sessionState = await browserSessionManager.resolveAndActivateSession({
         req,
@@ -165,14 +158,12 @@ async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDet
         }
     }
 
-    // Log audit trail
     await userModel.logAudit(
         user.user_id, auditAction, 'Auth', user.user_id, 
         null, { message: 'User logged in', ...auditDetails }, 
         req.ip, req.headers['user-agent']
     );
 
-    // Generate JWT
     const payload = {
         id: user.user_id,
         role_id: user.role_id,
@@ -187,7 +178,6 @@ async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDet
         { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
     );
 
-    // Remove sensitive data before sending response
     delete user.password_hash;
     delete user.mfa_secret;
     delete user.mfa_temp_secret;
@@ -234,10 +224,9 @@ exports.login = async (req, res) => {
             return errorResponse(res, 'Invalid credentials.', 401);
         }
 
-        // Check if Multi-Factor Authentication (MFA) is enabled for this user
         if (user.mfa_enabled && user.mfa_secret) {
             const challengeId = uuidv4();
-            const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
             await userModel.createLoginChallenge(challengeId, user.user_id, expiresAt, 5);
 
@@ -264,7 +253,6 @@ exports.login = async (req, res) => {
             }, 'Two-factor authentication required. Please enter your 6-digit code or recovery code.');
         }
 
-        // MFA not enabled: complete normal authentication
         const loginData = await completeUserLogin(user, req, res, 'LOGIN');
         return successResponse(res, loginData, 'Login successful');
 
@@ -304,7 +292,6 @@ exports.register = async (req, res) => {
             return errorResponse(res, 'Passwords do not match.', 400);
         }
 
-        // Check if username or email already exists
         const existingUser = await userModel.findByUsernameOrEmail(username);
         if (existingUser) {
             return errorResponse(res, 'Username is already registered.', 409);
@@ -314,11 +301,9 @@ exports.register = async (req, res) => {
             return errorResponse(res, 'Email address is already registered.', 409);
         }
 
-        // Hash password
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        // Role: Church Member (role_id = 3)
         const roleId = 3;
         const { pool } = require('../config/database');
 
@@ -330,12 +315,10 @@ exports.register = async (req, res) => {
 
         const newUserId = userResult.insertId;
 
-        // Auto-link or create member profile
         const nameParts = full_name.split(' ');
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(' ') || nameParts[0];
 
-        // Check if a member record with this email already exists without a user_id
         const [existingMembers] = await pool.execute(
             `SELECT member_id FROM members WHERE email = ? AND user_id IS NULL LIMIT 1`,
             [email]
@@ -357,7 +340,6 @@ exports.register = async (req, res) => {
             memberId = memberResult.insertId;
         }
 
-        // Activate browser-scoped session (invalidating any different prior account in same browser)
         const sessionState = await browserSessionManager.resolveAndActivateSession({
             req,
             res,
@@ -376,7 +358,6 @@ exports.register = async (req, res) => {
             }
         }
 
-        // Generate JWT
         const payload = {
             id: newUserId,
             role_id: roleId,
@@ -391,7 +372,6 @@ exports.register = async (req, res) => {
             { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
         );
 
-        // Log audit trail
         await userModel.logAudit(
             newUserId, 'REGISTER', 'Auth', newUserId,
             null, { username, email, full_name, member_id: memberId },
@@ -427,7 +407,6 @@ exports.getMe = async (req, res) => {
             return errorResponse(res, 'User not found.', 404);
         }
 
-                // Attach linked member info and WORDA role if available
         const wordaInfo = await getWordaRoleForUser(req.user.id);
         user.worda_role = wordaInfo.worda_role;
         user.worda_department = wordaInfo.worda_department;
@@ -463,7 +442,6 @@ exports.updatePassword = async (req, res) => {
     }
 
     try {
-        // Fetch user with password hash
         const userWithPass = await userModel.findByUsernameOrEmail(req.user.username);
         
         const isMatch = await bcrypt.compare(currentPassword, userWithPass.password_hash);
@@ -521,10 +499,6 @@ exports.checkSession = async (req, res) => {
     return successResponse(res, { active: true, user: req.user }, 'Session is active');
 };
 
-// ============================================================
-// Multi-Factor Authentication (MFA / TOTP) Controllers
-// ============================================================
-
 /**
  * Verifies a 6-digit TOTP code during the login challenge.
  */
@@ -563,7 +537,6 @@ exports.verifyMfaLogin = async (req, res) => {
             return errorResponse(res, 'Maximum verification attempts exceeded. For your security, this challenge has been invalidated. Please sign in again.', 429);
         }
 
-        // Increment attempts count
         await userModel.incrementChallengeAttempts(decoded.challengeId);
 
         const user = await userModel.findById(decoded.userId);
@@ -577,7 +550,6 @@ exports.verifyMfaLogin = async (req, res) => {
             return errorResponse(res, 'Multi-Factor Authentication is not activated on this account.', 400);
         }
 
-        // Decrypt stored TOTP secret
         let secret;
         try {
             secret = decryptSecret(user.mfa_secret);
@@ -604,10 +576,8 @@ exports.verifyMfaLogin = async (req, res) => {
             await userModel.updateMfaLastTimestep(user.user_id, check.timeStep);
         }
 
-        // Invalidate the challenge so it cannot be reused
         await userModel.deleteLoginChallenge(decoded.challengeId);
 
-        // Complete login
         const loginData = await completeUserLogin(user, req, res, 'MFA_LOGIN', { method: 'authenticator_totp' });
         return successResponse(res, loginData, 'Two-factor authentication verified successfully.');
 
@@ -665,7 +635,6 @@ exports.verifyMfaRecovery = async (req, res) => {
             return errorResponse(res, `Invalid or previously used recovery code. (${remaining} attempt${remaining === 1 ? '' : 's'} remaining)`, 401);
         }
 
-        // Invalidate login challenge
         await userModel.deleteLoginChallenge(decoded.challengeId);
 
         const remainingCodesCount = await userModel.getRemainingRecoveryCodesCount(user.user_id);
@@ -721,10 +690,8 @@ exports.startMfaEnrollment = async (req, res) => {
             return errorResponse(res, 'Two-factor authentication is already active on your account. Please disable it first if you wish to re-enroll a new device.', 400);
         }
 
-        // Generate cryptographically random secret
         const secret = generateSecret();
 
-        // Provisioning URI for Google Authenticator, Microsoft Authenticator, etc.
         const accountLabel = user.email || user.username;
         const issuer = 'COG Imus Portal';
         const uri = generateURI({
@@ -733,7 +700,6 @@ exports.startMfaEnrollment = async (req, res) => {
             secret
         });
 
-        // Generate QR code data URL
         const qrCode = await qrcode.toDataURL(uri, {
             errorCorrectionLevel: 'M',
             margin: 2,
@@ -748,7 +714,6 @@ exports.startMfaEnrollment = async (req, res) => {
         const encryptedTempSecret = encryptSecret(secret);
         await userModel.updateMfaTempSecret(req.user.id, encryptedTempSecret);
 
-        // Log audit
         await userModel.logAudit(
             req.user.id, 'MFA_ENROLL_START', 'Auth', req.user.id,
             null, { message: 'Initiated MFA authenticator setup' },
@@ -800,7 +765,6 @@ exports.confirmMfaEnrollment = async (req, res) => {
             return errorResponse(res, 'Failed to decrypt temporary secret. Please restart setup.', 500);
         }
 
-        // Verify code
         const check = verifySync({
             token: cleanToken,
             secret,
@@ -811,15 +775,12 @@ exports.confirmMfaEnrollment = async (req, res) => {
             return errorResponse(res, 'Invalid verification code. Please ensure your device clock is accurate and try again.', 400);
         }
 
-        // Activate MFA in database (last accepted login timestep initialized to null)
         await userModel.activateMfa(req.user.id, user.mfa_temp_secret, null);
 
-        // Generate 10 backup recovery codes
         const plainRecoveryCodes = generateRecoveryCodes(10);
         const hashedCodes = plainRecoveryCodes.map(c => hashRecoveryCode(c));
         await userModel.saveRecoveryCodes(req.user.id, hashedCodes);
 
-        // Log audit
         await userModel.logAudit(
             req.user.id, 'MFA_ENROLLED', 'Auth', req.user.id,
             null, { message: 'Two-factor authentication enabled successfully' },
@@ -858,12 +819,10 @@ exports.disableMfa = async (req, res) => {
 
         let isAuthorized = false;
 
-        // Option 1: verify current password
         if (password) {
             isAuthorized = await bcrypt.compare(password, userWithPass.password_hash);
         }
 
-        // Option 2: verify current TOTP code if password wasn't provided or failed
         if (!isAuthorized && code && userWithPass.mfa_secret) {
             try {
                 const secret = decryptSecret(userWithPass.mfa_secret);
@@ -942,7 +901,6 @@ exports.regenerateRecoveryCodes = async (req, res) => {
             return errorResponse(res, 'Authentication failed. Please verify your current password or authenticator code.', 401);
         }
 
-        // Generate 10 new recovery codes
         const plainRecoveryCodes = generateRecoveryCodes(10);
         const hashedCodes = plainRecoveryCodes.map(c => hashRecoveryCode(c));
         await userModel.saveRecoveryCodes(req.user.id, hashedCodes);

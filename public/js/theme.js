@@ -76,7 +76,6 @@
 
         function resolveSavedTheme() {
             try {
-                // 1. Check logged-in user in sessionStorage or localStorage
                 const uStr = sessionStorage.getItem('church_user') || localStorage.getItem('church_user');
                 if (uStr) {
                     const u = JSON.parse(uStr);
@@ -87,11 +86,9 @@
                     }
                 }
 
-                // 2. Check active user theme set upon login
                 const activeTheme = localStorage.getItem('church_active_user_theme');
                 if (activeTheme) return activeTheme;
 
-                // 3. Check portal-scoped preference
                 let portal = null;
                 const path = (typeof window !== 'undefined' && window.location ? window.location.pathname || '' : '').toLowerCase();
                 if (path.includes('admin-dashboard')) portal = 'admin';
@@ -103,7 +100,6 @@
                     if (portalTheme) return portalTheme;
                 }
 
-                // 4. Public visitor preference
                 const pubTheme = localStorage.getItem('church_public_theme');
                 if (pubTheme) return pubTheme;
             } catch (e) {}
@@ -257,16 +253,13 @@ function setAppTheme(mode, e) {
         if (user) {
             const uid = user.user_id || user.id;
             if (uid) {
-                // 1. Save user-specific theme in localStorage
                 localStorage.setItem(`church_theme_user_${uid}`, storageVal);
                 localStorage.setItem('church_active_user_theme', storageVal);
                 localStorage.setItem('church_active_user_id', String(uid));
 
-                // 2. Update user object in sessionStorage
                 user.theme_preference = storageVal;
                 sessionStorage.setItem('church_user', JSON.stringify(user));
 
-                // 3. Persist to backend database for this user asynchronously
                 const token = sessionStorage.getItem('church_token');
                 if (token && typeof fetch !== 'undefined') {
                     const headers = {
@@ -316,7 +309,6 @@ function setAppTheme(mode, e) {
     updateChartJsTheme(isDark);
     scheduleAutoThemeBoundary();
 
-    // Dispatch global event for other listeners
     try {
         window.dispatchEvent(new CustomEvent('church_theme_changed', { detail: { mode: storageVal, isDark } }));
     } catch (err) {}
@@ -341,7 +333,6 @@ function updateThemeUi(mode, isDark) {
         isDark = isThemeDark(mode);
     }
 
-    // Active Mode Label (e.g. "Dark", "Light", "Auto (Light / AM)")
     const modeLabelEl = document.getElementById('currentThemeModeLabel');
     if (modeLabelEl) {
         if (mode === 'system' || mode === 'auto') {
@@ -352,7 +343,6 @@ function updateThemeUi(mode, isDark) {
         }
     }
 
-    // Segmented Buttons in Profile Dropdown
     const btnLight = document.getElementById('themeBtnLight');
     const btnDark = document.getElementById('themeBtnDark');
     const btnSystem = document.getElementById('themeBtnSystem');
@@ -372,7 +362,6 @@ function updateThemeUi(mode, isDark) {
         btnSystem.setAttribute('title', 'Auto: Light Mode (12:00 AM - 11:59 AM) / Dark Mode (12:00 PM - 11:59 PM PHT)');
     }
 
-    // Quick toggle dropdown item if present
     const pill = document.getElementById('themeTogglePill');
     const icon = document.getElementById('themeToggleIcon');
     const label = document.getElementById('themeToggleLabel');
@@ -399,7 +388,6 @@ function updateThemeUi(mode, isDark) {
         toggleBtn.setAttribute('title', isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme');
     }
 
-    // Auth Login Page Theme Button
     const authBtn = document.querySelector('.theme-toggle-btn-auth');
     const authIcon = document.getElementById('authThemeIcon');
     if (authIcon) {
@@ -411,7 +399,6 @@ function updateThemeUi(mode, isDark) {
         authBtn.setAttribute('aria-label', isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme');
     }
 
-    // Public / generic theme icons
     document.querySelectorAll('.theme-toggle-icon').forEach(el => {
         el.className = isDark ? 'fa-solid fa-sun theme-toggle-icon' : 'fa-solid fa-moon theme-toggle-icon';
         el.style.color = isDark ? '#E0BC6F' : '';
@@ -471,7 +458,6 @@ function updateChartJsTheme(isDark) {
             }
         }
     } catch (e) {
-        // Safe failover if Chart is not loaded
     }
 }
 
@@ -548,7 +534,6 @@ function updateDropdownUserInfo() {
     }
 }
 
-// Global click & Escape handlers to close profile dropdown
 document.addEventListener('click', function (e) {
     const wrapper = document.querySelector('.topbar-profile-wrapper');
     if (wrapper && !wrapper.contains(e.target)) {
@@ -562,7 +547,6 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// Automatic Time-Sensitive Synchronization across Philippine Time Boundaries
 let autoThemeTimer = null;
 let autoThemeWatchdog = null;
 
@@ -618,7 +602,6 @@ function scheduleAutoThemeBoundary() {
     }, msUntilBoundary + 1000);
 }
 
-// Lifecycle listeners: tab focus & visibility change re-evaluates immediately
 document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
         checkAndSyncAutoTheme();
@@ -630,12 +613,10 @@ window.addEventListener('focus', function () {
     checkAndSyncAutoTheme();
 });
 
-// Periodic lightweight check (every 30s) to handle computer sleep/wake clock shifts
 if (!autoThemeWatchdog && typeof window !== 'undefined') {
     autoThemeWatchdog = setInterval(checkAndSyncAutoTheme, 30000);
 }
 
-// Initial hydration upon DOM Ready
 document.addEventListener('DOMContentLoaded', function () {
     const mode = getThemePreference();
     const isDark = isThemeDark(mode);

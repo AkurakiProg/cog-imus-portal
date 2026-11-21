@@ -1,10 +1,38 @@
+const fs = require('fs');
+const path = require('path');
 const realtimeBus = require('../utils/realtimeBus');
 const contentModel = require('../models/contentModel');
 const userModel = require('../models/userModel');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseFormatter');
 const FacebookService = require('../utils/facebookService');
 
-// Banners
+const inspectImageFileSignature = (filePath) => {
+    const fd = fs.openSync(filePath, 'r');
+    try {
+        const buffer = Buffer.alloc(512);
+        const bytesRead = fs.readSync(fd, buffer, 0, 512, 0);
+        const head = buffer.subarray(0, bytesRead);
+
+        if (bytesRead >= 3 && head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return 'jpeg';
+        if (bytesRead >= 8 && head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47) return 'png';
+        const ascii6 = head.subarray(0, 6).toString('ascii');
+        if (ascii6 === 'GIF87a' || ascii6 === 'GIF89a') return 'gif';
+        if (bytesRead >= 12 && head.subarray(0, 4).toString('ascii') === 'RIFF' && head.subarray(8, 12).toString('ascii') === 'WEBP') return 'webp';
+        // SVG: text XML/svg without inline script tags
+        const textHead = head.toString('utf8').trimStart();
+        if (/^(<\?xml[\s\S]*?)?<svg[\s>]/i.test(textHead)) {
+            const fullContent = fs.readFileSync(filePath, 'utf8');
+            if (/<script[\s>]/i.test(fullContent) || /on\w+\s*=/i.test(fullContent)) {
+                return null;
+            }
+            return 'svg';
+        }
+        return null;
+    } finally {
+        fs.closeSync(fd);
+    }
+};
+
 exports.getBanners = async (req, res) => {
     try {
         const data = await contentModel.getBanners();
@@ -35,7 +63,6 @@ exports.deleteBanner = async (req, res) => {
     } catch (error) { return errorResponse(res, 'Failed to delete banner.', 500); }
 };
 
-// Sermons
 exports.getSermons = async (req, res) => {
     try {
         const filters = { search: req.query.search || '' };
@@ -80,7 +107,6 @@ exports.deleteSermon = async (req, res) => {
     } catch (error) { return errorResponse(res, 'Failed to delete sermon.', 500); }
 };
 
-// Live Stream Broadcast (Facebook Live)
 exports.getLiveStream = async (req, res) => {
     try {
         const data = await contentModel.getLiveStream();
@@ -122,13 +148,12 @@ exports.getBroadcastRelayStatus = async (req, res) => {
     }
 };
 
-// --- Real-time Livestream Analytics & Concurrent Viewer Tracking ---
-const activeViewers = new Map(); // viewer_id -> { lastSeen: number, ip: string }
-const sseClients = new Set(); // Set of active SSE res objects
+const activeViewers = new Map();
+const sseClients = new Set();
 
 function getActiveViewerCount() {
     const now = Date.now();
-    const timeout = 25000; // 25s heartbeat expiry
+    const timeout = 25000;
     for (const [id, data] of activeViewers.entries()) {
         if (now - data.lastSeen > timeout) {
             activeViewers.delete(id);
@@ -160,7 +185,6 @@ function broadcastLiveAnalytics(analyticsData) {
     }
 }
 
-// Helper methods for viewer tracking from public routes
 exports.registerViewerPing = async (viewerId, isInitial = false, ip = '') => {
     if (!viewerId) return;
     const isAlreadyActive = activeViewers.has(viewerId);
@@ -196,7 +220,6 @@ exports.streamLiveAnalytics = async (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no');
     if (res.flushHeaders) res.flushHeaders();
 
-    // Send initial snapshot immediately
     try {
         const analytics = await contentModel.getLiveStreamAnalytics();
         const activeCount = getActiveViewerCount();
@@ -215,7 +238,6 @@ exports.streamLiveAnalytics = async (req, res) => {
         console.error('Initial SSE analytics error:', e);
     }
 
-    // Keep connection alive with comment ping every 15s
     const keepAliveTimer = setInterval(() => {
         try {
             res.write(': keep-alive\n\n');
@@ -244,7 +266,6 @@ exports.toggleLiveStream = async (req, res) => {
         const action = numericLive ? 'START_BROADCAST' : 'END_BROADCAST';
         await userModel.logAudit(req.user.id, action, 'LiveStream', 1, null, { is_live: numericLive }, req.ip, req.headers['user-agent']);
         
-        // Push updated analytics snapshot
         contentModel.getLiveStreamAnalytics()
             .then(analytics => broadcastLiveAnalytics(analytics))
             .catch(() => {});
@@ -255,7 +276,6 @@ exports.toggleLiveStream = async (req, res) => {
     }
 };
 
-// Livestream Analytics
 exports.getLiveStreamAnalytics = async (req, res) => {
     try {
         const data = await contentModel.getLiveStreamAnalytics();
@@ -271,7 +291,7 @@ exports.logLiveStreamViews = async (req, res) => {
         const data = await contentModel.logLiveStreamViews(req.body);
         data.summary.active_viewers = getActiveViewerCount();
         await userModel.logAudit(req.user.id, 'UPDATE', 'LiveStreamAnalytics', null, null, req.body, req.ip, req.headers['user-agent']);
-        broadcastLiveAnalytics(data); // Real-time push to all connected admin screens
+        broadcastLiveAnalytics(data);
         return successResponse(res, data, 'Livestream views saved successfully');
     } catch (error) {
         return errorResponse(res, 'Failed to save livestream views: ' + error.message, 500);
@@ -330,14 +350,12 @@ function initFbAutoSync() {
                 }
             }
         } catch (e) {
-            // Background sync error ignored
         }
     }, 60000);
     if (fbAutoSyncInterval && fbAutoSyncInterval.unref) fbAutoSyncInterval.unref();
 }
 initFbAutoSync();
 
-// Livestream Comments
 exports.getLiveStreamComments = async (req, res) => {
     try {
         const limit = req.query.limit ? parseInt(req.query.limit, 10) : 100;
@@ -394,7 +412,6 @@ exports.getLiveStreamCommentLogs = async (req, res) => {
     }
 };
 
-// --- Public Website Content Management (Admin CMS) ---
 exports.getWebsiteSection = async (req, res) => {
     try {
         const section = req.params.section;
@@ -421,6 +438,36 @@ exports.saveWebsiteSection = async (req, res) => {
             return errorResponse(res, 'Invalid content data payload', 400);
         }
 
+        if (section === 'contact_us' && payload && typeof payload === 'object' && payload.payment_info) {
+            const providers = [
+                { key: 'gcash', label: 'GCash' },
+                { key: 'bpi', label: 'BPI' },
+                { key: 'bdo', label: 'BDO' }
+            ];
+            for (const p of providers) {
+                const entry = payload.payment_info[p.key];
+                if (!entry || typeof entry !== 'object') continue;
+                if (entry.enabled !== false) {
+                    const accName = String(entry.account_name || '').trim();
+                    const accNum = String(entry.account_number || '').trim();
+                    if (!accName || !accNum) {
+                        return errorResponse(
+                            res,
+                            `${p.label} payment method is enabled and requires both an account name and account/mobile number.`,
+                            400
+                        );
+                    }
+                }
+                if (entry.qr_image_url) {
+                    const qrUrl = String(entry.qr_image_url).trim();
+                    const safeQr = qrUrl.startsWith('/uploads/content/') || qrUrl === '/images/sample-qr-placeholder.svg';
+                    if (!safeQr) {
+                        return errorResponse(res, `Invalid QR image path provided for ${p.label}.`, 400);
+                    }
+                }
+            }
+        }
+
         const saved = await contentModel.saveWebsiteSection(section, payload, req.user ? req.user.id : null);
         
         await userModel.logAudit(
@@ -434,7 +481,6 @@ exports.saveWebsiteSection = async (req, res) => {
             req.headers['user-agent']
         );
 
-        // Realtime notification to synchronize connected public and admin tabs
         try {
             realtimeBus.broadcast('website_content', {
                 section,
@@ -489,6 +535,22 @@ exports.uploadWebsiteImage = async (req, res) => {
         if (!req.file) {
             return errorResponse(res, 'No image file uploaded', 400);
         }
+
+        const detectedType = req.file.path ? inspectImageFileSignature(req.file.path) : null;
+        const uploadContext = String(req.query.type || req.body?.upload_context || '').toLowerCase();
+        const isQrContext = uploadContext === 'payment_qr';
+        const allowedForContext = isQrContext ? ['png', 'jpeg', 'webp', 'gif'] : ['png', 'jpeg', 'webp', 'gif', 'svg'];
+
+        if (!detectedType || !allowedForContext.includes(detectedType)) {
+            if (req.file.path && fs.existsSync(req.file.path)) {
+                try { fs.unlinkSync(req.file.path); } catch (unlinkErr) {}
+            }
+            const msg = isQrContext
+                ? 'Invalid QR code image. Please upload a genuine PNG, JPG/JPEG, WEBP, or GIF image.'
+                : 'Uploaded file is not a valid or safe image.';
+            return errorResponse(res, msg, 400);
+        }
+
         const fileUrl = '/uploads/content/' + req.file.filename;
 
         await userModel.logAudit(
@@ -497,7 +559,7 @@ exports.uploadWebsiteImage = async (req, res) => {
             'WebsiteImage',
             0,
             null,
-            { filename: req.file.filename, size: req.file.size },
+            { filename: req.file.filename, size: req.file.size, context: uploadContext || 'cms' },
             req.ip,
             req.headers['user-agent']
         );
@@ -505,7 +567,8 @@ exports.uploadWebsiteImage = async (req, res) => {
         return successResponse(res, {
             url: fileUrl,
             filename: req.file.filename,
-            originalName: req.file.originalname
+            originalName: req.file.originalname,
+            mimeDetected: detectedType
         }, 'Image uploaded successfully');
     } catch (error) {
         console.error('uploadWebsiteImage error:', error);

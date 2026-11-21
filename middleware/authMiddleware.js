@@ -94,7 +94,6 @@ module.exports = async function(req, res, next) {
             return errorResponse(res, 'Session terminated: You have logged in from another browser or device, or your session has expired.', 401);
         }
 
-        // Attach verified user info to request object
         req.user = {
             id: user.user_id,
             role_id: user.role_id,

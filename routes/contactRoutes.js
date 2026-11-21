@@ -4,7 +4,6 @@ const contactController = require('../controllers/contactController');
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 
-// Admin only routes for managing inquiries
 router.use(authMiddleware, roleMiddleware('Admin'));
 
 router.get('/', contactController.getAll);

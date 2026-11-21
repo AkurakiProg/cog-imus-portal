@@ -143,7 +143,6 @@ const c2sModel = {
         if (groups.length === 0) return null;
         const group = groups[0];
 
-        // Fetch all group members with their designations
         const [members] = await pool.execute(
             `SELECT 
                 cgm.id AS c2s_member_record_id,
@@ -174,7 +173,6 @@ const c2sModel = {
             [id]
         );
 
-        // Classify each member
         let secondaryMentorsCount = 0;
         let menteesCount = 0;
 
@@ -274,13 +272,11 @@ const c2sModel = {
     async addMember(groupId, data) {
         const { member_id, notes = '', joined_date = new Date().toISOString().split('T')[0] } = data;
 
-        // Check if member is the group leader
         const [group] = await pool.execute(`SELECT leader_id FROM c2s_groups WHERE group_id = ?`, [groupId]);
         if (group.length > 0 && group[0].leader_id == member_id) {
             throw new Error('This member is already the Primary Mentor (Leader) of this group.');
         }
 
-        // Check if already in this group
         const [exists] = await pool.execute(
             `SELECT id FROM c2s_group_members WHERE group_id = ? AND member_id = ?`,
             [groupId, member_id]

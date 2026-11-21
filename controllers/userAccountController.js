@@ -10,7 +10,7 @@ exports.generateActivationLink = async (req, res) => {
     try {
         const userId = req.params.id;
         const token = crypto.randomBytes(32).toString('hex');
-        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hour expiry
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         await userAccountModel.setActivationToken(userId, token, expires);
         
@@ -47,7 +47,6 @@ exports.activateAccount = async (req, res) => {
         }
 
         // If user is already active and verified (e.g. iOS Safari preview, email scanner, or double-click),
-        // redirect straight to success so the user sees a confirmation rather than an invalid link error.
         if (user.is_verified === 1 && user.is_active === 1) {
             return res.redirect('/views/login.html?verified=success');
         }
@@ -132,7 +131,6 @@ exports.verifyUser = async (req, res) => {
             return errorResponse(res, 'This user does not have an email address to send the verification link.', 400);
         }
 
-        // Generate cryptographically secure activation token valid for 24 hours
         const token = crypto.randomBytes(32).toString('hex');
         const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -182,7 +180,6 @@ exports.resendVerificationEmail = async (req, res) => {
         if (!user) return errorResponse(res, 'User not found.', 404);
         if (!user.email) return errorResponse(res, 'This user does not have an email address.', 400);
 
-        // Generate fresh activation token valid for 24 hours
         const token = crypto.randomBytes(32).toString('hex');
         const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -245,7 +242,6 @@ exports.create = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        // Account is created as Unverified (is_verified: 0)
         const id = await userAccountModel.create({ 
             username, 
             email, 
@@ -262,7 +258,6 @@ exports.create = async (req, res) => {
 
         const { pool } = require('../config/database');
 
-        // Synchronize / Link with Member record
         if (linked_member_id) {
             await pool.execute(
                 `UPDATE members SET 
@@ -272,7 +267,6 @@ exports.create = async (req, res) => {
                 [id, church_role, contact_number, email, first_name, middle_name, last_name, suffix, linked_member_id]
             );
         } else {
-            // Check if a member with matching email already exists
             const [existing] = await pool.execute('SELECT member_id FROM members WHERE email = ? LIMIT 1', [email]);
             if (existing.length > 0) {
                 await pool.execute(
@@ -283,7 +277,6 @@ exports.create = async (req, res) => {
                     [id, church_role, contact_number, first_name, middle_name, last_name, suffix, existing[0].member_id]
                 );
             } else {
-                // Auto-create a linked member record
                 await pool.execute(
                     `INSERT INTO members (user_id, first_name, middle_name, last_name, suffix, email, contact_number, church_role, status)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Active')`,
@@ -394,7 +387,6 @@ exports.update = async (req, res) => {
             profile_image 
         });
 
-        // Synchronize with linked member record
         await pool.execute(
             `UPDATE members SET 
                 church_role = ?, 
@@ -441,7 +433,6 @@ exports.update = async (req, res) => {
             }
         }
 
-        // Strict password update logic
         let passwordChanged = false;
         if (password && password.length > 0) {
             const salt = await bcrypt.genSalt(10);
@@ -452,7 +443,6 @@ exports.update = async (req, res) => {
 
         await userModel.logAudit(req.user.id, 'UPDATE', 'Users', id, null, { username, email, role_name }, req.ip, req.headers['user-agent']);
 
-        // Check if role changed or account deactivated or password changed
         const roleChanged = oldRoleId !== null && oldRoleId !== role_id;
         const wasDeactivated = oldIsActive === 1 && is_active === 0;
 
@@ -501,7 +491,6 @@ exports.delete = async (req, res) => {
             return errorResponse(res, 'User account not found', 404);
         }
 
-        // Broadcast force logout so any active session is immediately terminated
         realtimeBus.broadcast('force_logout', {
             user_id: id,
             reason: 'account_deleted'

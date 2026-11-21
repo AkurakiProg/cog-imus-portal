@@ -156,7 +156,6 @@ const AnnouncementModel = {
         const announcement = await this.getById(id);
         if (!announcement) throw new Error('Announcement not found');
 
-        // Fetch active members who have a valid email registered
         const [memberRows] = await pool.execute(
             `SELECT CONCAT(first_name, ' ', last_name) AS name, email
              FROM members
@@ -166,7 +165,6 @@ const AnnouncementModel = {
 
         let recipients = memberRows.map(m => ({ email: m.email.trim(), name: m.name }));
 
-        // Fallback to configured admin/support email if no members have email
         if (recipients.length === 0) {
             const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'info@cogwmphimus.org';
             recipients = [
@@ -217,7 +215,6 @@ const AnnouncementModel = {
         const announcement = await this.getById(id);
         if (!announcement) throw new Error('Announcement not found');
 
-        // Fetch active members with registered contact numbers
         const [memberRows] = await pool.execute(
             `SELECT member_id, CONCAT(first_name, ' ', last_name) AS name, contact_number
              FROM members
@@ -232,7 +229,6 @@ const AnnouncementModel = {
             name: m.name ? m.name.trim() : 'Church Member' 
         }));
 
-        // Fallback recipient if no members have contact numbers registered yet
         if (recipients.length === 0) {
             recipients = [
                 { number: '+639763256103', name: 'Church Administration' }
@@ -282,7 +278,6 @@ const AnnouncementModel = {
         };
     },
 
-    // Backward compatibility wrapper
     async triggerSms(id, userId) {
         return this.triggerSmsBroadcast(id, userId);
     }

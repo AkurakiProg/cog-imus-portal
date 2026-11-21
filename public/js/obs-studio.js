@@ -16,7 +16,6 @@
 (function (window) {
     'use strict';
 
-    // Default scenes for Church Livestream
     const DEFAULT_SCENES = {
         starting_soon: {
             id: 'starting_soon',
@@ -71,7 +70,6 @@
         }
     };
 
-    // State
     const ObsStudio = {
         initialized: false,
         scenes: {},
@@ -82,7 +80,6 @@
         isBroadcasting: false,
         isRecording: false,
         
-        // Media streams
         streams: {
             camera: null,
             cameraVideo: null,
@@ -91,7 +88,6 @@
             mic: null
         },
 
-        // Web Audio mixer
         audio: {
             ctx: null,
             micSource: null,
@@ -113,7 +109,6 @@
             }
         },
 
-        // Recording & Broadcasting pipeline
         recorder: null,
         recordChunks: [],
         recordTimer: null,
@@ -121,7 +116,6 @@
         streamTimer: null,
         streamStartedAt: null,
 
-        // Transition animation state
         transition: {
             active: false,
             type: 'cut',
@@ -131,7 +125,6 @@
             toSceneId: null
         },
 
-        // Telemetry counters
         stats: {
             fps: 60,
             frameCount: 0,
@@ -141,11 +134,9 @@
             countdownRemaining: 300
         },
 
-        // Currently selected source for properties modal
         selectedSourceId: null,
         selectedSceneId: null,
 
-        // Initialize Studio
         init() {
             if (this.initialized) return;
             this.loadScenes();
@@ -158,7 +149,6 @@
             console.log('[OBS Studio] Initialized successfully with 5 Church Presets & Web Audio Mixer.');
         },
 
-        // Load scenes from localStorage or default
         loadScenes() {
             try {
                 const stored = localStorage.getItem('cog_obs_scenes_v2');
@@ -176,7 +166,6 @@
                 console.warn('[OBS Studio] Failed to parse stored scenes, using defaults.', e);
             }
 
-            // Fallback to default presets
             this.scenes = JSON.parse(JSON.stringify(DEFAULT_SCENES));
             this.sceneOrder = ['starting_soon', 'live_worship', 'sermon', 'announcements', 'closing'];
             this.currentSceneId = 'sermon';
@@ -184,7 +173,6 @@
             this.saveScenes();
         },
 
-        // Save scenes to localStorage
         saveScenes() {
             try {
                 localStorage.setItem('cog_obs_scenes_v2', JSON.stringify({
@@ -196,7 +184,6 @@
             }
         },
 
-        // Setup Web Audio API Pipeline
         setupAudioEngine() {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
             if (!AudioContextClass) {
@@ -208,11 +195,9 @@
                 const ctx = new AudioContextClass();
                 this.audio.ctx = ctx;
 
-                // Destination node for broadcast MediaStream capture
                 const dest = ctx.createMediaStreamDestination();
                 this.audio.dest = dest;
 
-                // Master bus
                 const masterGain = ctx.createGain();
                 const masterAnalyser = ctx.createAnalyser();
                 masterAnalyser.fftSize = 64;
@@ -222,7 +207,6 @@
                 this.audio.masterGain = masterGain;
                 this.audio.masterAnalyser = masterAnalyser;
 
-                // Channel: Mic
                 const micGain = ctx.createGain();
                 const micAnalyser = ctx.createAnalyser();
                 micAnalyser.fftSize = 64;
@@ -232,7 +216,6 @@
                 this.audio.micGain = micGain;
                 this.audio.micAnalyser = micAnalyser;
 
-                // Channel: Band / Media
                 const bandGain = ctx.createGain();
                 const bandAnalyser = ctx.createAnalyser();
                 bandAnalyser.fftSize = 64;
@@ -242,7 +225,6 @@
                 this.audio.bandGain = bandGain;
                 this.audio.bandAnalyser = bandAnalyser;
 
-                // Channel: Desktop
                 const desktopGain = ctx.createGain();
                 const desktopAnalyser = ctx.createAnalyser();
                 desktopAnalyser.fftSize = 64;
@@ -252,21 +234,18 @@
                 this.audio.desktopGain = desktopGain;
                 this.audio.desktopAnalyser = desktopAnalyser;
 
-                // Start meter animation loop
                 this.startVuMeters();
             } catch (err) {
                 console.error('[OBS Studio] Web Audio initialization error:', err);
             }
         },
 
-        // Ensure AudioContext is resumed (browsers require user interaction)
         resumeAudioContext() {
             if (this.audio.ctx && this.audio.ctx.state === 'suspended') {
                 this.audio.ctx.resume().catch(() => {});
             }
         },
 
-        // Real-time VU meter loop via AnalyserNode
         startVuMeters() {
             const buffer = new Uint8Array(32);
 
@@ -277,11 +256,9 @@
                 for (let i = 0; i < buffer.length; i++) sum += buffer[i];
                 const avg = sum / buffer.length;
                 
-                // If there's genuine audio signal
                 if (avg > 2) {
                     return Math.min(100, (avg / 160) * channelState.vol);
                 }
-                // Baseline dynamic fluctuation when channel is active and unmuted
                 const jitter = (Math.sin(Date.now() / 150) * 8) + (Math.random() * 6);
                 return Math.max(0, Math.min(100, (channelState.vol * 0.45) + jitter));
             };
@@ -316,7 +293,6 @@
             requestAnimationFrame(updateMeters);
         },
 
-        // Volume slider update
         updateVolume(channel, value) {
             this.resumeAudioContext();
             const num = parseInt(value, 10);
@@ -342,7 +318,6 @@
             }
         },
 
-        // Mute toggle
         toggleMute(channel) {
             this.resumeAudioContext();
             const state = this.audio.state[channel];
@@ -374,13 +349,11 @@
             }
         },
 
-        // Camera Media Capture
         async toggleCameraInput() {
             const btn = document.getElementById('btnObsCameraToggle');
             const label = document.getElementById('btnObsCameraLabel');
 
             if (this.streams.camera) {
-                // Stop camera
                 this.streams.camera.getTracks().forEach(t => t.stop());
                 this.streams.camera = null;
                 if (this.streams.cameraVideo) {
@@ -421,13 +394,11 @@
             }
         },
 
-        // Screen Share Display Capture
         async toggleScreenShare() {
             const btn = document.getElementById('btnObsScreenToggle');
             const label = document.getElementById('btnObsScreenLabel');
 
             if (this.streams.screen) {
-                // Stop screen share
                 this.streams.screen.getTracks().forEach(t => t.stop());
                 this.streams.screen = null;
                 if (this.streams.screenVideo) {
@@ -457,7 +428,6 @@
                 videoEl.srcObject = stream;
                 await videoEl.play().catch(() => {});
 
-                // Pipe screen audio to Desktop Audio channel if present
                 const audioTracks = stream.getAudioTracks();
                 if (audioTracks.length > 0 && this.audio.ctx && this.audio.desktopGain) {
                     const screenAudioStream = new MediaStream([audioTracks[0]]);
@@ -482,7 +452,6 @@
             }
         },
 
-        // Microphone Audio Capture
         async toggleMicCapture() {
             const btn = document.getElementById('btnObsMicToggle');
             const label = document.getElementById('btnObsMicLabel');
@@ -520,7 +489,6 @@
             }
         },
 
-        // Background Audio Harmonic Toggle
         toggleBackgroundAudio() {
             this.resumeAudioContext();
             const btn = document.getElementById('btnObsMediaToggle');
@@ -544,7 +512,7 @@
                 const osc = this.audio.ctx.createOscillator();
                 const gain = this.audio.ctx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(220, this.audio.ctx.currentTime); // A3 gentle pad
+                osc.frequency.setValueAtTime(220, this.audio.ctx.currentTime);
                 gain.gain.setValueAtTime(0.08, this.audio.ctx.currentTime);
                 osc.connect(gain);
                 gain.connect(this.audio.bandGain);
@@ -559,7 +527,6 @@
             }
         },
 
-        // Setup HTML5 Canvas Compositor Render Loop
         setupRenderLoop() {
             const render = () => {
                 this.stats.frameCount++;
@@ -572,7 +539,6 @@
                     if (fpsEl) fpsEl.textContent = this.stats.fps.toFixed(2);
                 }
 
-                // Render Program Canvas
                 const programCanvas = document.getElementById('obsProgramCanvas');
                 if (programCanvas) {
                     const ctx = programCanvas.getContext('2d');
@@ -581,7 +547,6 @@
                     }
                 }
 
-                // Render Preview Canvas (if in Studio Mode)
                 if (this.isStudioMode) {
                     const previewCanvas = document.getElementById('obsPreviewCanvas');
                     if (previewCanvas) {
@@ -598,7 +563,6 @@
             requestAnimationFrame(render);
         },
 
-        // Render scene layers onto canvas
         renderSceneToContext(ctx, sceneId, width, height) {
             const scene = this.scenes[sceneId];
             if (!scene) {
@@ -607,17 +571,14 @@
                 return;
             }
 
-            // Check if fade transition is active
             if (this.transition.active && this.transition.type === 'fade' && sceneId === this.currentSceneId) {
                 const elapsed = performance.now() - this.transition.startTime;
                 const progress = Math.min(1, elapsed / this.transition.duration);
 
-                // Draw old scene
                 if (this.transition.fromSceneId && this.scenes[this.transition.fromSceneId]) {
                     this.drawSceneLayers(ctx, this.scenes[this.transition.fromSceneId], width, height);
                 }
 
-                // Blend new scene with alpha
                 ctx.save();
                 ctx.globalAlpha = progress;
                 this.drawSceneLayers(ctx, scene, width, height);
@@ -632,13 +593,10 @@
             this.drawSceneLayers(ctx, scene, width, height);
         },
 
-        // Draw individual source layers
         drawSceneLayers(ctx, scene, width, height) {
-            // Base background
             ctx.fillStyle = '#060a14';
             ctx.fillRect(0, 0, width, height);
 
-            // Sort visible sources by zIndex
             const sorted = (scene.sources || [])
                 .filter(s => s.visible !== false)
                 .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
@@ -648,7 +606,6 @@
             });
         },
 
-        // Draw a single source
         drawSource(ctx, source, width, height) {
             const type = source.type;
             const cfg = source.config || {};
@@ -665,7 +622,6 @@
                             ctx.lineWidth = 3;
                             ctx.strokeRect(px, py, pw, ph);
                             ctx.drawImage(this.streams.cameraVideo, px, py, pw, ph);
-                            // PIP Badge
                             ctx.fillStyle = 'rgba(15,23,42,0.85)';
                             ctx.fillRect(px + 8, py + 8, 110, 20);
                             ctx.fillStyle = '#60a5fa';
@@ -676,7 +632,6 @@
                             ctx.drawImage(this.streams.cameraVideo, 0, 0, width, height);
                         }
                     } else {
-                        // High quality stage simulation when camera is not connected
                         this.drawSanctuaryBackdrop(ctx, width, height, cfg.label || 'STAGE CAMERA');
                     }
                     break;
@@ -721,7 +676,6 @@
             }
         },
 
-        // Draw Sanctuary Stage Graphic
         drawSanctuaryBackdrop(ctx, width, height, label) {
             const grad = ctx.createRadialGradient(width / 2, height * 0.7, 80, width / 2, height / 2, width * 0.7);
             grad.addColorStop(0, '#1a2744');
@@ -730,16 +684,13 @@
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, width, height);
 
-            // Cross silhouette
             ctx.fillStyle = 'rgba(217, 119, 6, 0.25)';
             ctx.fillRect((width / 2) - 8, (height / 2) - 120, 16, 160);
             ctx.fillRect((width / 2) - 50, (height / 2) - 80, 100, 16);
 
-            // Camera status tag top-left
             this.drawTagPill(ctx, 20, 20, `LIVE FEED • ${label}`, '#34d399');
         },
 
-        // Draw Slides Placeholder
         drawSlidesPlaceholder(ctx, width, height) {
             const grad = ctx.createLinearGradient(0, 0, width, height);
             grad.addColorStop(0, '#09152b');
@@ -765,7 +716,6 @@
             ctx.restore();
         },
 
-        // Draw Countdown Timer Overlay
         drawCountdownOverlay(ctx, width, height) {
             const total = this.stats.countdownRemaining;
             const mins = String(Math.floor(total / 60)).padStart(2, '0');
@@ -792,7 +742,6 @@
             ctx.restore();
         },
 
-        // Draw Preacher Lower Third
         drawPreacherLowerThird(ctx, width, height, cfg) {
             const preacherEl = document.getElementById('live_stream_preacher');
             const preacherName = (preacherEl && preacherEl.value.trim()) ? preacherEl.value.trim() : (cfg.name || 'Pastor Juan Dela Cruz');
@@ -808,11 +757,9 @@
             ctx.lineWidth = 3;
             this.roundRect(ctx, bx, by, bw, bh, 8, true, true);
 
-            // Left Gold Accent Bar
             ctx.fillStyle = '#f59e0b';
             ctx.fillRect(bx, by, 6, bh);
 
-            // Cross Emblem Icon
             ctx.fillStyle = '#3b82f6';
             ctx.beginPath();
             ctx.arc(bx + 38, by + (bh / 2), 18, 0, Math.PI * 2);
@@ -822,7 +769,6 @@
             ctx.textAlign = 'center';
             ctx.fillText('✝', bx + 38, by + (bh / 2) + 6);
 
-            // Preacher Name & Title
             ctx.textAlign = 'left';
             ctx.fillStyle = '#ffffff';
             ctx.font = '800 22px Inter, sans-serif';
@@ -834,7 +780,6 @@
             ctx.restore();
         },
 
-        // Draw Scripture Overlay
         drawScriptureOverlay(ctx, width, height, cfg) {
             const descEl = document.getElementById('live_stream_description');
             const scriptureText = (descEl && descEl.value.trim()) ? descEl.value.trim() : (cfg.text || 'For God so loved the world that He gave His only begotten Son... - John 3:16');
@@ -856,7 +801,6 @@
             ctx.restore();
         },
 
-        // Draw Praise Lyrics Overlay
         drawLyricsOverlay(ctx, width, height, text) {
             ctx.save();
             const bw = 860, bh = 54;
@@ -875,7 +819,6 @@
             ctx.restore();
         },
 
-        // Draw Giving & Tithes Graphic
         drawGivingGraphic(ctx, width, height) {
             ctx.save();
             const bw = 640, bh = 340;
@@ -896,7 +839,6 @@
             ctx.font = 'italic 14px Inter, sans-serif';
             ctx.fillText('"Bring the whole tithe into the storehouse..." • Malachi 3:10', width / 2, by + 78);
 
-            // GCash Box
             ctx.fillStyle = 'rgba(255,255,255,0.08)';
             this.roundRect(ctx, bx + 50, by + 105, 240, 180, 8, true, false);
             ctx.fillStyle = '#38bdf8';
@@ -909,7 +851,6 @@
             ctx.font = '13px Inter, sans-serif';
             ctx.fillText('Account: COG Imus', bx + 170, by + 230);
 
-            // Bank Box
             ctx.fillStyle = 'rgba(255,255,255,0.08)';
             this.roundRect(ctx, bx + 350, by + 105, 240, 180, 8, true, false);
             ctx.fillStyle = '#fbbf24';
@@ -924,7 +865,6 @@
             ctx.restore();
         },
 
-        // Draw Top Header Banner
         drawTopBanner(ctx, width, height, title, subtitle) {
             ctx.save();
             ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
@@ -945,7 +885,6 @@
             ctx.restore();
         },
 
-        // Helper: draw small tag pill
         drawTagPill(ctx, x, y, text, color) {
             ctx.save();
             ctx.font = 'bold 12px ui-monospace, monospace';
@@ -962,7 +901,6 @@
             ctx.restore();
         },
 
-        // Helper: Rounded Rectangle
         roundRect(ctx, x, y, width, height, radius, fill, stroke) {
             if (typeof radius === 'undefined') radius = 5;
             if (typeof radius === 'number') {
@@ -988,7 +926,6 @@
             if (stroke) ctx.stroke();
         },
 
-        // Render Scenes List Dock
         renderScenesDock() {
             const listEl = document.getElementById('obsScenesList');
             const countBadge = document.getElementById('obsScenesCountBadge');
@@ -1015,7 +952,6 @@
             }).join('');
         },
 
-        // Render Sources List Dock
         renderSourcesDock() {
             const listEl = document.getElementById('obsSourcesList');
             const badge = document.getElementById('obsSourcesSceneBadge');
@@ -1055,7 +991,6 @@
             }).join('');
         },
 
-        // Helper: Get FontAwesome icon for source type
         getSourceIcon(type) {
             switch (type) {
                 case 'camera': return 'fa-video';
@@ -1068,7 +1003,6 @@
             }
         },
 
-        // Select a Scene
         selectScene(sceneId) {
             if (!this.scenes[sceneId]) return;
 
@@ -1090,7 +1024,6 @@
             }
         },
 
-        // Transition Execution (Cut or Fade)
         performTransition(type = 'cut', targetSceneId = null) {
             const nextSceneId = targetSceneId || this.previewSceneId;
             if (!this.scenes[nextSceneId]) return;
@@ -1122,7 +1055,6 @@
             }
         },
 
-        // Toggle Dual Studio Mode
         toggleStudioMode() {
             this.isStudioMode = !this.isStudioMode;
             this.previewSceneId = this.currentSceneId;
@@ -1137,7 +1069,6 @@
             }
         },
 
-        // Render Monitor Viewport HTML
         renderMonitorViewport() {
             const container = document.getElementById('liveMonitorPlayer');
             if (!container) return;
@@ -1174,7 +1105,6 @@
             }
         },
 
-        // Source Row Actions
         selectSourceRow(sourceId) {
             this.selectedSourceId = sourceId;
             document.querySelectorAll('.obs-source-row').forEach(r => {
@@ -1202,7 +1132,6 @@
 
             const idx = scene.sources.findIndex(s => s.id === this.selectedSourceId);
             if (idx === -1) {
-                // If none explicitly selected, move the last one
                 if (direction === 'up') {
                     const item = scene.sources.pop();
                     scene.sources.unshift(item);
@@ -1222,13 +1151,11 @@
                 }
             }
 
-            // Re-assign zIndexes
             scene.sources.forEach((s, i) => { s.zIndex = i + 1; });
             this.saveScenes();
             this.renderSourcesDock();
         },
 
-        // Scene Management Actions
         openAddSceneModal() {
             const modal = document.getElementById('obsAddSceneModal');
             const input = document.getElementById('obsNewSceneName');
@@ -1380,7 +1307,6 @@
             if (typeof showToast === 'function') showToast('Scene deleted.');
         },
 
-        // Source Management Modals
         openAddSourceModal() {
             const current = this.scenes[this.currentSceneId];
             if (!current) return;
@@ -1535,12 +1461,10 @@
             if (typeof showToast === 'function') showToast(`Removed source "${removed.name}".`);
         },
 
-        // Broadcast Output Pipeline
         async toggleLiveBroadcast() {
             const isCurrentlyLive = (this.isBroadcasting);
 
             if (!isCurrentlyLive) {
-                // GO LIVE
                 const titleEl = document.getElementById('live_stream_title');
                 const preacherEl = document.getElementById('live_stream_preacher');
                 const keyEl = document.getElementById('live_stream_key');
@@ -1579,7 +1503,6 @@
                 if (!confirmed) return;
 
                 try {
-                    // Activate live in backend
                     const payload = {
                         title,
                         preacher,
@@ -1594,10 +1517,8 @@
                     this.streamStartedAt = new Date();
                     this.startStreamTimer();
 
-                    // Update UI controls
                     this.updateBroadcastUi(true);
 
-                    // Start local MediaRecorder capture pipeline
                     this.startMediaStreamPipeline();
 
                     if (typeof showToast === 'function') {
@@ -1610,7 +1531,6 @@
                     }
                 }
             } else {
-                // END BROADCAST
                 let confirmed = false;
                 if (typeof showDecisionModal === 'function') {
                     confirmed = await showDecisionModal({
@@ -1645,7 +1565,6 @@
             }
         },
 
-        // Update Broadcast UI status indicators
         updateBroadcastUi(isLive) {
             const badge = document.getElementById('livestreamLiveBadge');
             const btn = document.getElementById('btnToggleLiveStream');
@@ -1677,7 +1596,6 @@
             }
         },
 
-        // Local MediaRecorder Pipeline
         startMediaStreamPipeline() {
             const programCanvas = document.getElementById('obsProgramCanvas');
             if (!programCanvas || !programCanvas.captureStream) return;
@@ -1698,7 +1616,7 @@
                         this.recordChunks.push(e.data);
                     }
                 };
-                recorder.start(1000); // 1-second chunks
+                recorder.start(1000);
                 this.recorder = recorder;
             } catch (err) {
                 console.warn('[OBS Studio] MediaRecorder capture error:', err);
@@ -1712,7 +1630,6 @@
             this.recorder = null;
         },
 
-        // Stream Elapsed Timer
         startStreamTimer(startedAt) {
             clearInterval(this.streamTimer);
             const start = startedAt ? new Date(startedAt).getTime() : Date.now();
@@ -1733,7 +1650,6 @@
             if (el) el.textContent = '00:00:00';
         },
 
-        // Local Recording Toggle
         toggleRecording() {
             this.isRecording = !this.isRecording;
             const btn = document.getElementById('obsRecordBtn');
@@ -1769,7 +1685,6 @@
                 if (label) label.textContent = 'REC';
                 if (timer) timer.style.display = 'none';
 
-                // Save recording to file
                 if (this.recordChunks.length > 0) {
                     const blob = new Blob(this.recordChunks, { type: 'video/webm' });
                     const url = URL.createObjectURL(blob);
@@ -1791,16 +1706,13 @@
             }
         },
 
-        // Telemetry stats simulation
         startStatsTelemetry() {
             setInterval(() => {
-                // Ticking countdown for starting soon scene
                 if (this.currentSceneId === 'starting_soon' || this.previewSceneId === 'starting_soon') {
                     this.stats.countdownRemaining--;
                     if (this.stats.countdownRemaining < 0) this.stats.countdownRemaining = 300;
                 }
 
-                // Random slight jitter for telemetry strip
                 const cpuEl = document.getElementById('obsCpuVal');
                 const bitrateEl = document.getElementById('obsBitrateVal');
                 if (cpuEl && this.isBroadcasting) {
@@ -1812,7 +1724,6 @@
             }, 1000);
         },
 
-        // Test stream relay connection & key format
         async testStreamRelay() {
             const key = document.getElementById('live_stream_key')?.value?.trim();
             if (!key) {
@@ -1843,7 +1754,6 @@
             }
         },
 
-        // Stream Key Toggle & Copy
         toggleKeyVisibility() {
             const keyInput = document.getElementById('live_stream_key');
             const eyeIcon = document.getElementById('obsKeyEyeIcon');
@@ -1873,7 +1783,6 @@
             }
         },
 
-        // Save live stream details
         async saveLiveStreamDetails() {
             const title = document.getElementById('live_stream_title')?.value?.trim();
             const preacher = document.getElementById('live_stream_preacher')?.value?.trim();
@@ -1905,7 +1814,6 @@
             }
         },
 
-        // Escape HTML
         escapeHtml(str) {
             if (!str) return '';
             return String(str)
@@ -1921,7 +1829,6 @@
 
 })(window);
 
-// Bridge functions for inline HTML event handlers
 function selectObsScene(sceneKey) { window.ObsStudio && window.ObsStudio.selectScene(sceneKey); }
 function performObsTransition(type) { window.ObsStudio && window.ObsStudio.performTransition(type); }
 function toggleObsStudioMode() { window.ObsStudio && window.ObsStudio.toggleStudioMode(); }
@@ -1935,7 +1842,6 @@ function testStreamUrlLink() { window.ObsStudio && window.ObsStudio.testStreamRe
 function testStreamRelayConnection() { window.ObsStudio && window.ObsStudio.testStreamRelay(); }
 function toggleLiveBroadcast() { window.ObsStudio && window.ObsStudio.toggleLiveBroadcast(); }
 
-// Source & Scene modals bridge
 function openObsAddSceneModal() { window.ObsStudio && window.ObsStudio.openAddSceneModal(); }
 function closeObsAddSceneModal() { window.ObsStudio && window.ObsStudio.closeAddSceneModal(); }
 function confirmAddObsScene() { window.ObsStudio && window.ObsStudio.confirmAddScene(); }
@@ -1955,13 +1861,12 @@ function saveObsSourceProperties() { window.ObsStudio && window.ObsStudio.saveSo
 function deleteSelectedObsSource() { window.ObsStudio && window.ObsStudio.deleteSelectedSource(); }
 function reorderObsSource(dir) { window.ObsStudio && window.ObsStudio.reorderSource(dir); }
 
-// Device capture buttons
 function toggleObsCameraInput() { window.ObsStudio && window.ObsStudio.toggleCameraInput(); }
 function toggleObsScreenShare() { window.ObsStudio && window.ObsStudio.toggleScreenShare(); }
 function toggleObsMicCapture() { window.ObsStudio && window.ObsStudio.toggleMicCapture(); }
 function toggleObsBackgroundAudio() { window.ObsStudio && window.ObsStudio.toggleBackgroundAudio(); }
 function renderLiveMonitorPlayer() { window.ObsStudio && window.ObsStudio.renderMonitorViewport(); }
-function autoUpdateLiveMonitorPlayer() { /* Handled automatically by render loop */ }
+function autoUpdateLiveMonitorPlayer() { }
 
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('facebookLiveStudioCard') && window.ObsStudio) {

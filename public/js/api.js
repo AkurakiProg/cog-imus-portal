@@ -114,7 +114,6 @@ function bindTabUser(user) {
     _tabBoundUserId = Number(uid) || uid;
     try {
         sessionStorage.setItem(TAB_USER_ID_KEY, String(_tabBoundUserId));
-        // Ensure localStorage shared/meta exist if this tab was initialized directly after login
         const token = sessionStorage.getItem('church_token');
         const meta = parseActiveSessionMeta();
         if (token && (!meta || String(meta.userId) === String(_tabBoundUserId))) {
@@ -141,7 +140,6 @@ function hydrateTabSessionIfNeeded() {
         const shared = getSharedBrowserSession();
         const meta = parseActiveSessionMeta();
 
-        // Check if active browser user switched away while this tab was inactive or loading
         if (currentBound && meta && meta.userId && String(meta.userId) !== String(currentBound)) {
             sessionStorage.removeItem('church_token');
             sessionStorage.removeItem('church_user');
@@ -150,7 +148,6 @@ function hydrateTabSessionIfNeeded() {
             return { switchedAway: true };
         }
 
-        // Same-account multi-tab support: hydrate empty tab from active browser session
         if (!currentToken && shared && shared.token && shared.user) {
             const sharedUid = shared.user.user_id || shared.user.id;
             if (!meta || !meta.userId || String(meta.userId) === String(sharedUid)) {
@@ -199,7 +196,6 @@ function recordBrowserLogin(token, user, sessionSyncId = null) {
         localStorage.removeItem('church_token');
         localStorage.removeItem('church_user');
 
-        // Persist active browser-wide session state for same-account tabs & switch detection
         const metaPayload = {
             userId: numericUid,
             roleName: user.role_name || null,
@@ -344,7 +340,6 @@ async function triggerConcurrentLogout(reason = 'concurrent_login') {
         return;
     }
 
-    // Immediately clear tab session credentials and scrub sensitive dashboard view contents
     sessionStorage.removeItem('church_token');
     sessionStorage.removeItem('church_user');
     sessionStorage.removeItem(TAB_USER_ID_KEY);
@@ -489,7 +484,7 @@ async function checkSessionStatus() {
     if (!token) return;
 
     const now = Date.now();
-    if (now - _lastCheckTime < 5000) return; // Throttle to at most once per 5s
+    if (now - _lastCheckTime < 5000) return;
     _lastCheckTime = now;
 
     try {
@@ -525,20 +520,16 @@ async function checkSessionStatus() {
 function startSessionWatchdog() {
     if (_watchdogStarted) return;
     const path = window.location.pathname.toLowerCase();
-    // Only run watchdog on authenticated dashboard views
     if (!path.includes('-dashboard')) return;
     if (!sessionStorage.getItem('church_token')) return;
 
     _watchdogStarted = true;
     getBrowserContextId();
 
-    // Ensure tab user ID is bound
     getBoundTabUserId();
 
-    // 1. Light 15-second heartbeat (reduced from 2.5s to prevent query spam)
     _watchdogIntervalId = setInterval(checkSessionStatus, 15000);
 
-    // 2. Tab switch / visibility change — immediately check local cross-tab state + backend check
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             if (checkForAccountSwitchConflict()) return;
@@ -552,7 +543,6 @@ function startSessionWatchdog() {
         }
     });
 
-    // 3. Window focus — immediately check local cross-tab state + backend check
     window.addEventListener('focus', () => {
         if (checkForAccountSwitchConflict()) return;
         if (!getSharedBrowserSession()) {
@@ -564,7 +554,6 @@ function startSessionWatchdog() {
         }
     });
 
-    // 4. Cross-tab auth BroadcastChannel & localStorage event listeners
     const authBc = getAuthSyncChannel();
     if (authBc) {
         authBc.onmessage = (e) => handleCrossTabAuthSyncEvent(e.data);
@@ -598,7 +587,6 @@ function startSessionWatchdog() {
         }
     });
 
-    // 5. Instant realtime force_logout listener for role changes, deactivations, or account switches
     const handleForceLogoutEvent = (payload) => {
         if (!payload) return;
         const type = payload.type;
@@ -676,7 +664,7 @@ function buildApiQuery(page, limit, filters = {}) {
 
 const api = {
     startSessionWatchdog,
-    async request(endpoint, method = 'GET', body = null, requiresAuth = true) {
+    async request(endpoint, method = 'GET', body = null, requiresAuth = true, options = {}) {
         const headers = { 'Content-Type': 'application/json' };
         const browserCtx = getBrowserContextId();
         if (browserCtx) headers['X-Browser-Context'] = browserCtx;
@@ -690,6 +678,7 @@ const api = {
             else { window.location.href = '/views/login.html'; return; }
         }
         const config = { method, headers };
+        if (options && options.cache) config.cache = options.cache;
         if (body) config.body = JSON.stringify(body);
         
         _activeRequestsCount++;
@@ -723,7 +712,6 @@ const api = {
         }
     },
 
-    // THIS FUNCTION IS REQUIRED FOR FILE UPLOADS AND FORM DATA
     async requestFormData(endpoint, method, formData, requiresAuth = true) {
         const headers = {};
         const browserCtx = getBrowserContextId();
@@ -793,7 +781,6 @@ const api = {
         checkSession: () => api.request('/auth/check-session', 'GET'),
         getMe: () => api.request('/auth/me', 'GET'),
         updatePassword: (currentPassword, newPassword) => api.request('/auth/update-password', 'PUT', { currentPassword, newPassword }),
-        // Multi-Factor Authentication (MFA / 2FA)
         verifyMfa: (mfaChallengeToken, token) => {
             const shared = getSharedBrowserSession();
             const previousToken = sessionStorage.getItem('church_token') || (shared && shared.token) || null;
@@ -834,15 +821,15 @@ const api = {
         getAlbums: () => api.request('/public/gallery', 'GET', null, false),
         getAlbumImages: (id) => api.request(`/public/gallery/${id}`, 'GET', null, false),
         getPage: (key) => api.request(`/public/pages/${key}`, 'GET', null, false),
-        getWebsiteContent: (section = 'all') => api.request(`/public/website/${section || 'all'}`, 'GET', null, false),
+        getWebsiteContent: (section = 'all') => api.request(`/public/website/${section || 'all'}`, 'GET', null, false, { cache: 'no-store' }),
         submitContact: (data) => api.request('/public/contact', 'POST', data, false)
     },
 
     users: {
         getAll: (page = null, limit = null, filters = {}) => api.request('/users' + buildApiQuery(page, limit, filters), 'GET'),
         getById: (id) => api.request(`/users/${id}`, 'GET'),
-        create: (formData) => api.requestFormData('/users', 'POST', formData), // USES requestFormData
-        update: (id, formData) => api.requestFormData(`/users/${id}`, 'PUT', formData), // USES requestFormData
+        create: (formData) => api.requestFormData('/users', 'POST', formData),
+        update: (id, formData) => api.requestFormData(`/users/${id}`, 'PUT', formData),
         delete: (id) => api.request(`/users/${id}`, 'DELETE'),
         verify: (id) => api.request(`/users/${id}/verify`, 'POST'),
         resendEmail: (id) => api.request(`/users/${id}/resend-email`, 'POST')
@@ -962,7 +949,10 @@ const api = {
         getWebsiteContent: (section = 'all') => api.request(`/content/website/${section || 'all'}`, 'GET'),
         saveWebsiteContent: (section, data) => api.request(`/content/website/${section}`, 'PUT', data),
         uploadWebsiteVideo: (formData) => api.requestFormData('/content/upload-video', 'POST', formData),
-        uploadWebsiteImage: (formData) => api.requestFormData('/content/upload-image', 'POST', formData)
+        uploadWebsiteImage: (formData, uploadType = '') => {
+            const suffix = uploadType ? `?type=${encodeURIComponent(uploadType)}` : '';
+            return api.requestFormData(`/content/upload-image${suffix}`, 'POST', formData);
+        }
     },
     audit: {
         getAll: (page = 1, filters = {}) => api.request(`/audit?` + new URLSearchParams({ page, limit: 50, ...filters }).toString(), 'GET')

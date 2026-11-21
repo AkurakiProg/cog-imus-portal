@@ -1,4 +1,4 @@
-// Helper: HTML Escaping for XSS Prevention
+// Security: Escape HTML to prevent XSS in dynamic public templates
 function escapeHtml(str) {
     if (!str && str !== 0) return '';
     return String(str)
@@ -9,7 +9,6 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-// Mobile Navigation Toggle
 function toggleMobileMenu() {
     const navLinks = document.querySelector('.nav-links');
     if (navLinks) {
@@ -17,7 +16,6 @@ function toggleMobileMenu() {
     }
 }
 
-// Close mobile menu on link click
 document.addEventListener('click', (e) => {
     if (e.target.closest('.nav-links a')) {
         const navLinks = document.querySelector('.nav-links');
@@ -27,7 +25,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Navbar Scroll Effect & Active Link Highlight
 window.addEventListener('scroll', () => {
     const navbar = document.getElementById('navbar');
     if (navbar) {
@@ -52,7 +49,6 @@ function highlightActiveNav() {
     });
 }
 
-// Lightbox Modal Functions
 function openLightbox(src, caption = '') {
     let modal = document.getElementById('lightboxModal');
     if (!modal) {
@@ -86,7 +82,6 @@ function closeLightbox() {
     if (modal) modal.classList.remove('active');
 }
 
-// Hero Video & Motion Controller
 function initHeroVideo() {
     const video = document.getElementById('heroVideo');
     const toggleBtn = document.getElementById('heroVideoControl');
@@ -133,7 +128,6 @@ function initHeroVideo() {
         return;
     }
 
-    // Attempt video playback
     const startPlayback = () => {
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -143,7 +137,6 @@ function initHeroVideo() {
             }).catch((err) => {
                 console.log('Autoplay muted playback deferred by browser policy:', err);
                 updateButton(false);
-                // Listen for first interaction to resume play
                 const resumeOnInteraction = () => {
                     video.play().then(() => {
                         if (container) container.classList.remove('video-fallback');
@@ -180,7 +173,6 @@ function initHeroVideo() {
     }
 }
 
-// Scroll-Triggered Entrance Animations (Intersection Observer)
 function initScrollAnimations() {
     const targets = document.querySelectorAll('.reveal, .reveal-stagger');
     if (!targets.length) return;
@@ -214,7 +206,6 @@ function initScrollAnimations() {
     });
 }
 
-// Hero Slider
 async function loadHero() {
     const slider = document.getElementById('heroSlider');
     if (!slider) return;
@@ -231,7 +222,6 @@ async function loadHero() {
             <div class="hero-slide ${i === 0 ? 'active' : ''}" style="background-image: url('${encodeURI(b.image_path)}');"></div>
         `).join('');
 
-        // Auto-rotate slides
         let current = 0;
         const slides = document.querySelectorAll('.hero-slide');
         if (slides.length > 1) {
@@ -248,7 +238,6 @@ async function loadHero() {
     }
 }
 
-// Helper: Extract YouTube Video ID
 function extractYouTubeId(urlOrId) {
     if (!urlOrId) return '';
     const str = String(urlOrId).trim();
@@ -260,7 +249,6 @@ function extractYouTubeId(urlOrId) {
     return clean.slice(0, 50);
 }
 
-// Inline Playback for Cards
 function playSermonInline(targetId, videoId, title) {
     const el = document.getElementById(targetId);
     if (!el || !videoId) return;
@@ -275,10 +263,9 @@ function playSermonInline(targetId, videoId, title) {
         </iframe>
     `;
     el.style.background = '#000';
-    el.onclick = null; // Prevent re-triggering once playing
+    el.onclick = null;
 }
 
-// Public Video Theater Modal
 window._publicSermonsList = [];
 
 function openPublicSermonByIndex(index) {
@@ -380,7 +367,6 @@ function closePublicVideoModal() {
     if (playerEl) playerEl.innerHTML = '';
 }
 
-// Homepage Sermons
 async function loadHomeSermons() {
     const grid = document.getElementById('sermonsGrid');
     if (!grid) return;
@@ -391,7 +377,6 @@ async function loadHomeSermons() {
             return; 
         }
 
-        // Prioritize featured sermons first, then newest sermon_date
         const sorted = [...res.data].sort((a, b) => {
             const featA = a.is_featured == 1 ? 1 : 0;
             const featB = b.is_featured == 1 ? 1 : 0;
@@ -450,7 +435,6 @@ async function loadHomeSermons() {
     }
 }
 
-// Homepage Events
 let homeEventsCache = [];
 
 async function loadHomeEvents() {
@@ -465,7 +449,6 @@ async function loadHomeEvents() {
             return; 
         }
 
-        // Prioritize featured events first, then upcoming dates
         homeEventsCache.sort((a, b) => {
             const featA = a.is_featured == 1 ? 1 : 0;
             const featB = b.is_featured == 1 ? 1 : 0;
@@ -543,7 +526,6 @@ function openHomeEventModal(eventId) {
     const endTimeStr = endDate ? endDate.toLocaleTimeString('en-US', timeOptions) : '';
     const timeRange = startTimeStr ? (endTimeStr ? `${startTimeStr} – ${endTimeStr}` : startTimeStr) : 'Time TBA';
 
-    // Populate Modal Content
     const titleEl = document.getElementById('evtModalTitle');
     if (titleEl) titleEl.textContent = e.title || 'Church Event';
 
@@ -618,7 +600,6 @@ function closeHomeEventModal(event) {
     }
 }
 
-// Global escape key handler for modal
 document.addEventListener('keydown', function(ev) {
     if (ev.key === 'Escape') {
         closeHomeEventModal();
@@ -629,7 +610,6 @@ window.openHomeEventModal = openHomeEventModal;
 window.closeHomeEventModal = closeHomeEventModal;
 window.closeEventDetailsModal = closeHomeEventModal;
 
-// Contact Form Handler
 function initContactForm() {
     const form = document.getElementById('contactForm');
     const alertBox = document.getElementById('contactAlert');
@@ -674,7 +654,6 @@ function initContactForm() {
     }
 }
 
-// Live Stream Broadcast Alert Ribbon & Fixed Navbar Positioning
 function updateLiveRibbonPosition() {
     const ribbon = document.getElementById('homeLiveRibbon');
     const navbar = document.getElementById('navbar');
@@ -731,11 +710,9 @@ async function checkLiveBroadcastBanner() {
             updateLiveRibbonPosition();
         }
     } catch (err) {
-        // Silently ignore if offline
     }
 }
 
-// ============== REALTIME SYNCHRONIZATION FOR PUBLIC CHURCHGOER ==============
 const churchBroadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('church_realtime_channel') : null;
 
 function broadcastLocalMutation(type, action = 'update') {
@@ -748,15 +725,12 @@ function broadcastLocalMutation(type, action = 'update') {
 }
 window.broadcastLocalMutation = broadcastLocalMutation;
 
-
-// ==================== DYNAMIC CMS WEBSITE HYDRATION ====================
 async function loadWebsiteDynamicContent() {
     try {
         const res = await api.public.getWebsiteContent('all');
         if (!res || !res.data) return;
         const data = res.data;
 
-        // 1. Branding: Logo in Navigation Topbar & Footers
         const hp = data.homepage || {};
         const logoIcon = hp.logo_icon || data.site_branding?.top_logo;
         const logoHolders = document.querySelectorAll('.navbar .logo, .footer-logo');
@@ -791,12 +765,10 @@ async function loadWebsiteDynamicContent() {
             }
         });
 
-        // 2. Homepage Sections (index.html)
         const path = window.location.pathname.toLowerCase();
         const isHome = path === '/' || path.endsWith('/index.html') || path === '' || path.endsWith('/');
 
         if (isHome) {
-            // A. Hero Content
             if (hp.hero) {
                 const badgeEl = document.querySelector('.hero-badge span:last-child') || document.querySelector('.hero-badge');
                 if (badgeEl && hp.hero.badge) {
@@ -840,7 +812,6 @@ async function loadWebsiteDynamicContent() {
                 }
             }
 
-            // B. Background Video
             if (hp.background_video && hp.background_video.video_url) {
                 const videoEl = document.getElementById('heroVideo');
                 if (videoEl && videoEl.querySelector('source')) {
@@ -853,7 +824,6 @@ async function loadWebsiteDynamicContent() {
                 }
             }
 
-            // C. Weekly Worship Schedule Strip
             if (Array.isArray(hp.schedule) && hp.schedule.length > 0) {
                 const schedCard = document.querySelector('.service-times-card');
                 if (schedCard) {
@@ -869,7 +839,6 @@ async function loadWebsiteDynamicContent() {
                 }
             }
 
-            // D. Welcome Section
             if (hp.welcome) {
                 const wSubtitle = document.getElementById('welcomeHeaderSubtitle') || document.querySelector('.welcome-content .section-header p');
                 if (wSubtitle && (hp.welcome.subtitle || hp.welcome.badge)) {
@@ -910,7 +879,6 @@ async function loadWebsiteDynamicContent() {
                 }
             }
 
-            // E. WORDA 5-Pillar Showcase
             if (Array.isArray(hp.worda) && hp.worda.length > 0) {
                 const wordaGrid = document.querySelector('.worda-grid');
                 if (wordaGrid) {
@@ -928,7 +896,6 @@ async function loadWebsiteDynamicContent() {
                 }
             }
 
-            // F. Scripture Spotlight
             if (hp.scripture) {
                 const sText = document.querySelector('.scripture-text');
                 if (sText && hp.scripture.text) sText.innerHTML = `&ldquo;${escapeHtml(hp.scripture.text)}&rdquo;`;
@@ -938,7 +905,6 @@ async function loadWebsiteDynamicContent() {
             }
         }
 
-        // 3. About Us Page (history.html)
         const isAbout = path.includes('history.html') || path.includes('/about');
         if (isAbout) {
             const ab = data.about_us || {};
@@ -966,7 +932,6 @@ async function loadWebsiteDynamicContent() {
             }
         }
 
-        // 4. Contact Page (contact.html)
         const isContact = path.includes('contact.html') || path.includes('/contact');
         const ct = data.contact_us || {};
         if (isContact && ct) {
@@ -995,9 +960,11 @@ async function loadWebsiteDynamicContent() {
             if (servicesEl && Array.isArray(hp.schedule) && hp.schedule.length > 0) {
                 servicesEl.innerHTML = hp.schedule.map(s => `<strong>${escapeHtml(s.title)}:</strong> ${escapeHtml(s.time)}`).join('<br>');
             }
+            if (ct.payment_info) {
+                renderPublicPaymentInfo(ct.payment_info);
+            }
         }
 
-        // 5. Global Footer across ALL public pages
         const ft = data.footer || {};
         const footerAbout = document.querySelector('.footer-col > p');
         if (footerAbout && ft.about_text) footerAbout.textContent = ft.about_text;
@@ -1072,6 +1039,177 @@ async function loadWebsiteDynamicContent() {
 }
 window.loadWebsiteDynamicContent = loadWebsiteDynamicContent;
 
+window._publicPaymentInfo = null;
+
+function renderPublicPaymentInfo(paymentInfo) {
+    const gridEl = document.getElementById('paymentCardsGrid');
+    const emptyEl = document.getElementById('paymentEmptyState');
+    const bannerEl = document.getElementById('paymentSampleBanner');
+    if (!gridEl) return;
+
+    const info = (paymentInfo && typeof paymentInfo === 'object') ? paymentInfo : {};
+    window._publicPaymentInfo = info;
+
+    const providers = [
+        { key: 'gcash', suffix: 'Gcash', label: 'GCash', hasBranch: false },
+        { key: 'bpi', suffix: 'Bpi', label: 'BPI', hasBranch: true },
+        { key: 'bdo', suffix: 'Bdo', label: 'BDO', hasBranch: true }
+    ];
+
+    let visibleCount = 0;
+    let hasSampleVisible = false;
+
+    for (const p of providers) {
+        const entry = info[p.key] || {};
+        const cardEl = document.getElementById(`paymentCard${p.suffix}`);
+        if (!cardEl) continue;
+
+        const isEnabled = entry.enabled !== false;
+        if (!isEnabled) {
+            cardEl.style.display = 'none';
+            continue;
+        }
+
+        cardEl.style.display = 'flex';
+        visibleCount++;
+        const isSample = entry.is_sample === true;
+        if (isSample) hasSampleVisible = true;
+
+        const badgeEl = document.getElementById(`paymentBadge${p.suffix}`);
+        if (badgeEl) {
+            badgeEl.className = `payment-status-pill ${isSample ? 'is-sample' : 'is-verified'}`;
+            badgeEl.textContent = isSample ? 'Sample Placeholder' : 'Official Account';
+        }
+
+        const qrWrapEl = document.getElementById(`paymentQrWrap${p.suffix}`);
+        if (qrWrapEl) {
+            const qrUrl = (entry.qr_image_url || '').trim();
+            if (qrUrl) {
+                qrWrapEl.innerHTML = `
+                    <button type="button" class="payment-qr-button" onclick="openPaymentQrModal('${p.key}')" aria-label="Enlarge ${escapeHtml(p.label)} QR Code">
+                        <img id="paymentQrImg${p.suffix}" src="${escapeHtml(qrUrl)}" alt="${escapeHtml(p.label)} QR Code">
+                    </button>
+                    <span class="payment-qr-caption"><i class="fa-solid fa-magnifying-glass-plus"></i> Click or tap QR to enlarge</span>
+                `;
+            } else {
+                qrWrapEl.innerHTML = `
+                    <div class="payment-qr-empty">
+                        <i class="fa-regular fa-image"></i>
+                        <span>No QR code uploaded. Use the account details below.</span>
+                    </div>
+                `;
+            }
+        }
+
+        const accNameEl = document.getElementById(`paymentAccName${p.suffix}`);
+        if (accNameEl) accNameEl.textContent = entry.account_name || 'Church Account';
+
+        const accNumEl = document.getElementById(`paymentAccNum${p.suffix}`);
+        if (accNumEl) accNumEl.textContent = entry.account_number || '—';
+
+        if (p.hasBranch) {
+            const branchRowEl = document.getElementById(`paymentBranchRow${p.suffix}`);
+            const branchValEl = document.getElementById(`paymentBranch${p.suffix}`);
+            const branchTxt = (entry.branch || '').trim();
+            if (branchRowEl && branchValEl) {
+                if (branchTxt) {
+                    branchRowEl.style.display = '';
+                    branchValEl.textContent = branchTxt;
+                } else {
+                    branchRowEl.style.display = 'none';
+                }
+            }
+        }
+
+        const instEl = document.getElementById(`paymentInst${p.suffix}`);
+        if (instEl) {
+            const instTxt = (entry.instructions || '').trim();
+            if (instTxt) {
+                instEl.style.display = '';
+                instEl.textContent = instTxt;
+            } else {
+                instEl.style.display = 'none';
+            }
+        }
+    }
+
+    gridEl.classList.remove('is-single-card', 'is-two-cards');
+    if (visibleCount === 1) gridEl.classList.add('is-single-card');
+    else if (visibleCount === 2) gridEl.classList.add('is-two-cards');
+
+    gridEl.style.display = visibleCount > 0 ? 'grid' : 'none';
+    if (emptyEl) emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
+    if (bannerEl) bannerEl.style.display = hasSampleVisible ? 'flex' : 'none';
+}
+
+function openPaymentQrModal(providerKey) {
+    const modal = document.getElementById('paymentQrModal');
+    if (!modal) return;
+    const suffixMap = { gcash: 'Gcash', bpi: 'Bpi', bdo: 'Bdo' };
+    const titleMap = { gcash: 'GCash QR Code', bpi: 'BPI QR Code', bdo: 'BDO QR Code' };
+    const suffix = suffixMap[providerKey];
+    if (!suffix) return;
+
+    const info = (window._publicPaymentInfo && window._publicPaymentInfo[providerKey]) || {};
+    const imgEl = document.getElementById(`paymentQrImg${suffix}`);
+    const modalImg = document.getElementById('paymentQrModalImg');
+    const modalTitle = document.getElementById('paymentQrModalTitle');
+    const modalSub = document.getElementById('paymentQrModalSub');
+    const modalNum = document.getElementById('paymentQrModalNum');
+
+    const src = info.qr_image_url || (imgEl ? imgEl.getAttribute('src') : '');
+    if (!src || !modalImg) return;
+
+    modalImg.src = src;
+    modalImg.alt = `${titleMap[providerKey]} Enlarged View`;
+    if (modalTitle) modalTitle.textContent = titleMap[providerKey];
+    if (modalSub) modalSub.textContent = info.account_name || (document.getElementById(`paymentAccName${suffix}`)?.textContent || '');
+    if (modalNum) modalNum.textContent = info.account_number || (document.getElementById(`paymentAccNum${suffix}`)?.textContent || '');
+
+    modal.classList.add('active');
+}
+
+function closePaymentQrModal() {
+    const modal = document.getElementById('paymentQrModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function copyPaymentField(elementId, btnEl) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const value = (el.textContent || '').trim();
+    if (!value || value === '—') return;
+
+    const showCopied = () => {
+        if (!btnEl) return;
+        const orig = btnEl.innerHTML;
+        btnEl.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+        setTimeout(() => { btnEl.innerHTML = orig; }, 1600);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(showCopied).catch(() => {});
+    } else {
+        const tmp = document.createElement('textarea');
+        tmp.value = value;
+        document.body.appendChild(tmp);
+        tmp.select();
+        try { document.execCommand('copy'); showCopied(); } catch (e) {}
+        document.body.removeChild(tmp);
+    }
+}
+
+window.renderPublicPaymentInfo = renderPublicPaymentInfo;
+window.openPaymentQrModal = openPaymentQrModal;
+window.closePaymentQrModal = closePaymentQrModal;
+window.copyPaymentField = copyPaymentField;
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePaymentQrModal();
+    });
+}
+
 function handleRealtimePublicUpdate(eventData) {
     if (!eventData || !eventData.type || eventData.type === 'connected') return;
     const type = eventData.type;
@@ -1133,7 +1271,6 @@ function initPublicRealtimeSync() {
     }
 }
 
-// Initialize on DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
     highlightActiveNav();
     initHeroVideo();

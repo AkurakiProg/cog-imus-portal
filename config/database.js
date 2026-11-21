@@ -28,7 +28,6 @@ async function testConnection() {
         console.log('[DATABASE] MySQL connection established successfully.');
         console.log(`[DATABASE] Connected to: ${process.env.DB_NAME}@${process.env.DB_HOST}:${process.env.DB_PORT}`);
         
-        // Ensure theme_preference column exists on users table
         try {
             const [check] = await connection.query("SHOW COLUMNS FROM users LIKE 'theme_preference'");
             if (check.length === 0) {

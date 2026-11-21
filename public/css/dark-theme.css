@@ -2547,6 +2547,87 @@ body.dark-mode .cal-week-card-header .day-num {
     color: #F8FAFC !important;
 }
 
+body.dark-mode .weekly-day-col {
+    background: #1A2230 !important;
+    border: 1px solid #283548 !important;
+}
+
+body.dark-mode .weekly-day-col:hover {
+    border-color: #C9A961 !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.dark-mode .weekly-day-col.is-today {
+    border: 2px solid #C9A961 !important;
+    background: rgba(201, 169, 97, 0.1) !important;
+}
+
+body.dark-mode .weekly-day-col.is-selected {
+    border: 2px solid #3B82F6 !important;
+    background: rgba(37, 99, 235, 0.14) !important;
+}
+
+body.dark-mode .weekly-day-header {
+    border-bottom: 1px solid #283548 !important;
+}
+
+body.dark-mode .weekly-day-name {
+    color: #94A3B8 !important;
+}
+
+body.dark-mode .weekly-day-num {
+    color: #F8FAFC !important;
+}
+
+body.dark-mode .weekly-day-num.today-pill {
+    background: #C9A961 !important;
+    color: #0E2A4F !important;
+}
+
+body.dark-mode .weekly-item-card {
+    background: #141B27 !important;
+    border-color: #283548 !important;
+}
+
+body.dark-mode .weekly-item-card.service-badge {
+    background: rgba(37, 99, 235, 0.22) !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    border-left-color: #60A5FA !important;
+    color: #BFDBFE !important;
+}
+
+body.dark-mode .weekly-item-card.midweek-badge {
+    background: rgba(245, 158, 11, 0.18) !important;
+    border-color: rgba(245, 158, 11, 0.38) !important;
+    border-left-color: #FBBF24 !important;
+    color: #FDE68A !important;
+}
+
+body.dark-mode .weekly-item-card.duty-badge {
+    background: rgba(16, 185, 129, 0.18) !important;
+    border-color: rgba(16, 185, 129, 0.38) !important;
+    border-left-color: #34D399 !important;
+    color: #A7F3D0 !important;
+}
+
+body.dark-mode .weekly-item-card.seminary-badge {
+    background: rgba(217, 119, 6, 0.2) !important;
+    border-color: rgba(217, 119, 6, 0.4) !important;
+    border-left-color: #F59E0B !important;
+    color: #FCD34D !important;
+}
+
+body.dark-mode .weekly-item-card.event-badge {
+    background: rgba(139, 92, 246, 0.2) !important;
+    border-color: rgba(139, 92, 246, 0.4) !important;
+    border-left-color: #A78BFA !important;
+    color: #DDD6FE !important;
+}
+
+body.dark-mode .weekly-empty-slot {
+    color: #64748B !important;
+}
+
 /* Calendar Event Badges & Cell Chips */
 body.dark-mode .cal-cell-badge,
 body.dark-mode .cal-chip {

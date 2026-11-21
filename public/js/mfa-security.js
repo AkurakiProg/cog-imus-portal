@@ -5,7 +5,7 @@
 
 let _currentMfaSetupKey = '';
 let _currentRecoveryCodes = [];
-let _mfaReauthAction = null; // 'disable' | 'regenerate'
+let _mfaReauthAction = null;
 
 function showMfaModalAlert(message, type = 'error') {
     const alert = document.getElementById('mfaModalAlert');

@@ -19,13 +19,9 @@ function validateUploadedImageFile(filePath) {
         fs.closeSync(fd);
         if (bytesRead < 4) return false;
 
-        // JPEG: FF D8 FF
         if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true;
-        // PNG: 89 50 4E 47
         if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true;
-        // GIF: GIF8
         if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true;
-        // WEBP: RIFF....WEBP
         if (bytesRead >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP') return true;
 
         return false;

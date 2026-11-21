@@ -122,7 +122,6 @@ exports.deleteMinistry = async (req, res) => {
     }
 };
 
-// --- Ministry Members ---
 exports.getMinistryMembers = async (req, res) => {
     try {
         const members = await ministryModel.getMinistryMembers(req.params.id);
@@ -135,7 +134,7 @@ exports.getMinistryMembers = async (req, res) => {
 
 exports.addMemberToMinistry = async (req, res) => {
     try {
-        const { id } = req.params; // ministry id
+        const { id } = req.params;
         const { member_id, role_in_ministry } = req.body;
         
         const ministryMemberId = await ministryModel.addMember(id, member_id, role_in_ministry);
@@ -162,10 +161,6 @@ exports.removeMemberFromMinistry = async (req, res) => {
     }
 };
 
-// ============================================================
-// Leader Assigned Ministries & Roster Attendance
-// ============================================================
-
 /**
  * Returns ministries assigned to the logged-in church leader.
  * Leaders only see their assigned ministry/ministries.
@@ -174,7 +169,6 @@ exports.getLeaderAssignedMinistries = async (req, res) => {
     try {
         const assigned = await ministryModel.getAssignedMinistriesForLeader(req.user.id);
         
-        // If user is Admin and has no specific leader assigned, allow viewing all ministries
         if (assigned.length === 0 && req.user.role_name === 'Admin') {
             const all = await ministryModel.getAll();
             return successResponse(res, all, 'Ministries retrieved successfully');
@@ -372,7 +366,6 @@ exports.updateDepartmentHead = async (req, res) => {
         return errorResponse(res, error.message || 'Failed to update department head.', 400);
     }
 };
-
 
 /**
  * Returns department oversight for a leader if they are appointed as a Department Head.

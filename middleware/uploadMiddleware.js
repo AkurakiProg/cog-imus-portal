@@ -2,14 +2,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure base upload directories exist
 const uploadDirs = ['profiles', 'gallery', 'banners', 'documents', 'videos', 'content', 'announcements'];
 uploadDirs.forEach(dir => {
     const fullPath = path.join(__dirname, '..', 'uploads', dir);
     if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath, { recursive: true });
 });
 
-// Standard General & Profile Image Storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         let folder = 'profiles';
@@ -35,7 +33,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const filetypes = /jpeg|jpg|png|gif|webp|svg/;
         const mimetype = /image\/(jpeg|jpg|png|gif|webp|svg\+xml)/.test(file.mimetype);
@@ -45,7 +43,6 @@ const upload = multer({
     }
 });
 
-// Dedicated Video Storage (Background Video) - Strictly 100 MB Limit
 const videoStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, path.join(__dirname, '..', 'uploads', 'videos'));
@@ -59,7 +56,7 @@ const videoStorage = multer.diskStorage({
 
 const uploadVideo = multer({
     storage: videoStorage,
-    limits: { fileSize: 100 * 1024 * 1024 }, // Strictly 100 MB Maximum Limit
+    limits: { fileSize: 100 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const validMimes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
         const validExts = /\.(mp4|webm|ogv|mov)$/i;
@@ -73,7 +70,6 @@ const uploadVideo = multer({
     }
 });
 
-// Dedicated Website Image Storage (Logo, Hero, History, Welcome) - 10 MB Limit
 const websiteImageStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, path.join(__dirname, '..', 'uploads', 'content'));
@@ -88,7 +84,7 @@ const websiteImageStorage = multer.diskStorage({
 
 const uploadWebsiteImage = multer({
     storage: websiteImageStorage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const filetypes = /jpeg|jpg|png|gif|webp|svg/;
         const isSvg = file.mimetype === 'image/svg+xml' || /\.svg$/i.test(file.originalname);
@@ -101,7 +97,6 @@ const uploadWebsiteImage = multer({
     }
 });
 
-// Dedicated Announcement Image Storage (.jpg, .jpeg, .png, .webp, .gif) - Strictly 10 MB Limit
 const announcementImageStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         const dest = path.join(__dirname, '..', 'uploads', 'announcements');
@@ -117,7 +112,7 @@ const announcementImageStorage = multer.diskStorage({
 
 const uploadAnnouncementImage = multer({
     storage: announcementImageStorage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const validExt = /^\.(jpe?g|png|webp|gif)$/i;
         const validMime = /^image\/(jpeg|jpg|png|webp|gif)$/i;

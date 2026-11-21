@@ -4,7 +4,6 @@ const { v4: uuidv4 } = require('uuid');
 const ACCOUNT_SWITCHED_MESSAGE = 'Your session has ended because a different account was logged in using another tab in this browser. Please log in again to continue.';
 const EXPLICIT_LOGOUT_MESSAGE = 'Session terminated: You have been logged out. Please log in again to continue.';
 
-// In-memory store keyed by browserCtx -> { userId, sessionToken, updatedAt }
 // Intentionally kept in-memory (alongside signed HttpOnly cookies and users.current_session_token)
 // so we preserve the exact 33 MySQL table count while enforcing cross-tab browser session isolation.
 const browserContextMap = new Map();
@@ -12,7 +11,7 @@ const invalidatedBySwitchUsers = new Map();
 const explicitlyLoggedOutUsers = new Map();
 
 const MAX_CONTEXT_ENTRIES = 5000;
-const MARKER_TTL_MS = 60 * 60 * 1000; // 1 hour
+const MARKER_TTL_MS = 60 * 60 * 1000;
 
 function sanitizeBrowserCtx(raw) {
     if (!raw || typeof raw !== 'string') return null;
@@ -162,7 +161,6 @@ async function resolveAndActivateSession({ req, res, user, pool }) {
     const prevTokenPayload = getPreviousTokenPayload(req);
     const mapEntry = providedCtx ? browserContextMap.get(providedCtx) : null;
 
-    // 1. Collect any prior different user active in this same browser context
     const supersededUserIds = new Set();
     if (mapEntry && Number(mapEntry.userId) !== userId) {
         supersededUserIds.add(Number(mapEntry.userId));
@@ -174,7 +172,6 @@ async function resolveAndActivateSession({ req, res, user, pool }) {
         supersededUserIds.add(Number(prevTokenPayload.userId));
     }
 
-    // Invalidate all prior different user sessions in DB and record account-switch marker
     for (const prevUid of supersededUserIds) {
         if (prevUid && !Number.isNaN(prevUid)) {
             await pool.execute('UPDATE users SET current_session_token = NULL WHERE user_id = ?', [prevUid]);
@@ -183,12 +180,10 @@ async function resolveAndActivateSession({ req, res, user, pool }) {
         }
     }
 
-    // Also mark other browserContext entries pointing to superseded users? Leave map pointing to new user on providedCtx
     invalidatedBySwitchUsers.delete(userId);
     explicitlyLoggedOutUsers.delete(userId);
 
     // 2. Check authoritative DB current_session_token: if SAME user is already active in this
-    //    same browser context -> preserve their active sessionToken so multiple tabs stay synced
     let sessionToken = null;
     let dbCurrentToken = user.current_session_token || null;
     if (!dbCurrentToken) {
@@ -210,7 +205,6 @@ async function resolveAndActivateSession({ req, res, user, pool }) {
         await pool.execute('UPDATE users SET current_session_token = ? WHERE user_id = ?', [sessionToken, userId]);
     }
 
-    // 3. Bind browser context and issue signed cookies
     const effectiveBrowserCtx = providedCtx || uuidv4();
     pruneMapIfNeeded();
     browserContextMap.set(effectiveBrowserCtx, {

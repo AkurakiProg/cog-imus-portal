@@ -1,9 +1,8 @@
 const rateLimit = require('express-rate-limit');
 
-// Strict rate limiter for authentication routes (login and register)
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 15, // Limit each IP to 15 requests per window
+    windowMs: 15 * 60 * 1000,
+    max: 15,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -13,10 +12,9 @@ const authLimiter = rateLimit({
     }
 });
 
-// Rate limiter for public contact form submissions
 const contactLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 submissions per window
+    windowMs: 15 * 60 * 1000,
+    max: 10,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -26,10 +24,9 @@ const contactLimiter = rateLimit({
     }
 });
 
-// Rate limiter for MFA verification and challenge endpoints
 const mfaLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // Limit each IP to 20 MFA verification attempts per window
+    windowMs: 15 * 60 * 1000,
+    max: 20,
     standardHeaders: true,
     legacyHeaders: false,
     message: {

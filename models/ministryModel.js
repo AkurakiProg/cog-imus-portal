@@ -145,7 +145,6 @@ const MinistryModel = {
         await pool.execute(`DELETE FROM ministries WHERE ministry_id = ?`, [id]);
     },
 
-    // --- Ministry Members ---
     async getMinistryMembers(ministryId) {
         // Automatically sync the designated ministry leader into ministry_members if missing
         try {
@@ -293,7 +292,6 @@ const MinistryModel = {
         }
     },
 
-    // --- Leader Assigned Ministries ---
     async getAssignedMinistriesForLeader(userId) {
         const memberId = await this.resolveMemberIdForUser(userId);
         if (!memberId) {
@@ -326,7 +324,6 @@ const MinistryModel = {
         return rows;
     },
 
-    // --- Ministry Roster with Attendance Stats ---
     async getMinistryRosterWithAttendance(ministryId) {
         const [rows] = await pool.execute(
             `SELECT mm.ministry_member_id, mm.role_in_ministry, mm.joined_date, mm.status,
@@ -364,7 +361,6 @@ const MinistryModel = {
         return rows;
     },
 
-    // --- Ministry Attendance Sessions ---
     async getMinistryAttendanceSessions(ministryId) {
         const [rows] = await pool.execute(
             `SELECT ma.*,
@@ -647,7 +643,6 @@ const MinistryModel = {
                 [dept]
             );
 
-            // Calculate statistics
             const minIds = ministries.map(m => m.ministry_id);
             let activeMembersCount = 0;
             let leadersCount = 0;

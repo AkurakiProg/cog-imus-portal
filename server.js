@@ -15,9 +15,6 @@ const logger = require('./utils/logger');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ============================================================
-// Security & Middleware
-// ============================================================
 app.use(compression());
 
 app.use(helmet({
@@ -68,9 +65,6 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('combined'));
 }
 
-// ============================================================
-// Static Files (Frontend with optimized caching)
-// ============================================================
 app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: 0,
     etag: true,
@@ -98,9 +92,6 @@ app.get('/images/default-avatar.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'images', 'default-avatar.png'));
 });
 
-// ============================================================
-// Health Check
-// ============================================================
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,
@@ -112,9 +103,6 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// ============================================================
-// API Routes (placeholders - will be implemented in next modules)
-// ============================================================
 const userAccountRoutes = require('./routes/userAccountRoutes');
 const authRoutes = require('./routes/authRoutes');
 const memberRoutes = require('./routes/memberRoutes');
@@ -155,9 +143,6 @@ app.use('/api/system', systemRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/realtime', realtimeRoutes);
 
-// ============================================================
-// Clean Page Routes (Serve views with friendly clean URLs)
-// ============================================================
 const VIEWS_DIR = path.join(__dirname, 'public', 'views');
 
 app.get('/', (req, res) => res.sendFile(path.join(VIEWS_DIR, 'index.html')));
@@ -175,15 +160,9 @@ app.get('/leader', (req, res) => res.sendFile(path.join(VIEWS_DIR, 'leader-dashb
 app.get('/member-dashboard', (req, res) => res.sendFile(path.join(VIEWS_DIR, 'member-dashboard.html')));
 app.get('/member', (req, res) => res.sendFile(path.join(VIEWS_DIR, 'member-dashboard.html')));
 
-// ============================================================
-// Error Handling
-// ============================================================
 app.use(notFound);
 app.use(errorHandler);
 
-// ============================================================
-// Start Server
-// ============================================================
 async function startServer() {
     await testConnection();
 

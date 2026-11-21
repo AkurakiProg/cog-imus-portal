@@ -4,7 +4,6 @@ const authController = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { authLimiter, mfaLimiter } = require('../middleware/rateLimiter');
 
-// Login and Registration
 router.post('/login', authLimiter, authController.login);
 router.post('/register', authLimiter, authController.register);
 router.post('/logout', authMiddleware, authController.logout);
@@ -13,7 +12,6 @@ router.get('/me', authMiddleware, authController.getMe);
 router.put('/update-password', authMiddleware, authController.updatePassword);
 router.put('/theme', authMiddleware, authController.updateThemePreference);
 
-// Multi-Factor Authentication (MFA) Routes
 router.post('/mfa/verify', mfaLimiter, authController.verifyMfaLogin);
 router.post('/mfa/recovery', mfaLimiter, authController.verifyMfaRecovery);
 router.get('/mfa/status', authMiddleware, authController.getMfaStatus);

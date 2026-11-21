@@ -31,8 +31,6 @@ function formatWeekLabel(startDate, endDate) {
     return `${startM} ${startD} – ${endM} ${endD}, ${endY}`;
 }
 
-
-
 function updateLeaderHeroGreeting() {
     const userStr = sessionStorage.getItem('church_user');
     if (!userStr) return;
@@ -75,7 +73,6 @@ function previewEventBanner(e, previewId, placeholderId) {
     }
 }
 
-
 function formatLocalDate(date = new Date()) {
     const d = (date instanceof Date) ? date : new Date(date);
     if (isNaN(d.getTime())) return '';
@@ -95,11 +92,7 @@ function formatLocalDateTime(date = new Date()) {
     const minutes = String(d.getMinutes()).padStart(2, '0');
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
-// ============================================================
-// COG Imus Portal - Leader Dashboard Script
-// ============================================================
 
-// --- Helper: HTML Escaping ---
 function escapeHtml(str) {
     if (!str && str !== 0) return '';
     return String(str)
@@ -110,7 +103,6 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-// --- Distinct Color-Coded Badge Helpers (Matching Admin Standard) ---
 function getDeptBadgeClass(dept) {
     if (!dept) return 'badge-dept-general';
     const d = dept.toLowerCase().trim();
@@ -169,7 +161,6 @@ function getAnnouncementCategoryBadge(cat) {
     return `<span class="badge badge-info">${escapeHtml(cat)}</span>`;
 }
 
-// Global Caches
 let allLeaderMinistriesCache = [];
 let allLeaderEventsCache = [];
 let allLeaderAnnCache = [];
@@ -178,9 +169,6 @@ let allAttendanceTalliesCache = [];
 let currentSermonsPage = 1;
 let currentAlbumsPage = 1;
 
-// ==========================================
-// AUDIO SYNTHESIZER FOR LEADER PORTAL NOTIFICATIONS
-// ==========================================
 function playPortalNotificationSound(type = 'announcement') {
     try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -194,7 +182,6 @@ function playPortalNotificationSound(type = 'announcement') {
         const now = ctx.currentTime;
 
         if (type === 'comment') {
-            // Elegant double bell chime: D5 (587.33Hz) -> A5 (880.00Hz)
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
@@ -217,7 +204,6 @@ function playPortalNotificationSound(type = 'announcement') {
             osc2.start(now + 0.12);
             osc2.stop(now + 0.6);
         } else if (type === 'announcement') {
-            // Vibrant 3-note ascending arpeggio: C5 (523.25Hz) -> E5 (659.25Hz) -> G5 (783.99Hz)
             [
                 { freq: 523.25, time: 0, dur: 0.25 },
                 { freq: 659.25, time: 0.1, dur: 0.25 },
@@ -240,14 +226,13 @@ function playPortalNotificationSound(type = 'announcement') {
     }
 }
 
-// Universal Decision / Confirmation Pop-up Window
 let activeDecisionCleanup = null;
 function showDecisionModal({
     title = 'Confirm Action',
     message = 'Are you sure you want to proceed?',
     confirmText = 'Yes, Proceed',
     cancelText = 'Cancel',
-    type = 'danger', // 'danger' | 'warning' | 'primary' | 'info' | 'success'
+    type = 'danger',
     icon = '',
     onConfirm: onConfirmCb = null,
     onCancel: onCancelCb = null
@@ -359,9 +344,6 @@ function showDecisionModal({
 }
 window.showConfirmDialog = showDecisionModal;
 
-// ============================================================
-// MODAL BACKDROP CLICK-TO-CLOSE & ESCAPE KEY HANDLER
-// ============================================================
 const leaderModalCloseMap = {
     'leaderEventModal': () => typeof closeLeaderEventModal === 'function' && closeLeaderEventModal(),
     'leaderAnnouncementModal': () => typeof closeLeaderAnnouncementModal === 'function' && closeLeaderAnnouncementModal(),
@@ -452,9 +434,6 @@ function initLeaderModalBackdropClose() {
     });
 }
 
-// ============================================================
-// INITIALIZATION ON DOM CONTENT LOADED
-// ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.authSessionSync && typeof window.authSessionSync.hydrateTabSessionIfNeeded === 'function') {
         const hyd = window.authSessionSync.hydrateTabSessionIfNeeded();
@@ -464,7 +443,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Check sessionStorage (tied to browser tab/window lifecycle)
     const token = sessionStorage.getItem('church_token');
 
     // Purge any lingering legacy localStorage session tokens
@@ -532,7 +510,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSafeAvatar(document.getElementById('topbarAvatar'), user.profile_image, user.full_name, 'L');
         if (typeof updateDropdownUserInfo === 'function') updateDropdownUserInfo();
         
-        // Initialize default service date to today
         const serviceDateInput = document.getElementById('att_service_date');
         if (serviceDateInput && !serviceDateInput.value) {
             serviceDateInput.value = formatLocalDate(new Date());
@@ -540,7 +517,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (typeof calculateLiveAttendanceTotal === 'function') calculateLiveAttendanceTotal();
 
-        // Preload ministries cache for filters
         try {
             const minRes = await api.ministries.getAll();
             allLeaderMinistriesCache = minRes.data || [];
@@ -556,7 +532,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             api.startSessionWatchdog();
         }
 
-        // Start real-time announcements notifier with chime & indicator dot safely
         if (typeof initLeaderAnnouncementsNotifier === 'function') {
             initLeaderAnnouncementsNotifier();
         }
@@ -572,7 +547,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// ============== REALTIME SYNCHRONIZATION ==============
 const churchBroadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('church_realtime_channel') : null;
 
 function broadcastLocalMutation(type, action = 'update') {
@@ -723,7 +697,6 @@ function initLeaderRealtimeSync() {
     }
 }
 
-// --- UI Navigation Helpers ---
 function toggleSidebar() {
     const sb = document.getElementById('sidebar');
     let overlay = document.getElementById('sidebarOverlay');
@@ -794,7 +767,6 @@ function showToast(msg, duration = 3000) {
         toast.appendChild(progressBar);
     }
 
-    // Reset progress line animation and restart with current duration
     progressBar.style.animation = 'none';
     void progressBar.offsetWidth;
     progressBar.style.animation = `toastProgress ${duration}ms linear forwards`;
@@ -874,15 +846,12 @@ function navigateToLeaderFinance(type) {
     }
 }
 
-// ============================================================
-// 1. DASHBOARD HOME VIEW
-// ============================================================
 async function loadDashboardSummary() {
     updateLeaderHeroGreeting();
     try {
         const [sumRes, attRes, eventsRes, annRes, minRes, oversightRes] = await Promise.all([
             api.reports.getSummary().catch(() => ({ data: null })),
-            api.attendance.getAll().catch(() => ({ data: [] })),
+            api.attendance.getAll({ all: true }).catch(() => ({ data: [] })),
             api.events.getAll(1, 10, { status: 'Upcoming' }).catch(() => ({ data: [], pagination: { total: 0 } })),
             api.announcements.getAll(1, 10, { is_published: 1 }).catch(() => ({ data: [], pagination: { total: 0 } })),
             api.ministries.getMyAssigned().catch(() => ({ data: [] })),
@@ -902,7 +871,6 @@ async function loadDashboardSummary() {
         allAttendanceTalliesCache = attRes.data || [];
         renderLeaderMiniCalendar();
 
-        // 1. Total Attendance Count
         const totalAttendanceCount = (sumRes.data && sumRes.data.attendance) 
             ? sumRes.data.attendance.total_attendance 
             : allAttendanceTalliesCache.reduce((s, t) => s + (t.total_count || 0), 0);
@@ -910,7 +878,6 @@ async function loadDashboardSummary() {
             document.getElementById('sumAttendance').innerText = Number(totalAttendanceCount || 0).toLocaleString();
         }
 
-        // 2. Active Ministries
         if (sumRes.data && document.getElementById('sumMinistries')) {
             document.getElementById('sumMinistries').innerText = sumRes.data.ministries.total_ministries || 0;
         }
@@ -934,7 +901,6 @@ async function loadDashboardSummary() {
             }
         }
 
-        // 3. Upcoming Events
         const eventsList = eventsRes.data || [];
         allLeaderEventsCache = eventsList;
         const upcomingEvents = eventsList.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled');
@@ -943,7 +909,6 @@ async function loadDashboardSummary() {
             document.getElementById('sumEvents').innerText = upcomingCount;
         }
 
-        // 4. Active Announcements
         const annList = annRes.data || [];
         allLeaderAnnCache = annList;
         const annCount = annRes.pagination ? annRes.pagination.total : annList.length;
@@ -951,14 +916,12 @@ async function loadDashboardSummary() {
             document.getElementById('sumAnnouncements').innerText = annCount;
         }
 
-        // 5 & 6. Finance Income & Expense
         if (sumRes.data) {
             const d = sumRes.data;
             if (document.getElementById('sumIncome')) document.getElementById('sumIncome').innerText = `₱${Number(d.finance.total_income || 0).toLocaleString()}`;
             if (document.getElementById('sumExpense')) document.getElementById('sumExpense').innerText = `₱${Number(d.finance.total_expense || 0).toLocaleString()}`;
         }
 
-        // Render recent attendance snapshot
         const dashRecentAtt = document.getElementById('dashRecentAtt');
         if (dashRecentAtt) {
             if (allAttendanceTalliesCache.length === 0) {
@@ -986,7 +949,6 @@ async function loadDashboardSummary() {
             }
         }
 
-        // Render upcoming events snapshot widget
         const dashUpcomingEvents = document.getElementById('dashUpcomingEvents');
         if (dashUpcomingEvents) {
             if (upcomingEvents.length === 0) {
@@ -1012,7 +974,6 @@ async function loadDashboardSummary() {
         }
         }
 
-        // Render recent announcements snapshot widget
         const dashRecentAnn = document.getElementById('dashRecentAnn');
         if (dashRecentAnn) {
             if (annList.length === 0) {
@@ -1040,7 +1001,6 @@ async function loadDashboardSummary() {
             }
         }
 
-        // Initialize and render Attendance Bar Graph on Dashboard overview
         populateAttendanceChartYears();
         applyAttendanceChartFilters();
     } catch (error) {
@@ -1048,15 +1008,12 @@ async function loadDashboardSummary() {
     }
 }
 
-// ============================================================
-// 2. ATTENDANCE & TALLY MODULE (CALENDAR & BAR GRAPH)
-// ============================================================
 let attCalCurrentYear = new Date().getFullYear();
 let attCalCurrentMonth = new Date().getMonth();
 let attCalSelectedDate = new Date().toISOString().split('T')[0];
 
 let attendanceBarChart = null;
-let attendanceBarChartMode = 'grouped'; // 'grouped' or 'stacked'
+let attendanceBarChartMode = 'grouped';
 
 function setAttendanceDateToday() {
     const todayStr = formatLocalDate(new Date());
@@ -1068,7 +1025,7 @@ function setAttendanceDateToday() {
 function setAttendanceDateLastSunday() {
     const d = new Date();
     const day = d.getDay();
-    const diff = d.getDate() - day; // day 0 is Sunday
+    const diff = d.getDate() - day;
     const lastSunday = new Date(d.setDate(diff));
     const lastSunStr = lastSunday.toISOString().split('T')[0];
     const input = document.getElementById('att_service_date');
@@ -1087,7 +1044,7 @@ function calculateLiveAttendanceTotal() {
     if (liveTotalEl) {
         liveTotalEl.innerText = total.toLocaleString();
         liveTotalEl.style.animation = 'none';
-        liveTotalEl.offsetHeight; // trigger reflow
+        liveTotalEl.offsetHeight;
         liveTotalEl.style.animation = 'tallyPulse 0.3s ease';
     }
     return total;
@@ -1168,7 +1125,6 @@ async function loadAttendance() {
         allAttendanceTalliesCache = listRes.data || [];
         loadAttendanceTable(1);
 
-        // 2. Render Demographic Summary
         const s = sumRes.data || {};
         const attSumEl = document.getElementById('attSummary');
         if (attSumEl) {
@@ -1183,10 +1139,8 @@ async function loadAttendance() {
             `;
         }
 
-        // 3. Render Calendar
         renderAttendanceCalendar();
 
-        // 4. Populate Bar Graph Filters & Render Bar Graph
         populateAttendanceChartYears();
         applyAttendanceChartFilters();
 
@@ -1236,7 +1190,6 @@ async function saveAttendance() {
     }
 }
 
-// --- Attendance Interactive Calendar Functions ---
 function prevAttendanceCalendarMonth() {
     attCalCurrentMonth--;
     if (attCalCurrentMonth < 0) {
@@ -1278,14 +1231,12 @@ function onAttendanceCalendarDayClick(dateStr) {
     const dateInput = document.getElementById('att_service_date');
     if (dateInput) dateInput.value = dateStr;
 
-    // Check if an existing tally exists for this date
     const existingTally = allAttendanceTalliesCache.find(t => {
         const dStr = new Date(t.service_date).toISOString().split('T')[0];
         return dStr === dateStr;
     });
 
     if (existingTally) {
-        // Pre-fill form inputs with existing recorded numbers
         document.getElementById('att_service_type').value = existingTally.service_type || 'Sunday Worship';
         document.getElementById('att_adult').value = existingTally.adult_count || 0;
         document.getElementById('att_youth').value = existingTally.youth_count || 0;
@@ -1294,7 +1245,6 @@ function onAttendanceCalendarDayClick(dateStr) {
         document.getElementById('att_notes').value = existingTally.notes || '';
         calculateLiveAttendanceTotal();
     } else {
-        // Clean zero-state defaults when no record exists for that date
         document.getElementById('att_adult').value = '0';
         document.getElementById('att_youth').value = '0';
         document.getElementById('att_children').value = '0';
@@ -1322,7 +1272,6 @@ function renderAttendanceCalendar() {
 
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Build map of recorded tallies by date
     const talliesMap = {};
     allAttendanceTalliesCache.forEach(t => {
         try {
@@ -1333,13 +1282,11 @@ function renderAttendanceCalendar() {
 
     let cellsHtml = '';
 
-    // 1. Previous month trailing days
     for (let i = firstDayIndex - 1; i >= 0; i--) {
         const d = daysInPrevMonth - i;
         cellsHtml += `<div class="cal-day-box other-month"><span class="cal-num">${d}</span></div>`;
     }
 
-    // 2. Current month days
     for (let day = 1; day <= daysInCurrentMonth; day++) {
         const mStr = String(attCalCurrentMonth + 1).padStart(2, '0');
         const dStr = String(day).padStart(2, '0');
@@ -1359,7 +1306,6 @@ function renderAttendanceCalendar() {
         `;
     }
 
-    // 3. Next month leading days to complete grid
     const totalRendered = firstDayIndex + daysInCurrentMonth;
     const remaining = (7 - (totalRendered % 7)) % 7;
     for (let i = 1; i <= remaining; i++) {
@@ -1368,7 +1314,6 @@ function renderAttendanceCalendar() {
 
     gridEl.innerHTML = cellsHtml;
 
-    // Update Selected Date Summary below calendar
     const selectedTally = talliesMap[attCalSelectedDate];
     const textDateEl = document.getElementById('calSelectedDateText');
     const textTallyEl = document.getElementById('calSelectedTallyText');
@@ -1389,7 +1334,6 @@ function renderAttendanceCalendar() {
     }
 }
 
-// --- Attendance Bar Graph Functions (Chart.js) & Filters ---
 function getTallyYearMonth(serviceDate) {
     if (!serviceDate) return { year: '', month: '' };
     if (typeof serviceDate === 'string' && serviceDate.includes('-')) {
@@ -1473,7 +1417,6 @@ function applyAttendanceChartFilters(sourceEl = null) {
     const year = getActiveAttendanceFilterValue('attChartYearFilter', 'dashAttChartYearFilter', sourceEl);
     const month = getActiveAttendanceFilterValue('attChartMonthFilter', 'dashAttChartMonthFilter', sourceEl);
 
-    // Synchronize selects on both dashboard and attendance view
     ['attChartServiceTypeFilter', 'dashAttChartServiceTypeFilter'].forEach(id => {
         const el = document.getElementById(id);
         if (el && el.value !== serviceType) el.value = serviceType;
@@ -1501,7 +1444,7 @@ function applyAttendanceChartFilters(sourceEl = null) {
         return matchesService && matchesYear && matchesMonth;
     });
 
-    renderAttendanceBarChart(filtered, month);
+    renderAttendanceBarChart(filtered, month, { year, serviceType });
 }
 
 function resetAttendanceChartFilters() {
@@ -1523,7 +1466,6 @@ function resetAttendanceChartFilters() {
 function toggleAttendanceBarChartMode(mode) {
     attendanceBarChartMode = mode;
     
-    // Sync pills on both attendance module and dashboard overview
     const sets = [
         ['btnChartModeGrouped', 'btnChartModeStacked'],
         ['btnDashChartModeGrouped', 'btnDashChartModeStacked']
@@ -1546,10 +1488,11 @@ function toggleAttendanceBarChartMode(mode) {
     applyAttendanceChartFilters();
 }
 
-function renderAttendanceBarChart(tallies, selectedMonth = '') {
-    const totalServices = (tallies || []).length;
-    const avgAttendance = totalServices > 0 ? Math.round(tallies.reduce((s, t) => s + (t.total_count || 0), 0) / totalServices) : 0;
-    const peakSunday = totalServices > 0 ? Math.max(...tallies.map(t => t.total_count || 0)) : 0;
+function renderAttendanceBarChart(tallies, selectedMonth = '', filterMeta = {}) {
+    const safeTallies = Array.isArray(tallies) ? tallies : [];
+    const totalServices = safeTallies.length;
+    const avgAttendance = totalServices > 0 ? Math.round(safeTallies.reduce((s, t) => s + (t.total_count || 0), 0) / totalServices) : 0;
+    const peakSunday = totalServices > 0 ? Math.max(...safeTallies.map(t => t.total_count || 0)) : 0;
 
     ['chartStatAvg', 'dashChartStatAvg'].forEach(id => {
         const el = document.getElementById(id);
@@ -1563,6 +1506,36 @@ function renderAttendanceBarChart(tallies, selectedMonth = '') {
         const el = document.getElementById(id);
         if (el) el.textContent = totalServices.toLocaleString();
     });
+
+    function buildEmptyBarSeries(monthVal, meta) {
+        const monthAbbrs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const yearText = (meta && meta.year) ? String(meta.year) : 'All Years';
+        let periodLabels = [];
+
+        if (monthVal) {
+            const mIdx = parseInt(monthVal, 10) - 1;
+            const mName = monthAbbrs[mIdx] || 'Month';
+            periodLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'].map(w => [w, `${mName} (${yearText})`]);
+        } else {
+            periodLabels = meta && meta.year
+                ? monthAbbrs.map(m => [m, yearText])
+                : monthAbbrs;
+        }
+
+        const zeros = new Array(periodLabels.length).fill(0);
+        return {
+            labels: periodLabels,
+            adultData: [...zeros],
+            youthData: [...zeros],
+            childrenData: [...zeros],
+            visitorData: [...zeros],
+            metadata: periodLabels.map((lbl) => ({
+                isEmptyPlaceholder: true,
+                total: 0,
+                label: Array.isArray(lbl) ? lbl.join(' ') : lbl
+            }))
+        };
+    }
 
     function drawChart(canvasId, isDash = false) {
         const canvas = document.getElementById(canvasId);
@@ -1582,18 +1555,11 @@ function renderAttendanceBarChart(tallies, selectedMonth = '') {
         }
 
         const ctx = canvas.getContext('2d');
-        if (!tallies || tallies.length === 0) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '13px Inter, sans-serif';
-            ctx.fillStyle = '#94a3b8';
-            ctx.textAlign = 'center';
-            ctx.fillText('No attendance records match the selected filters.', canvas.width / 2, 90);
-            return null;
-        }
+        const isEmpty = safeTallies.length === 0;
+        const isDark = typeof document !== 'undefined' && document.body && document.body.classList.contains('dark-mode');
+        const tickColor = isDark ? '#CBD5E1' : '#475569';
+        const gridColor = isDark ? '#283548' : '#f1f5f9';
 
-        const sorted = [...tallies].sort((a, b) => new Date(a.service_date) - new Date(b.service_date));
-
-        const isAllMonths = !selectedMonth;
         let labels = [];
         let adultData = [];
         let youthData = [];
@@ -1601,71 +1567,124 @@ function renderAttendanceBarChart(tallies, selectedMonth = '') {
         let visitorData = [];
         let metadata = [];
 
-        if (isAllMonths) {
-            // Group and summarize by Month
-            const monthMap = {};
-            sorted.forEach(t => {
-                const d = new Date(t.service_date);
-                const ymKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                if (!monthMap[ymKey]) {
-                    const monthName = d.toLocaleDateString(undefined, { month: 'long' });
-                    monthMap[ymKey] = {
-                        monthName,
-                        year: String(d.getFullYear()),
-                        adult: 0,
-                        youth: 0,
-                        children: 0,
-                        visitor: 0,
-                        total: 0,
-                        serviceCount: 0
-                    };
-                }
-                monthMap[ymKey].adult += (t.adult_count || 0);
-                monthMap[ymKey].youth += (t.youth_count || 0);
-                monthMap[ymKey].children += (t.children_count || 0);
-                monthMap[ymKey].visitor += (t.visitor_count || 0);
-                monthMap[ymKey].total += (t.total_count || 0);
-                monthMap[ymKey].serviceCount += 1;
-            });
-
-            const keys = Object.keys(monthMap).sort();
-            const displayKeys = keys.length > 12 ? keys.slice(-12) : keys;
-
-            labels = displayKeys.map(k => [monthMap[k].monthName, monthMap[k].year]);
-            adultData = displayKeys.map(k => monthMap[k].adult);
-            youthData = displayKeys.map(k => monthMap[k].youth);
-            childrenData = displayKeys.map(k => monthMap[k].children);
-            visitorData = displayKeys.map(k => monthMap[k].visitor);
-            metadata = displayKeys.map(k => ({
-                isMonthlySummary: true,
-                total: monthMap[k].total,
-                serviceCount: monthMap[k].serviceCount,
-                label: `${monthMap[k].monthName} ${monthMap[k].year}`
-            }));
+        if (isEmpty) {
+            const emptySeries = buildEmptyBarSeries(selectedMonth, filterMeta);
+            labels = emptySeries.labels;
+            adultData = emptySeries.adultData;
+            youthData = emptySeries.youthData;
+            childrenData = emptySeries.childrenData;
+            visitorData = emptySeries.visitorData;
+            metadata = emptySeries.metadata;
         } else {
-            // Specific month: show individual services
-            const recent = sorted.length > 12 ? sorted.slice(-12) : sorted;
-            labels = recent.map(t => {
-                const d = new Date(t.service_date);
-                const datePart = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                const typePart = (t.service_type || '').split(' ')[0];
-                return [datePart, `(${typePart})`];
-            });
-            adultData = recent.map(t => t.adult_count || 0);
-            youthData = recent.map(t => t.youth_count || 0);
-            childrenData = recent.map(t => t.children_count || 0);
-            visitorData = recent.map(t => t.visitor_count || 0);
-            metadata = recent.map(t => ({
-                isMonthlySummary: false,
-                total: t.total_count,
-                serviceType: t.service_type
-            }));
+            const sorted = [...safeTallies].sort((a, b) => new Date(a.service_date) - new Date(b.service_date));
+            const isAllMonths = !selectedMonth;
+
+            if (isAllMonths) {
+                const monthMap = {};
+                sorted.forEach(t => {
+                    const d = new Date(t.service_date);
+                    const ymKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    if (!monthMap[ymKey]) {
+                        const monthName = d.toLocaleDateString(undefined, { month: 'long' });
+                        monthMap[ymKey] = {
+                            monthName,
+                            year: String(d.getFullYear()),
+                            adult: 0,
+                            youth: 0,
+                            children: 0,
+                            visitor: 0,
+                            total: 0,
+                            serviceCount: 0
+                        };
+                    }
+                    monthMap[ymKey].adult += (t.adult_count || 0);
+                    monthMap[ymKey].youth += (t.youth_count || 0);
+                    monthMap[ymKey].children += (t.children_count || 0);
+                    monthMap[ymKey].visitor += (t.visitor_count || 0);
+                    monthMap[ymKey].total += (t.total_count || 0);
+                    monthMap[ymKey].serviceCount += 1;
+                });
+
+                const keys = Object.keys(monthMap).sort();
+                const displayKeys = keys.length > 12 ? keys.slice(-12) : keys;
+
+                labels = displayKeys.map(k => [monthMap[k].monthName, monthMap[k].year]);
+                adultData = displayKeys.map(k => monthMap[k].adult);
+                youthData = displayKeys.map(k => monthMap[k].youth);
+                childrenData = displayKeys.map(k => monthMap[k].children);
+                visitorData = displayKeys.map(k => monthMap[k].visitor);
+                metadata = displayKeys.map(k => ({
+                    isMonthlySummary: true,
+                    total: monthMap[k].total,
+                    serviceCount: monthMap[k].serviceCount,
+                    label: `${monthMap[k].monthName} ${monthMap[k].year}`
+                }));
+            } else {
+                const recent = sorted.length > 12 ? sorted.slice(-12) : sorted;
+                labels = recent.map(t => {
+                    const d = new Date(t.service_date);
+                    const datePart = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    const typePart = (t.service_type || '').split(' ')[0];
+                    return [datePart, `(${typePart})`];
+                });
+                adultData = recent.map(t => t.adult_count || 0);
+                youthData = recent.map(t => t.youth_count || 0);
+                childrenData = recent.map(t => t.children_count || 0);
+                visitorData = recent.map(t => t.visitor_count || 0);
+                metadata = recent.map(t => ({
+                    isMonthlySummary: false,
+                    total: t.total_count,
+                    serviceType: t.service_type
+                }));
+            }
         }
 
         const isStacked = (attendanceBarChartMode === 'stacked');
+        const chartPlugins = [];
+
+        if (isEmpty) {
+            chartPlugins.push({
+                id: 'emptyAttendanceOverlay',
+                afterDraw(chart) {
+                    const area = chart.chartArea;
+                    if (!area) return;
+                    const c = chart.ctx;
+                    const msg = 'No attendance records match the selected filters.';
+                    const darkNow = typeof document !== 'undefined' && document.body && document.body.classList.contains('dark-mode');
+                    c.save();
+                    c.font = '600 12px Inter, sans-serif';
+                    const textWidth = c.measureText(msg).width;
+                    const boxW = Math.min(textWidth + 28, area.right - area.left - 16);
+                    const boxH = 32;
+                    const cx = (area.left + area.right) / 2;
+                    const cy = (area.top + area.bottom) / 2;
+                    const rx = cx - boxW / 2;
+                    const ry = cy - boxH / 2;
+
+                    c.fillStyle = darkNow ? 'rgba(20, 26, 36, 0.92)' : 'rgba(248, 250, 252, 0.94)';
+                    c.strokeStyle = darkNow ? '#334155' : '#cbd5e1';
+                    c.lineWidth = 1;
+                    c.beginPath();
+                    if (typeof c.roundRect === 'function') {
+                        c.roundRect(rx, ry, boxW, boxH, 999);
+                    } else {
+                        c.rect(rx, ry, boxW, boxH);
+                    }
+                    c.fill();
+                    c.stroke();
+
+                    c.fillStyle = darkNow ? '#cbd5e1' : '#64748b';
+                    c.textAlign = 'center';
+                    c.textBaseline = 'middle';
+                    c.fillText(msg, cx, cy, boxW - 16);
+                    c.restore();
+                }
+            });
+        }
 
         return new Chart(ctx, {
             type: 'bar',
+            plugins: chartPlugins,
             data: {
                 labels: labels,
                 datasets: [
@@ -1711,6 +1730,7 @@ function renderAttendanceBarChart(tallies, selectedMonth = '') {
                         position: 'top',
                         labels: {
                             boxWidth: 10,
+                            color: tickColor,
                             font: { size: isDash ? 10 : 11, family: 'Inter' }
                         }
                     },
@@ -1720,11 +1740,13 @@ function renderAttendanceBarChart(tallies, selectedMonth = '') {
                                 const index = context[0].dataIndex;
                                 const m = metadata[index];
                                 if (!m) return '';
+                                if (m.isEmptyPlaceholder) {
+                                    return '\nNo attendance records match the selected filters.';
+                                }
                                 if (m.isMonthlySummary) {
                                     return `\nTotal Monthly Attendance: ${m.total.toLocaleString()}\nServices in Month: ${m.serviceCount}`;
-                                } else {
-                                    return `\nTotal Service Attendance: ${m.total.toLocaleString()}\nService: ${m.serviceType}`;
                                 }
+                                return `\nTotal Service Attendance: ${m.total.toLocaleString()}\nService: ${m.serviceType}`;
                             }
                         }
                     }
@@ -1733,13 +1755,20 @@ function renderAttendanceBarChart(tallies, selectedMonth = '') {
                     x: {
                         stacked: isStacked,
                         grid: { display: false },
-                        ticks: { font: { size: 9, family: 'Inter' } }
+                        ticks: { color: tickColor, font: { size: 9, family: 'Inter' } }
                     },
                     y: {
                         stacked: isStacked,
                         beginAtZero: true,
-                        grid: { color: '#f1f5f9' },
-                        ticks: { font: { size: 9, family: 'Inter' } }
+                        min: 0,
+                        suggestedMax: isEmpty ? 10 : undefined,
+                        grid: { color: gridColor },
+                        ticks: {
+                            color: tickColor,
+                            precision: 0,
+                            stepSize: isEmpty ? 2 : undefined,
+                            font: { size: 9, family: 'Inter' }
+                        }
                     }
                 }
             }
@@ -1764,9 +1793,6 @@ function renderAttendanceBarChart(tallies, selectedMonth = '') {
     dashAttendanceBarChart = drawChart('dashAttendanceBarChartCanvas', true);
 }
 
-// ============================================================
-// 3. EVENTS & SEMINARY MODULE
-// ============================================================
 let leaderEventFilterDept = '';
 let leaderEventFilterMinistryId = '';
 
@@ -2047,9 +2073,6 @@ function closeLeaderEventModal() {
 }
 window.closeLeaderEventModal = closeLeaderEventModal;
 
-// ==========================================
-// LEADER EVENT ENROLLMENTS VIEWER
-// ==========================================
 let activeLeaderEventEnrollmentsList = [];
 let activeLeaderEventForEnrollment = null;
 
@@ -2192,7 +2215,6 @@ function closeLeaderEventEnrollmentsModal() {
     }
 }
 
-// Department & Ministry Filter Modal for Events
 function openLeaderEventDeptMinFilterModal() {
     const deptSelect = document.getElementById('leaderEventModalDeptSelect');
     if (deptSelect) {
@@ -2277,9 +2299,6 @@ function updateLeaderEventFilterButtonUI() {
     }
 }
 
-// ============================================================
-// 4. ANNOUNCEMENTS MODULE
-// ============================================================
 let leaderAnnFilterDept = '';
 let leaderAnnFilterMinistryId = '';
 let leaderLastSeenAnnouncementId = 0;
@@ -2306,18 +2325,14 @@ async function checkLeaderAnnouncementsNotifications() {
             const newAnns = announcements.filter(a => Number(a.announcement_id) > leaderLastSeenAnnouncementId);
             leaderLastSeenAnnouncementId = maxId;
 
-            // Show notification dot on sidebar
             const dot = document.getElementById('leaderAnnounceNavDot');
             if (dot) dot.style.display = 'block';
 
-            // Play announcement chime sound
             playPortalNotificationSound('announcement');
 
-            // Display toast
             const latest = newAnns[0];
             showToast(`📢 New Church Announcement: "${escapeHtml(latest.title || '')}"`);
 
-            // If announcements view is active, refresh table
             const currentView = document.querySelector('.view.active')?.id;
             if (currentView === 'view-announcements') {
                 allLeaderAnnCache = announcements;
@@ -2325,7 +2340,6 @@ async function checkLeaderAnnouncementsNotifications() {
             }
         }
     } catch (err) {
-        // silent background poll
     }
 }
 
@@ -2539,7 +2553,6 @@ function closeLeaderAnnouncementModal() {
 }
 window.closeLeaderAnnouncementModal = closeLeaderAnnouncementModal;
 
-// Department & Ministry Filter Modal for Announcements
 function openLeaderAnnDeptMinFilterModal() {
     const deptSelect = document.getElementById('leaderAnnModalDeptSelect');
     if (deptSelect) {
@@ -2624,12 +2637,9 @@ function updateLeaderAnnFilterButtonUI() {
     }
 }
 
-// ============================================================
-// 5. WORDA MINISTRIES (LEADER VIEW & DEPARTMENT HEAD OVERSIGHT)
-// ============================================================
 let leaderAssignedMinistriesCache = [];
 let leaderDeptOversightData = null;
-let currentLeaderWordaMode = 'department'; // 'department' | 'ministry'
+let currentLeaderWordaMode = 'department';
 let activeLeaderMinistryId = null;
 let activeMinistryRosterCache = [];
 let leaderRosterSearchQuery = '';
@@ -2675,7 +2685,6 @@ async function loadMinistries() {
             activeLeaderMinistryId = hasAssignedMinistries ? leaderAssignedMinistriesCache[0].ministry_id : null;
         }
 
-        // Multi-ministry switcher for assigned ministries
         if (hasAssignedMinistries && leaderAssignedMinistriesCache.length > 1) {
             const pillsContainer = document.getElementById('leaderMinistryPills');
             if (pillsContainer) {
@@ -2692,7 +2701,6 @@ async function loadMinistries() {
             const primaryDept = leaderDeptOversightData.departments[0];
             const deptName = primaryDept.department;
 
-            // Configure Mode Switcher if leader also has assigned ministry
             if (modeSwitcher) {
                 if (hasAssignedMinistries) {
                     modeSwitcher.style.display = 'block';
@@ -2708,7 +2716,6 @@ async function loadMinistries() {
 
             switchLeaderWordaMode(currentLeaderWordaMode);
         } else {
-            // Not a department head
             if (modeSwitcher) modeSwitcher.style.display = 'none';
             if (deptContainer) deptContainer.style.display = 'none';
             if (minContainer) minContainer.style.display = 'block';
@@ -3295,8 +3302,6 @@ function filterAndRenderRosterRows() {
     }).join('');
 }
 
-
-// Legacy helper retained for backwards compatibility
 async function viewLeaderMinistryRoster(ministryId, ministryName) {
     document.getElementById('modalRosterMinistryName').textContent = `${ministryName} - Members Roster`;
     const tbody = document.getElementById('modalRosterTableBody');
@@ -3350,9 +3355,6 @@ function closeLeaderMinistryRosterModal() {
     if (modal) modal.classList.remove('active');
 }
 
-// ============================================================
-// 6. FINANCE MODULE (READ-ONLY)
-// ============================================================
 let leaderFinanceFilterDept = '';
 let leaderFinanceFilterMinistryId = '';
 
@@ -3368,7 +3370,6 @@ async function loadFinance() {
         document.getElementById('totalExpense').innerText = `₱${Number(analyticsRes.data.summary.total_expense || 0).toLocaleString()}`;
         document.getElementById('netBalance').innerText = `₱${Number(analyticsRes.data.summary.net_balance || 0).toLocaleString()}`;
 
-        // Populate category dropdown
         const catSelect = document.getElementById('leaderFinanceCategoryFilter');
         if (catSelect) {
             const currentVal = catSelect.value;
@@ -3490,7 +3491,6 @@ function renderLeaderFinance(transactions) {
     renderLeaderFinancePage();
 }
 
-// ============== LEADER FINANCE OFFICIAL RECEIPT & PDF PRINTING ==============
 let currentReceiptTransaction = null;
 
 function numberToWords(amount) {
@@ -3568,7 +3568,6 @@ async function openLeaderReceiptModal(transactionId) {
 
     currentReceiptTransaction = trans;
 
-    // Populate transaction dropdown switcher inside modal
     const sel = document.getElementById('receiptTxSelect');
     if (sel && allLeaderFinanceCache && allLeaderFinanceCache.length > 0) {
         sel.innerHTML = allLeaderFinanceCache.map(t => `
@@ -4175,7 +4174,6 @@ function downloadLeaderReceiptPdf() {
     }
 }
 
-// Department & Ministry Filter Modal for Finance
 function openLeaderFinanceDeptMinFilterModal() {
     const deptSelect = document.getElementById('leaderFinanceModalDeptSelect');
     if (deptSelect) {
@@ -4260,9 +4258,6 @@ function updateLeaderFinanceFilterButtonUI() {
     }
 }
 
-// ============================================================
-// 7. REPORTS MODULE
-// ============================================================
 async function loadReports() {
     try {
         const res = await api.reports.getSummary();
@@ -4307,10 +4302,6 @@ function exportReport() {
     showToast('Executive report exported as CSV!');
 }
 
-
-// ==========================================
-// C2S CELL GROUP MODULE (LEADER VIEW ONLY)
-// ==========================================
 let leaderC2sGroupsData = [];
 let leaderActiveRosterGroupId = null;
 
@@ -4327,7 +4318,6 @@ function formatTime(timeStr) {
     hours = hours ? hours : 12;
     return `${hours}:${minutes} ${ampm}`;
 }
-
 
 async function loadLeaderC2SGroups() {
     try {
@@ -4534,7 +4524,6 @@ async function openLeaderC2SRosterModal(groupId) {
         document.getElementById('leaderRosterCountTotal').textContent = group.total_size || '1';
 
         let rowsHtml = '';
-        // 1. Primary Mentor Row
         rowsHtml += `
             <tr style="background: #fffbeb;" class="border-b border-amber-200">
                 <td class="p-3">
@@ -4566,7 +4555,6 @@ async function openLeaderC2SRosterModal(groupId) {
             </tr>
         `;
 
-        // 2. Member Rows
         const members = group.members || [];
         if (members.length === 0) {
             rowsHtml += `
@@ -4636,15 +4624,12 @@ function closeLeaderC2SRosterModal() {
     if (modal) modal.classList.remove('active');
 }
 
-// ============== CONTENT (FACEBOOK LIVE STREAM STUDIO & PAST SERMONS) ==============
 let currentLiveStreamConfig = null;
 let allSermonsAdminCache = [];
 
-// Helper: Extract 11-char YouTube Video ID from any URL format or ID string
 function extractYouTubeId(urlOrId) {
     if (!urlOrId) return '';
     const str = String(urlOrId).trim();
-    // Handles watch?v=, youtu.be/, embed/, live/, shorts/, v=
     const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/|shorts\/))([\w-]{11})/i);
     if (match && match[1]) return match[1];
     const clean = str.replace(/^v=/, '');
@@ -4652,14 +4637,6 @@ function extractYouTubeId(urlOrId) {
     if (idMatch) return idMatch[0];
     return clean.slice(0, 50);
 }
-
-// Helper: Extract Facebook Video ID from URL, iframe, RTMP address, or Stream Key
-
-
-// ============================================================================
-// ============================================================================
-// FACEBOOK LIVE STREAM BROADCAST MANAGEMENT
-// ============================================================================
 
 let previewDebounceTimer = null;
 function autoUpdateLiveMonitorPlayer() {
@@ -4761,7 +4738,6 @@ async function loadLiveStreamAdmin() {
             startRealAudioInput().catch(() => {});
         }
 
-        // Synchronously load analytics stats & start real-time sync
         if (api.content && typeof api.content.getLiveStreamAnalytics === 'function') {
             api.content.getLiveStreamAnalytics().then(analyticsRes => {
                 if (analyticsRes && analyticsRes.data && typeof updateLiveAnalyticsUi === 'function') {
@@ -4825,7 +4801,6 @@ function updateLiveStreamUi(config) {
     renderLiveMonitorPlayer();
 }
 
-// Helper: Extract Facebook Video Embed URL for live monitor preview
 function getFacebookEmbedUrlForPreview(urlOrKey) {
     if (!urlOrKey) return '';
     let str = String(urlOrKey).trim();
@@ -4976,7 +4951,6 @@ async function pasteStreamUrl() {
     }
 }
 
-// ============== BROADCAST AUDIO MIXER & HARDWARE INTERCONNECTION ==============
 let audioCtx = null;
 let audioMediaStream = null;
 let audioSourceNode = null;
@@ -4986,7 +4960,6 @@ let audioMeterAnimFrame = null;
 let currentAudioDeviceId = '';
 let mediaAudioActive = true;
 
-// Facebook livestream player & tab capture synchronization state
 let activeFbVideoPlayer = null;
 let isFbLivestreamPlaying = false;
 let isFbLivestreamBuffering = false;
@@ -5007,7 +4980,6 @@ const channelGainNodes = {
     media: null
 };
 
-// Facebook Embedded Video Player API Bridge
 function setupFbPlayerBridge() {
     if (window.FB && window.FB.Event) {
         try {
@@ -5043,7 +5015,6 @@ function setupFbPlayerBridge() {
     }
 }
 
-// Window postMessage listener for embedded Facebook iframe events
 window.addEventListener('message', function(event) {
     try {
         let data = event.data;
@@ -5072,7 +5043,6 @@ window.addEventListener('message', function(event) {
     } catch (err) {}
 });
 
-// Interconnect audio mixer volume and mute directly with the Facebook Player
 function syncFbPlayerAudio() {
     const isMuted = Boolean(audioMixerState.master.muted || audioMixerState.media.muted);
     const masterRatio = Math.max(0, Math.min(1, (audioMixerState.master.volume || 0) / 100));
@@ -5110,7 +5080,6 @@ function syncFbPlayerAudio() {
     updateChannelGains();
 }
 
-// Direct Web Audio Tab/Physical Stream Capture for Livestream Audio
 async function syncLiveStreamAudioCapture() {
     try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
@@ -5234,7 +5203,6 @@ function updateMediaAudioSyncUi(isSynced) {
     }
 }
 
-// Enumerate physical audio input devices
 async function enumerateRealAudioDevices() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
     try {
@@ -5242,7 +5210,6 @@ async function enumerateRealAudioDevices() {
     } catch (err) {}
 }
 
-// Start audio input using Web Audio API interconnecting desktop mic and media stream
 async function startRealAudioInput(deviceId = '') {
     if (!document.getElementById('liveAudioMixer')) return;
     try {
@@ -5302,7 +5269,6 @@ async function startRealAudioInput(deviceId = '') {
     }
 }
 
-// Stop audio input
 function stopRealAudioInput(resetUi = true) {
     if (audioMeterAnimFrame) {
         cancelAnimationFrame(audioMeterAnimFrame);
@@ -5346,7 +5312,6 @@ function updateChannelGains() {
     });
 }
 
-// Real-time animation loop measuring physical microphone audio + Facebook media audio interconnected with Master
 function startRealVuMeterLoop() {
     if (audioMeterAnimFrame) cancelAnimationFrame(audioMeterAnimFrame);
     if (!document.getElementById('liveAudioMixer')) return;
@@ -5354,7 +5319,6 @@ function startRealVuMeterLoop() {
     const micFreqData = new Uint8Array(micAnalyserNode ? micAnalyserNode.frequencyBinCount : 128);
 
     function meterFrame() {
-        // Measure desktop mic
         let micNormalized = 0;
         if (audioMediaStream && micAnalyserNode) {
             micAnalyserNode.getByteFrequencyData(micFreqData);
@@ -5366,13 +5330,11 @@ function startRealVuMeterLoop() {
             micNormalized = Math.min(100, (rawAvg / 128) * 100 * 1.5);
         }
 
-        // Measure live monitor video media audio (FB live stream activity)
         let mediaNormalized = 0;
         const isMediaMuted = audioMixerState.media.muted || audioMixerState.master.muted;
 
         if (!isMediaMuted) {
             if (mediaAudioStream && mediaAnalyserNode) {
-                // 1. Physical Digital Audio Tab Capture
                 const mediaFreqData = new Uint8Array(mediaAnalyserNode.frequencyBinCount);
                 mediaAnalyserNode.getByteFrequencyData(mediaFreqData);
                 let sum = 0;
@@ -5382,13 +5344,11 @@ function startRealVuMeterLoop() {
                 const rawAvg = sum / mediaFreqData.length;
                 mediaNormalized = Math.min(100, (rawAvg / 128) * 100 * 1.6);
             } else if (isFbLivestreamPlaying && !isFbLivestreamBuffering) {
-                // 2. Facebook Player is actively playing
                 mediaWavePhase += 0.07;
                 const naturalVariance = Math.sin(mediaWavePhase) * 12 + Math.sin(mediaWavePhase * 2.1) * 8 + Math.cos(mediaWavePhase * 0.5) * 6;
                 const nominalEnergy = 48 + naturalVariance;
                 mediaNormalized = Math.max(8, Math.min(92, nominalEnergy));
             } else {
-                // 3. Paused, buffering, stopped, or ended
                 mediaNormalized = 0;
             }
         } else {
@@ -5397,7 +5357,6 @@ function startRealVuMeterLoop() {
 
         const masterMultiplier = audioMixerState.master.muted ? 0 : (audioMixerState.master.volume / 100);
 
-        // Pulpit Mic Channel
         const pulpitState = audioMixerState.pulpit;
         const pulpitLevel = pulpitState.muted ? 0 : micNormalized * (pulpitState.volume / 100);
         const barPulpit = document.getElementById('vuBarPulpit');
@@ -5405,7 +5364,6 @@ function startRealVuMeterLoop() {
             barPulpit.style.height = `${Math.max(0, Math.min(98, Math.round(pulpitLevel)))}%`;
         }
 
-        // Media Playback Channel (FB Livestream)
         const mediaState = audioMixerState.media;
         const mediaLevel = mediaState.muted ? 0 : mediaNormalized * (mediaState.volume / 100);
         const barMedia = document.getElementById('vuBarMedia');
@@ -5413,7 +5371,6 @@ function startRealVuMeterLoop() {
             barMedia.style.height = `${Math.max(0, Math.min(98, Math.round(mediaLevel)))}%`;
         }
 
-        // Master Output Channel (Sum of Mic Audio and Media Audio, scaled by Master fader)
         const barMaster = document.getElementById('vuBarMaster');
         if (barMaster) {
             if (audioMixerState.master.muted || masterMultiplier === 0) {
@@ -5571,7 +5528,6 @@ async function toggleLiveBroadcast() {
                             (toggleBtn && (toggleBtn.classList.contains('live') || toggleBtn.classList.contains('btn-end-broadcast')));
 
     if (!isCurrentlyLive) {
-        // Going LIVE
         const title = document.getElementById('live_stream_title')?.value?.trim() || currentLiveStreamConfig?.title || '';
         const preacher = document.getElementById('live_stream_preacher')?.value?.trim() || currentLiveStreamConfig?.preacher || '';
         const stream_url = document.getElementById('live_stream_url')?.value?.trim() || document.getElementById('live_stream_key')?.value?.trim() || currentLiveStreamConfig?.stream_url || currentLiveStreamConfig?.stream_key || '';
@@ -5636,7 +5592,6 @@ async function toggleLiveBroadcast() {
             if (toggleBtn) toggleBtn.disabled = false;
         }
     } else {
-        // Ending broadcast
         let confirmEnd = true;
         if (typeof showDecisionModal === 'function') {
             confirmEnd = await showDecisionModal({
@@ -5676,7 +5631,6 @@ async function toggleLiveBroadcast() {
     }
 }
 
-// ============== LIVESTREAM VIEW ANALYTICS & STATS (REAL-TIME & SYNCHRONOUS) ==============
 let liveAnalyticsData = null;
 let liveAnalyticsTimeframe = 'weekly';
 let liveAnalyticsRefDate = new Date();
@@ -5691,7 +5645,6 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
     liveAnalyticsData = data;
     const s = liveAnalyticsData.summary || {};
 
-    // 1. Update summary metric cards in modal
     const todayViewsEl = document.getElementById('statLiveTodayViews');
     const peakEl = document.getElementById('statLivePeakViewers');
     const activeNowEl = document.getElementById('statLiveActiveNow');
@@ -5704,7 +5657,6 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
     if (monthEl) monthEl.textContent = Number(s.month_views || 0).toLocaleString();
     if (totalEl) totalEl.textContent = Number(s.total_views || 0).toLocaleString();
 
-    // 2. Update mini live stats pill in Facebook Live Broadcast card header
     const cmToday = document.getElementById('cmTodayViews');
     const cmActive = document.getElementById('cmActiveViewers');
     const cmFbActive = document.getElementById('cmFbActiveViewers');
@@ -5712,7 +5664,6 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
     if (cmActive) cmActive.textContent = Number(s.active_viewers || 0).toLocaleString();
     if (cmFbActive) cmFbActive.textContent = Number(s.fb_live_views || s.fb_active_viewers || 0).toLocaleString();
 
-    // Update Connected Facebook Stream card inside analytics modal
     const fbStreamTitle = document.getElementById('analyticsFbStreamTitle');
     const fbLiveStatus = document.getElementById('analyticsFbLiveStatus');
     const fbVideoIdVal = document.getElementById('analyticsFbVideoIdVal');
@@ -5734,13 +5685,10 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
             : '<i class="fa-brands fa-facebook mr-1"></i> Ready for Ingest';
     }
 
-    // 3. Smooth in-place line chart update
     renderLiveViewsChart(isSilent);
 
-    // 4. Update Calendar tracker grid badges
     renderLiveAnalyticsCalendar();
 
-    // 5. Update Selected Date details drawer
     if (liveAnalyticsSelectedDate) {
         syncLiveAnalyticsDrawerDetails(liveAnalyticsSelectedDate);
     }
@@ -5787,7 +5735,6 @@ function syncLiveAnalyticsDrawerDetails(dateStr) {
 }
 
 function startLiveAnalyticsRealtimeSync() {
-    // 1. Establish SSE Connection for instant real-time events
     if (!liveAnalyticsEventSource && typeof EventSource !== 'undefined') {
         try {
             const token = sessionStorage.getItem('church_token') || localStorage.getItem('church_token') || '';
@@ -5813,7 +5760,6 @@ function startLiveAnalyticsRealtimeSync() {
         } catch (e) {}
     }
 
-    // 2. Polling backup (every 5s) to ensure uninterrupted sync
     if (!liveAnalyticsPollTimer) {
         liveAnalyticsPollTimer = setInterval(async () => {
             const modal = document.getElementById('liveAnalyticsModal');
@@ -5858,14 +5804,11 @@ async function openLiveAnalyticsModal() {
         const res = await api.content.getLiveStreamAnalytics();
         liveAnalyticsData = res.data || { daily_views: [], summary: {} };
 
-        // Synchronously update all UI elements
         updateLiveAnalyticsUi(liveAnalyticsData, false);
 
-        // Select today's date initially in details drawer
         const todayStr = typeof toLocalDateStr === 'function' ? toLocalDateStr(new Date()) : new Date().toISOString().split('T')[0];
         onLiveAnalyticsDateClick(todayStr);
 
-        // Start real-time sync immediately
         startLiveAnalyticsRealtimeSync();
     } catch (err) {
         console.error('Error loading livestream analytics:', err);
@@ -6133,7 +6076,6 @@ async function syncFacebookLiveMetricsManual() {
     }
 }
 
-// ============== LIVESTREAM COMMENTS (ADMIN & LEADER) ==============
 async function openLiveCommentsModal() {
     const titleEl = document.getElementById('liveCommentsStreamTitle');
     const statusEl = document.getElementById('liveCommentsStreamStatus');
@@ -6173,7 +6115,6 @@ function closeLiveCommentsModal() {
 function toggleRealAudioInput() {}
 function changeAudioInputDevice() {}
 
-// Global window bindings
 window.toggleLiveBroadcast = toggleLiveBroadcast;
 window.saveLiveStreamDetails = saveLiveStreamDetails;
 window.autoSaveLiveStreamDetails = autoSaveLiveStreamDetails;
@@ -6205,7 +6146,6 @@ window.saveSelectedDateLiveViews = saveSelectedDateLiveViews;
 window.syncFacebookLiveMetricsManual = syncFacebookLiveMetricsManual;
 window.openLiveCommentsModal = openLiveCommentsModal;
 window.closeLiveCommentsModal = closeLiveCommentsModal;
-
 
 window.loadLiveCommentsAdmin = loadLiveCommentsAdmin;
 async function loadLiveCommentsAdmin() {
@@ -6252,7 +6192,6 @@ async function loadLiveCommentsAdmin() {
             `;
         }).join('');
 
-        // Auto-scroll to bottom
         container.scrollTop = container.scrollHeight;
     } catch (err) {
         console.error('Error loading comments:', err);
@@ -6296,7 +6235,6 @@ async function deleteLiveCommentAdmin(commentId) {
     }
 }
 
-// ---- Past Livestream Chat Logs (Archived Comments) ----
 let allLivestreamCommentLogsCache = [];
 
 function openLivestreamCommentLogsModal() {
@@ -6353,9 +6291,8 @@ async function loadCommentLogsAdmin(page = 1) {
 
         const nextBtn = document.getElementById('commentLogsNextBtn');
         if (nextBtn) nextBtn.disabled = currentCommentLogsPage >= totalPages;
-    
 
-    } catch (err) {
+} catch (err) {
         console.error('Error loading comment logs:', err);
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-rose-500">Failed to load comment logs: ${escapeHtml(err.message)}</td></tr>`;
     }
@@ -6413,7 +6350,6 @@ function renderCommentLogsTable(logs) {
     }).join('');
 }
 
-// ---- Past Sermons Archive (YouTube Videos) ----
 currentSermonsPage = 1;
 const SERMON_PAGE_LIMIT = 10;
 
@@ -6522,7 +6458,6 @@ function renderSermonsTable(sermons) {
     }).join('');
 }
 
-// Live YouTube input feedback and embed preview in Add/Edit modal
 function onSermonYoutubeInput(val) {
     const videoId = extractYouTubeId(val);
     const feedback = document.getElementById('sermonYoutubeFeedback');
@@ -6690,7 +6625,6 @@ async function deleteSermon(id) {
     }
 }
 
-// Quick Video Theater Preview Modal
 function previewSermonVideo(youtubeId, title) {
     if (!youtubeId) return showToast('No YouTube video ID available for preview.');
     const modal = document.getElementById('videoPlayerModal');
@@ -6736,8 +6670,6 @@ function closeVideoPlayerModal() {
     if (bodyEl) bodyEl.innerHTML = '';
 }
 
-
-// ============== PHOTO ALBUMS & GALLERY MANAGEMENT ==============
 currentAlbumsPage = 1;
 const ALBUM_PAGE_LIMIT = 10;
 
@@ -6882,7 +6814,6 @@ async function deleteAlbum(id) {
     }
 }
 
-// Manage Photos Modal
 async function openAlbumPhotosModal(albumId) {
     currentAlbumId = albumId;
     const album = allAlbumsCache.find(a => a.album_id == albumId);
@@ -6900,7 +6831,7 @@ async function openAlbumPhotosModal(albumId) {
 
 function closeAlbumPhotosModal() {
     document.getElementById('albumPhotosModal').classList.remove('active');
-    loadAlbumsAdmin(); // Refresh album image counts
+    loadAlbumsAdmin();
 }
 
 async function loadAlbumPhotos(albumId) {
@@ -6984,12 +6915,6 @@ async function deleteAlbumPhoto(imageId) {
     }
 }
 
-
-
-
-// ============================================================
-// LEADER WORK & MINISTRY SCHEDULE CALENDAR
-// ============================================================
 let leaderCalDate = new Date();
 let leaderCalMode = 'monthly';
 let leaderSelectedDate = new Date();
@@ -7090,7 +7015,6 @@ function getLeaderDayDuties(dayOfWeek) {
         duties.push({ type: 'service', label: 'Youth Alive Gathering (4PM)' });
     }
 
-    // Interconnect Leader's assigned ministries schedule
     const ministries = (Array.isArray(leaderAssignedMinistriesCache) && leaderAssignedMinistriesCache.length > 0)
         ? leaderAssignedMinistriesCache
         : (Array.isArray(allLeaderMinistriesCache) ? allLeaderMinistriesCache : []);
@@ -7146,7 +7070,6 @@ function renderLeaderCalendar() {
 
         let cellsHtml = '';
 
-        // Previous month trailing days
         for (let i = firstDayIndex - 1; i >= 0; i--) {
             const d = daysInPrevMonth - i;
             cellsHtml += `
@@ -7157,7 +7080,6 @@ function renderLeaderCalendar() {
             `;
         }
 
-        // Current month days
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(year, month, day);
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -7195,7 +7117,6 @@ function renderLeaderCalendar() {
             `;
         }
 
-        // Next month leading days
         const totalCellsSoFar = firstDayIndex + daysInMonth;
         const remaining = (7 - (totalCellsSoFar % 7)) % 7;
         for (let i = 1; i <= remaining; i++) {
@@ -7210,7 +7131,6 @@ function renderLeaderCalendar() {
         grid.innerHTML = cellsHtml;
 
     } else {
-        // Weekly View
         const curr = new Date(leaderCalDate);
         const dayOfWeek = curr.getDay();
         const startOfWeek = new Date(curr);
@@ -7256,16 +7176,19 @@ function renderLeaderCalendar() {
             events.forEach(e => {
                 const isSem = (e.event_type === 'Seminary');
                 const timeStr = e.start_datetime ? new Date(e.start_datetime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+                const iconHtml = isSem
+                    ? '<i class="fa-solid fa-graduation-cap"></i> '
+                    : '<i class="fa-solid fa-star"></i> ';
                 itemsHtml += `
                     <div class="weekly-item-card ${isSem ? 'seminary-badge' : 'event-badge'}">
-                        <div class="weekly-item-title">${isSem ? '🎓 ' : '⭐ '}${escapeHtml(e.title)}</div>
+                        <div class="weekly-item-title">${iconHtml}${escapeHtml(e.title)}</div>
                         <div class="weekly-item-time"><i class="fa-regular fa-clock"></i> ${timeStr || 'Event'}</div>
                     </div>
                 `;
             });
 
             if (!itemsHtml) {
-                itemsHtml = `<div class="text-xs text-slate-400 italic p-3 text-center">No duties or events</div>`;
+                itemsHtml = `<div class="weekly-empty-slot">No duties or events</div>`;
             }
 
             weekColsHtml += `
@@ -7331,7 +7254,7 @@ function renderLeaderSelectedDayDetails() {
                 <div style="display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem;">
                     <div>
                         <strong style="color: var(--navy);"><i class="fa-solid ${isSem ? 'fa-graduation-cap' : 'fa-star'} text-gold mr-1.5"></i> ${escapeHtml(e.title)}</strong>
-                        <span class="text-xs text-slate-500 ml-2">${timeStr} &bull; ${escapeHtml(e.location || 'Church')}</span>
+                        <span class="text-xs text-slate-500 ml-2">${timeStr} &bull; ${escapeHtml(e.venue || e.location || 'Church')}</span>
                     </div>
                     <span class="badge ${isSem ? 'badge-dept-discipleship' : 'badge-dept-general'}" style="font-size: 0.7rem;">${escapeHtml(e.event_type || 'Event')}</span>
                 </div>
@@ -7343,11 +7266,6 @@ function renderLeaderSelectedDayDetails() {
     box.innerHTML = html;
 }
 
-
-
-// ============================================================
-// LEADER DASHBOARD MINI-CALENDAR (Work & Ministry Schedule)
-// ============================================================
 let leaderMiniCalYear = new Date().getFullYear();
 let leaderMiniCalMonth = new Date().getMonth();
 let leaderMiniCalSelectedDate = new Date();
@@ -7468,9 +7386,6 @@ function renderLeaderMiniCalendar() {
     updateLeaderMiniCalPeek(leaderMiniCalSelectedDate);
 }
 
-// ============================================================
-// LEADER EVENT MANAGEMENT (ADD, EDIT, DELETE)
-// ============================================================
 async function openLeaderEventModal(eventId = null) {
     if (!allLeaderMinistriesCache || allLeaderMinistriesCache.length === 0) {
         try {
@@ -7675,9 +7590,6 @@ function populateLeaderMinistriesDropdowns() {
     onLeaderAnnDeptChange();
 }
 
-// ============================================================
-// LEADER ANNOUNCEMENT MANAGEMENT (ADD, EDIT, DELETE)
-// ============================================================
 window._leaderAnnExistingImage = null;
 window._leaderAnnRemoveImage = false;
 
@@ -7988,7 +7900,6 @@ if (document.readyState === 'loading') {
     loadSmsGatewayStatus();
 }
 
-// ============== SMS GATEWAY MANAGEMENT & TEST (LEADER) ==============
 let smsSettingsCache = null;
 
 async function loadSmsGatewayStatus() {
@@ -8027,23 +7938,19 @@ async function openSmsSettingsModal() {
         const badge = document.getElementById('modalSmsStatusBadge');
         const provText = document.getElementById('modalSmsProviderText');
         
-        // TextBee
         const tbDevice = document.getElementById('sms_textbee_device_id');
         const tbDeviceHint = document.getElementById('sms_textbee_device_hint');
         const tbKey = document.getElementById('sms_textbee_api_key');
         const tbKeyHint = document.getElementById('sms_textbee_key_hint');
 
-        // Semaphore
         const semKey = document.getElementById('sms_semaphore_api_key');
         const keyHint = document.getElementById('sms_semaphore_key_hint');
         const semSender = document.getElementById('sms_semaphore_sender_name');
 
-        // Textbelt
         const textbeltFree = document.getElementById('sms_use_textbelt_free');
         const textbeltKey = document.getElementById('sms_textbelt_api_key');
         const textbeltKeyHint = document.getElementById('sms_textbelt_key_hint');
 
-        // Twilio
         const twilioSid = document.getElementById('sms_twilio_account_sid');
         const twilioPhone = document.getElementById('sms_twilio_phone_number');
 
@@ -8054,7 +7961,6 @@ async function openSmsSettingsModal() {
         }
         if (provText) provText.textContent = smsSettingsCache.provider;
 
-        // Populate TextBee
         if (tbDevice && smsSettingsCache.textbee_device_id_masked) {
             tbDevice.placeholder = smsSettingsCache.textbee_device_id_masked;
             if (tbDeviceHint) tbDeviceHint.textContent = `Configured: ${smsSettingsCache.textbee_device_id_masked}`;
@@ -8064,7 +7970,6 @@ async function openSmsSettingsModal() {
             if (tbKeyHint) tbKeyHint.textContent = `Current key: ${smsSettingsCache.textbee_api_key_masked} (Leave blank to keep)`;
         }
 
-        // Populate Semaphore
         if (keyHint && smsSettingsCache.semaphore_api_key_masked) {
             keyHint.textContent = `Current key: ${smsSettingsCache.semaphore_api_key_masked} (Leave input blank to keep existing key)`;
         } else if (keyHint) {
@@ -8072,14 +7977,12 @@ async function openSmsSettingsModal() {
         }
         if (semSender) semSender.value = smsSettingsCache.semaphore_sender_name || '';
 
-        // Populate Textbelt
         if (textbeltFree) textbeltFree.checked = Boolean(smsSettingsCache.use_textbelt_free);
         if (textbeltKey && smsSettingsCache.textbelt_api_key_masked) {
             textbeltKey.placeholder = smsSettingsCache.textbelt_api_key_masked;
             if (textbeltKeyHint) textbeltKeyHint.textContent = `Current key: ${smsSettingsCache.textbelt_api_key_masked}`;
         }
 
-        // Populate Twilio
         if (twilioSid && smsSettingsCache.twilio_account_sid_masked) twilioSid.placeholder = smsSettingsCache.twilio_account_sid_masked;
         if (twilioPhone) twilioPhone.value = smsSettingsCache.twilio_phone_number || '';
 
@@ -8095,19 +7998,15 @@ function closeSmsSettingsModal() {
 }
 
 async function saveSmsSettings() {
-    // TextBee
     const tbDevice = document.getElementById('sms_textbee_device_id')?.value.trim();
     const tbKey = document.getElementById('sms_textbee_api_key')?.value.trim();
 
-    // Semaphore
     const semKey = document.getElementById('sms_semaphore_api_key')?.value.trim();
     const semSender = document.getElementById('sms_semaphore_sender_name')?.value.trim();
 
-    // Textbelt
     const textbeltFree = document.getElementById('sms_use_textbelt_free')?.checked;
     const textbeltKey = document.getElementById('sms_textbelt_api_key')?.value.trim();
 
-    // Twilio
     const twilioSid = document.getElementById('sms_twilio_account_sid')?.value.trim();
     const twilioToken = document.getElementById('sms_twilio_auth_token')?.value.trim();
     const twilioPhone = document.getElementById('sms_twilio_phone_number')?.value.trim();
@@ -8137,7 +8036,6 @@ function openTestSmsModal() {
     const resultBox = document.getElementById('testSmsResultBox');
     if (resultBox) resultBox.style.display = 'none';
 
-    // Auto-fill with current user's contact number if available
     const user = JSON.parse(sessionStorage.getItem('church_user') || '{}');
     const recipientInput = document.getElementById('test_sms_recipient');
     if (recipientInput && user.contact_number) {
@@ -8225,10 +8123,7 @@ window.openTestSmsModal = openTestSmsModal;
 window.closeTestSmsModal = closeTestSmsModal;
 window.dispatchTestSms = dispatchTestSms;
 
-
-// ============================================================
 // DATA PRIVACY NOTICE & RA 10173 COMPLIANCE
-// ============================================================
 function checkAndPromptPrivacyNotice(user) {
     if (!user) return;
     const userId = user.user_id || user.id || 'user';

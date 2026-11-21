@@ -11,11 +11,99 @@ function sanitizeMediaUrl(url) {
     }
     return url;
 }
+
+function sanitizePaymentMediaUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    if (trimmed === '/images/sample-qr-placeholder.svg') return trimmed;
+    if (trimmed.startsWith('/uploads/content/')) {
+        const safeRel = path.normalize(trimmed).replace(/^(\.\.[/\\])+/, '');
+        if (!safeRel.startsWith(path.normalize('/uploads/content/'))) return '';
+        const fullDiskPath = path.join(__dirname, '..', trimmed.replace(/^\//, ''));
+        if (!fs.existsSync(fullDiskPath)) {
+            return '';
+        }
+        return trimmed;
+    }
+    return '';
+}
+
+function getDefaultPaymentInfo() {
+    return {
+        gcash: {
+            provider: 'gcash',
+            label: 'GCash',
+            enabled: true,
+            account_name: 'Sample Church Account Name',
+            account_number: '09XX-XXX-XXXX (Sample)',
+            branch: '',
+            instructions: 'Sample instruction: Scan this placeholder QR or update with official church GCash details via Admin CMS.',
+            qr_image_url: '/images/sample-qr-placeholder.svg',
+            is_sample: true,
+            updated_at: null
+        },
+        bpi: {
+            provider: 'bpi',
+            label: 'BPI',
+            enabled: true,
+            account_name: 'Sample Church Account Name',
+            account_number: 'XXXX-XXXX-XX (Sample)',
+            branch: 'Sample Imus Branch',
+            instructions: 'Sample instruction: Enter official BPI account details and branch in Admin CMS before accepting live transfers.',
+            qr_image_url: '/images/sample-qr-placeholder.svg',
+            is_sample: true,
+            updated_at: null
+        },
+        bdo: {
+            provider: 'bdo',
+            label: 'BDO',
+            enabled: true,
+            account_name: 'Sample Church Account Name',
+            account_number: 'XXXX-XXXX-XXXX (Sample)',
+            branch: 'Sample Imus Branch',
+            instructions: 'Sample instruction: Enter official BDO account details and branch in Admin CMS before accepting live transfers.',
+            qr_image_url: '/images/sample-qr-placeholder.svg',
+            is_sample: true,
+            updated_at: null
+        }
+    };
+}
+
+function normalizePaymentInfo(raw) {
+    const defaults = getDefaultPaymentInfo();
+    const src = (raw && typeof raw === 'object') ? raw : {};
+    const result = {};
+
+    for (const key of ['gcash', 'bpi', 'bdo']) {
+        const def = defaults[key];
+        const entry = (src[key] && typeof src[key] === 'object') ? src[key] : null;
+        if (!entry) {
+            result[key] = { ...def };
+            continue;
+        }
+        const qrClean = 'qr_image_url' in entry
+            ? sanitizePaymentMediaUrl(entry.qr_image_url)
+            : def.qr_image_url;
+        result[key] = {
+            provider: key,
+            label: def.label,
+            enabled: entry.enabled !== false,
+            account_name: String(entry.account_name !== undefined ? entry.account_name : def.account_name).trim(),
+            account_number: String(entry.account_number !== undefined ? entry.account_number : def.account_number).trim(),
+            branch: key === 'gcash' ? '' : String(entry.branch !== undefined ? entry.branch : def.branch).trim(),
+            instructions: String(entry.instructions !== undefined ? entry.instructions : def.instructions).trim(),
+            qr_image_url: qrClean,
+            is_sample: entry.is_sample === true,
+            updated_at: entry.updated_at || null
+        };
+    }
+    return result;
+}
 const { pool } = require('../config/database');
 const FacebookService = require('../utils/facebookService');
 
 const ContentModel = {
-    // --- Banners ---
     async getBanners() {
         const [rows] = await pool.execute(`SELECT * FROM banners ORDER BY display_order ASC`);
         return rows;
@@ -43,7 +131,6 @@ const ContentModel = {
         await pool.execute(`DELETE FROM banners WHERE banner_id = ?`, [id]);
     },
 
-    // --- Sermons (Past Sermons with YouTube Links) ---
     async getSermons(limit = null, offset = 0, filters = {}) {
         let sql = `SELECT * FROM sermons`;
         const params = [];
@@ -106,7 +193,6 @@ const ContentModel = {
         await pool.execute(`DELETE FROM sermons WHERE sermon_id = ?`, [id]);
     },
 
-    // --- Live Stream Broadcast (Facebook Live) ---
     async getLiveStream() {
         const [rows] = await pool.execute(`SELECT * FROM livestream_broadcast ORDER BY id ASC LIMIT 1`);
         if (rows.length === 0) {
@@ -197,7 +283,6 @@ const ContentModel = {
         return this.getLiveStream();
     },
 
-    // --- Live Stream Analytics & Daily Views ---
     getTodayLocalDateStr() {
         const d = new Date();
         const year = d.getFullYear();
@@ -311,23 +396,19 @@ const ContentModel = {
                 api_configured: fbApiConfig.configured
             },
             summary: {
-                // Portal Website attendance
                 portal_today_views: tPortalViews,
                 portal_today_peak: tPortalPeak,
                 portal_total_views: summaryRow.length > 0 ? Number(summaryRow[0].total_portal_views || 0) : 0,
 
-                // Facebook Native attendance
                 fb_today_views: effectiveFbTodayViews,
                 fb_active_now: fbLiveViews,
                 fb_today_peak: effectiveFbPeak,
                 fb_total_views: summaryRow.length > 0 ? Number(summaryRow[0].total_fb_views || 0) : 0,
                 fb_synced_at: stream?.fb_synced_at || null,
 
-                // Combined Reach
                 combined_today_views: tPortalViews + effectiveFbTodayViews,
                 combined_peak: Math.max(tPortalPeak, effectiveFbPeak),
 
-                // Legacy & Standard Metric compatibility
                 today_views: tPortalViews,
                 today_peak: tPortalPeak,
                 month_views: monthRow.length > 0 ? Number(monthRow[0].month_views || 0) : 0,
@@ -378,7 +459,6 @@ const ContentModel = {
         const title = (stream && stream.title) ? stream.title : 'Live Broadcast';
         const peakVal = Math.max(1, parseInt(activeCount, 10) || 1);
 
-        // Check if this churchgoer is watching the livestream for the first time
         let isFirstTimeViewer = true;
         if (viewerId) {
             try {
@@ -434,7 +514,6 @@ const ContentModel = {
         );
     },
 
-    // --- Live Stream Comments ---
     async getLiveStreamComments(limit = 100) {
         const [rows] = await pool.execute(
             `SELECT id, author_name, comment_text, author_badge, is_admin, 
@@ -443,7 +522,7 @@ const ContentModel = {
              ORDER BY id DESC LIMIT ?`,
             [String(limit)]
         );
-        return rows.reverse(); // Return in chronological order
+        return rows.reverse();
     },
 
     async postLiveStreamComment(data) {
@@ -554,7 +633,6 @@ const ContentModel = {
         return rows[0] ? rows[0].total : 0;
     },
 
-    // --- Public Website Content Management (Admin CMS) ---
     async getWebsiteSection(sectionKey) {
         const [rows] = await pool.execute(
             `SELECT page_id, page_key, title, body, featured_image, updated_at 
@@ -571,6 +649,9 @@ const ContentModel = {
         if (parsed && typeof parsed === 'object') {
             if (parsed.logo_icon) parsed.logo_icon = sanitizeMediaUrl(parsed.logo_icon);
             if (parsed.top_logo) parsed.top_logo = sanitizeMediaUrl(parsed.top_logo);
+            if (sectionKey === 'contact_us') {
+                parsed.payment_info = normalizePaymentInfo(parsed.payment_info);
+            }
         }
         return {
             page_id: rows[0].page_id,
@@ -603,6 +684,9 @@ const ContentModel = {
         if (result.site_branding && result.site_branding.top_logo) {
             result.site_branding.top_logo = sanitizeMediaUrl(result.site_branding.top_logo);
         }
+        if (result.contact_us && typeof result.contact_us === 'object') {
+            result.contact_us.payment_info = normalizePaymentInfo(result.contact_us.payment_info);
+        }
         return result;
     },
 
@@ -621,7 +705,23 @@ const ContentModel = {
         }
 
         const title = validKeys[sectionKey];
-        const jsonBody = typeof data === 'string' ? data : JSON.stringify(data);
+        let parsedObj = null;
+        try {
+            parsedObj = typeof data === 'object' ? { ...data } : JSON.parse(data);
+        } catch (e) {
+            parsedObj = null;
+        }
+
+        if (sectionKey === 'contact_us' && parsedObj && typeof parsedObj === 'object') {
+            if (!parsedObj.payment_info) {
+                const existing = await this.getWebsiteSection('contact_us');
+                parsedObj.payment_info = normalizePaymentInfo(existing?.data?.payment_info);
+            } else {
+                parsedObj.payment_info = normalizePaymentInfo(parsedObj.payment_info);
+            }
+        }
+
+        const jsonBody = parsedObj ? JSON.stringify(parsedObj) : (typeof data === 'string' ? data : JSON.stringify(data));
 
         await pool.execute(
             `INSERT INTO content_pages (page_key, title, body, is_published, updated_by)
@@ -685,13 +785,10 @@ function extractYouTubeId(urlOrId) {
 function extractFacebookVideoId(urlOrKey) {
     if (!urlOrKey) return '';
     const str = String(urlOrKey).trim();
-    // 1. Check for standard FB video URL: /videos/123456789/ or ?v=123456789
     const vMatch = str.match(/(?:videos\/|watch\/?\?v=|fb\.watch\/)(\d+)/i);
     if (vMatch && vMatch[1]) return vMatch[1];
-    // 2. Check for Stream Key: FB-123456789-...
     const keyMatch = str.match(/^FB-(\d+)-/i);
     if (keyMatch && keyMatch[1]) return keyMatch[1];
-    // 3. Fallback: sequence of 9-25 digits
     const digitsMatch = str.match(/\d{9,25}/);
     if (digitsMatch) return digitsMatch[0];
     return '';

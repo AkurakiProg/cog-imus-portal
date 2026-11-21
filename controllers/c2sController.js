@@ -137,7 +137,7 @@ exports.getAvailableMembers = async (req, res) => {
 
 exports.quickCreateMember = async (req, res) => {
     try {
-        const { id } = req.params; // optional group_id
+        const { id } = req.params;
         const newMember = await c2sModel.quickCreateMember(req.body, id || null);
 
         await userModel.logAudit(req.user.id, 'QUICK_CREATE_MEMBER', 'C2S_Groups', id || null, null, newMember, req.ip, req.headers['user-agent']);

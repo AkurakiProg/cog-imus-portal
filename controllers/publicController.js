@@ -107,6 +107,11 @@ exports.leaveLiveStreamView = async (req, res) => {
 
 exports.getWebsiteContent = async (req, res) => {
     try {
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0'
+        });
         const section = req.params.section || 'all';
         const data = await publicModel.getWebsiteContent(section);
         if (!data) return errorResponse(res, 'Website content not found', 404);

@@ -15,10 +15,6 @@ function previewEventBanner(e, previewId, placeholderId) {
     }
 }
 
-
-// ==========================================
-// LOCAL TIMEZONE DATE FORMATTING HELPERS
-// ==========================================
 function formatLocalDate(date = new Date()) {
     const d = (date instanceof Date) ? date : new Date(date);
     if (isNaN(d.getTime())) return '';
@@ -40,9 +36,6 @@ function formatLocalDateTime(date = new Date()) {
 }
 
 let currentFinancePageTransactions = [];
-// ============================================================
-// COG Imus Portal - Admin Dashboard Script
-// ============================================================
 
 let allEventsCache = [];
 let allAnnouncementsCache = [];
@@ -53,7 +46,7 @@ let allAlbumsCache = [];
 
 let currentMinistryId = null;
 let currentAlbumId = null;
-let financeAnalyticsMode = 'Income'; // 'Income' (Line Graph) or 'Expense' (Donut Graph)
+let financeAnalyticsMode = 'Income';
 let currentSermonsPage = 1;
 let currentAlbumsPage = 1;
 let currentCommentLogsPage = 1;
@@ -71,7 +64,6 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-// Web Audio API Sound Chimes for Notifications
 function playPortalNotificationSound(type = 'chime') {
     try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -83,7 +75,6 @@ function playPortalNotificationSound(type = 'chime') {
         const now = ctx.currentTime;
 
         if (type === 'comment' || type === 'chime') {
-            // Elegant double bell chime: D5 (587.33Hz) -> A5 (880.00Hz)
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
@@ -106,7 +97,6 @@ function playPortalNotificationSound(type = 'chime') {
             osc2.start(now + 0.12);
             osc2.stop(now + 0.6);
         } else if (type === 'announcement') {
-            // Vibrant 3-note ascending arpeggio: C5 (523.25Hz) -> E5 (659.25Hz) -> G5 (783.99Hz)
             [
                 { freq: 523.25, time: 0, dur: 0.25 },
                 { freq: 659.25, time: 0.1, dur: 0.25 },
@@ -129,13 +119,12 @@ function playPortalNotificationSound(type = 'chime') {
     }
 }
 
-// Universal Decision / Confirmation Pop-up Window
 function showDecisionModal({
     title = 'Confirm Action',
     message = 'Are you sure you want to proceed?',
     confirmText = 'Yes, Proceed',
     cancelText = 'Cancel',
-    type = 'danger', // 'danger' | 'warning' | 'primary' | 'info' | 'success'
+    type = 'danger',
     icon = ''
 } = {}) {
     return new Promise((resolve) => {
@@ -222,7 +211,6 @@ function showDecisionModal({
 }
 window.showConfirmDialog = showDecisionModal;
 
-// --- Distinct Color-Coded Badge Helpers ---
 function getDeptBadgeClass(dept) {
     if (!dept) return 'badge-dept-general';
     const d = dept.toLowerCase().trim();
@@ -320,7 +308,6 @@ function populateCascadingMinistries(dept, minSelectEl, emptyLabel = 'None / Gen
     }
 }
 
-// Session verification on load
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.authSessionSync && typeof window.authSessionSync.hydrateTabSessionIfNeeded === 'function') {
         const hyd = window.authSessionSync.hydrateTabSessionIfNeeded();
@@ -330,7 +317,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Check sessionStorage (tied to browser tab/window lifecycle)
     const token = sessionStorage.getItem('church_token');
 
     if (!token) {
@@ -352,9 +338,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Bind tab identity & keep local cache fresh with server state
         sessionStorage.setItem('church_user', JSON.stringify(user));
-        localStorage.removeItem('church_user'); // Keep tabs isolated in sessionStorage
+        localStorage.removeItem('church_user');
         if (window.authSessionSync && typeof window.authSessionSync.bindTabUser === 'function') {
             window.authSessionSync.bindTabUser(user);
         }
@@ -373,16 +358,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         };
 
-        // Connect profile image to sidebar avatar
         renderSafeAvatar(document.getElementById('userAvatar'), user.profile_image, user.full_name, 'A');
         
-        // Connect profile image to topbar avatar
         renderSafeAvatar(document.getElementById('topbarAvatar'), user.profile_image, user.full_name, 'A');
         const fnEl = document.getElementById('adminFirstName');
         if (fnEl) fnEl.textContent = user.worda_role || (user.full_name || 'Administrator').split(' ')[0];
         if (typeof updateDropdownUserInfo === 'function') updateDropdownUserInfo();
 
-        // Add file input listener for user modal profile preview
         const profileInput = document.getElementById('user_profile_image');
         if (profileInput) {
             profileInput.addEventListener('change', function(e) {
@@ -398,18 +380,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
         
-        // Load the initial dashboard summary
         await loadDashboardSummary();
         if (typeof loadSmsGatewayStatus === 'function') loadSmsGatewayStatus();
         if (typeof loadEmailServiceStatus === 'function') loadEmailServiceStatus();
 
-        // Global single-session watchdog
         if (api && typeof api.startSessionWatchdog === 'function') api.startSessionWatchdog();
 
-        // Initialize click-outside dismissal for all modals
         initModalBackdropClose();
 
-        // Initialize real-time synchronization
         initDashboardRealtimeSync();
         syncDashboardLogo();
     } catch (error) {
@@ -422,7 +400,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// ============== REALTIME SYNCHRONIZATION ==============
 const churchBroadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('church_realtime_channel') : null;
 
 function broadcastLocalMutation(type, action = 'update') {
@@ -578,7 +555,6 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// ============== SIDEBAR ACTIVE HELPER ==============
 function updateSidebarActive(viewName) {
     document.querySelectorAll('.sidebar-nav a').forEach(a => {
         a.classList.remove('active');
@@ -655,7 +631,6 @@ function initModalBackdropClose() {
         isMouseDownOnBackdrop = false;
     });
 
-    // Close on Escape key press as well for improved accessibility and UX
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' || e.key === 'Esc') {
             const activeOverlays = document.querySelectorAll('.modal-overlay.active, .modal-overlay[style*="display: flex"], .modal-overlay[style*="display: block"]');
@@ -707,15 +682,11 @@ if (document.readyState === 'loading') {
     initDateInputsAutoFill();
 }
 
-// ============== VIEW ROUTING ==============
 function navigateTo(viewName, event) {
-    // Update active classes on sidebar
     updateSidebarActive(viewName);
 
-    // Hide all views
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     
-    // Show target view
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) {
         targetView.classList.add('active');
@@ -739,7 +710,6 @@ function navigateTo(viewName, event) {
         stopLiveAnalyticsRealtimeSync();
     }
 
-    // Lazy load data when view is opened
     switch(viewName) {
         case 'dashboard': loadDashboardSummary(); break;
         case 'users': loadUsers(1); break;
@@ -774,14 +744,12 @@ function navigateTo(viewName, event) {
             break;
     }
     
-    // Close sidebar on mobile after clicking a link
     if (window.innerWidth <= 768) {
         closeSidebar();
     }
 }
 window.navigateTo = navigateTo;
 
-// Shortcut routing specifically for Income / Expense cards
 function navigateToFinance(mode) {
     if (mode === 'Income' || mode === 'Expense') {
         financeAnalyticsMode = mode;
@@ -799,7 +767,6 @@ function navigateToFinance(mode) {
     }
 }
 
-// ============== DASHBOARD SUMMARY ==============
 async function loadDashboardSummary() {
     try {
         const userStr = sessionStorage.getItem('church_user');
@@ -822,14 +789,12 @@ async function loadDashboardSummary() {
             api.content.getSermons(1, 5).catch(() => ({ data: [] }))
         ]);
 
-        // Populate Summary Cards
         const sumMembers = document.getElementById('sumMembers');
         if (sumMembers) sumMembers.innerText = (membersRes.pagination ? membersRes.pagination.total : (membersRes.data ? membersRes.data.length : 0));
         
         const sumMinistries = document.getElementById('sumMinistries');
         if (sumMinistries) sumMinistries.innerText = (ministriesRes.data || []).filter(m => m.is_active == 1).length;
         
-        // Immediately update WORDA Department summary cards
         const wordaMinList = ministriesRes.data || [];
         const depts = ['Worship', 'Outreach', 'Relationship', 'Discipleship', 'Administration'];
         depts.forEach(dept => {
@@ -849,12 +814,10 @@ async function loadDashboardSummary() {
         const sumEvents = document.getElementById('sumEvents');
         if (sumEvents) sumEvents.innerText = upcomingEvents;
 
-        // Update Recent Announcements badge count
         const publishedAnnouncements = annRes.pagination ? annRes.pagination.total : (annRes.data || []).length;
         const annBadge = document.getElementById('dashAnnouncementsBadge');
         if (annBadge) annBadge.textContent = `${publishedAnnouncements} Published`;
 
-        // Populate Recent Announcements List
         const annList = document.getElementById('dashRecentAnnouncements');
         if (annList) {
             annList.innerHTML = (annRes.data || []).slice(0, 5).map(a => {
@@ -878,7 +841,6 @@ async function loadDashboardSummary() {
             }).join('') || '<li style="text-align: center; color: var(--text-light); padding: 1.5rem 0;">No announcements published yet.</li>';
         }
 
-        // Populate Latest Sermons List
         const serList = document.getElementById('dashRecentSermons');
         if (serList) {
             serList.innerHTML = (sermonsRes.data || []).slice(0, 5).map(s => {
@@ -957,7 +919,6 @@ async function logout() {
     window.location.href = '/views/login.html';
 }
 
-// ============== USER ACCOUNTS MANAGEMENT ==============
 let allUsersCache = [];
 let currentUserPage = 1;
 const USER_PAGE_LIMIT = 10;
@@ -1226,7 +1187,6 @@ async function saveUser() {
             const res = await api.users.update(id, formData);
             showToast(res && res.message ? res.message : 'User account updated successfully!');
             
-            // Check if current logged-in user changed credentials, role, or active status
             const currentUser = JSON.parse(sessionStorage.getItem('church_user') || '{}');
             const isSelf = Boolean(currentUser && (currentUser.user_id == id || currentUser.id == id));
             
@@ -1259,9 +1219,9 @@ async function saveUser() {
         }
         closeUserModal();
         await loadUsers();
-        await loadMembers(); // Keep member records synced
+        await loadMembers();
         if (typeof loadMinistries === 'function') {
-            await loadMinistries(); // Keep WORDA department rosters and counts in sync
+            await loadMinistries();
         }
     } catch (error) {
         showToast('Error saving user: ' + error.message);
@@ -1336,7 +1296,6 @@ function viewUser(id) {
     document.getElementById('viewModal').classList.add('active');
 }
 
-// ============== MEMBER RECORDS MANAGEMENT ==============
 let currentMembersPage = 1;
 const MEMBER_PAGE_LIMIT = 10;
 
@@ -1425,9 +1384,6 @@ function renderMembersTable(members) {
     `).join('');
 }
 
-// ===================================================
-// AGE & AGE GROUP CALCULATION UTILITIES
-// ===================================================
 function calculateAge(birthDateString) {
     if (!birthDateString) return null;
     const str = String(birthDateString).split('T')[0];
@@ -1476,7 +1432,6 @@ function getAgeGroupFromValues(age, gender, civilStatus) {
     if (age <= 20) return 'Youth';
     if (age <= 25) return 'Young Adult';
 
-    // 26 years old and above
     if (isMale && isMarried) return 'Mens';
     if (isFemale && isMarried) return 'Ladies';
     if (cs === 'single') return 'Single Adult';
@@ -1504,22 +1459,16 @@ function matchesAgeGroupFilter(member, filterGroup) {
 
     switch (filterGroup) {
         case 'Childrens':
-            // Childrens (12 years old and below)
             return age <= 12;
         case 'J12':
-            // J12 (12 years old to 16 years old)
             return age >= 12 && age <= 16;
         case 'Youth':
-            // Youth (17 years old to 20 years old)
             return age >= 17 && age <= 20;
         case 'Young Adult':
-            // Young Adult (21 years old to 25 old)
             return age >= 21 && age <= 25;
         case 'Mens':
-            // Mens (26 years old and above, Male, and Married)
             return age >= 26 && isMale && isMarried;
         case 'Ladies':
-            // Ladies (26 years old and above, Female and Married)
             return age >= 26 && isFemale && isMarried;
         default:
             return true;
@@ -1630,7 +1579,6 @@ function openMemberModal(member = null) {
         document.getElementById('status').value = member.status || 'Active';
         document.getElementById('address').value = member.address || '';
 
-        // Calculate and display Age Info & Age Group
         const age = getMemberAge(member);
         const ageInput = document.getElementById('member_age');
         if (ageInput) ageInput.value = age !== null ? age : '';
@@ -1685,7 +1633,6 @@ async function saveMember() {
         return showToast('First Name and Last Name are required.');
     }
 
-    // If birth date is empty but age was entered, estimate birth date
     if (!data.birth_date && document.getElementById('member_age')?.value) {
         const a = parseInt(document.getElementById('member_age').value, 10);
         if (!isNaN(a) && a >= 0) {
@@ -1736,9 +1683,9 @@ async function saveMember() {
         }
 
         await loadMembers();
-        await loadUsers(); // Keep users table in sync
+        await loadUsers();
         if (typeof loadMinistries === 'function') {
-            await loadMinistries(); // Keep WORDA department rosters and counts in sync
+            await loadMinistries();
         }
     } catch (error) {
         showToast('Error saving member: ' + error.message);
@@ -1804,7 +1751,6 @@ async function viewMember(id) {
     document.getElementById('viewModal').classList.add('active');
 }
 
-// ============== WORDA DEPARTMENTS & MINISTRIES ==============
 let selectedWordaDept = null;
 let departmentHeadsCache = [];
 let activeMinistryAccordionId = null;
@@ -1821,7 +1767,6 @@ async function loadMinistries() {
         allMinistriesCache = minRes.data || [];
         departmentHeadsCache = (headsRes && headsRes.data) ? headsRes.data : [];
 
-        // Update WORDA department summary cards
         const depts = ['Worship', 'Outreach', 'Relationship', 'Discipleship', 'Administration'];
         depts.forEach(dept => {
             const count = allMinistriesCache.filter(m => (m.department || '').toLowerCase() === dept.toLowerCase()).length;
@@ -1830,18 +1775,15 @@ async function loadMinistries() {
             if (el) el.innerText = count;
         });
 
-        // Also update Active Ministries card on main Dashboard view
         const sumMinistries = document.getElementById('sumMinistries');
         if (sumMinistries) {
             sumMinistries.innerText = allMinistriesCache.filter(m => m.is_active == 1).length;
         }
 
-        // If a department is currently opened inline, refresh its ministries list
         if (selectedWordaDept) {
             renderWordaDeptInlineDetails(selectedWordaDept);
         }
 
-        // Keep all ministry select dropdowns in Finance & Events synchronized
         populateAllMinistrySelects();
 
         applyMinistryFilters();
@@ -1852,7 +1794,6 @@ async function loadMinistries() {
 
 async function selectWordaDepartment(deptName) {
     if (selectedWordaDept && selectedWordaDept.toLowerCase() === deptName.toLowerCase()) {
-        // Clicking same department card toggles it closed
         closeWordaDeptInlineDetails();
         const deptFilter = document.getElementById('ministryDeptFilter');
         if (deptFilter) {
@@ -1863,7 +1804,6 @@ async function selectWordaDepartment(deptName) {
     }
     selectedWordaDept = deptName;
 
-    // Synchronize the table filter dropdown below so table matches clicked card
     const deptFilter = document.getElementById('ministryDeptFilter');
     if (deptFilter) {
         deptFilter.value = deptName;
@@ -1874,7 +1814,6 @@ async function selectWordaDepartment(deptName) {
         await loadMinistries();
     }
 
-    // Update active highlight on summary cards
     const depts = ['Worship', 'Outreach', 'Relationship', 'Discipleship', 'Administration'];
     depts.forEach(d => {
         const card = document.getElementById(`wordaCard${d}`);
@@ -1929,7 +1868,6 @@ function renderWordaDeptInlineDetails(deptName) {
         btnManageC2S.style.display = ((deptName || '').toLowerCase() === 'relationship') ? 'inline-flex' : 'none';
     }
 
-    // Render Department Head Banner
     const bannerEl = document.getElementById('wordaDeptHeadBanner');
     if (bannerEl) {
         const currentHead = (departmentHeadsCache || []).find(h => (h.department || '').toLowerCase() === (deptName || '').toLowerCase());
@@ -2080,7 +2018,6 @@ async function toggleMinistryAccordion(ministryId) {
 
     const isOpen = itemEl.classList.contains('is-open');
 
-    // Close any other open accordion
     const allItems = document.querySelectorAll('.dept-accordion-item');
     allItems.forEach(it => it.classList.remove('is-open'));
 
@@ -2283,7 +2220,6 @@ function openMinistryModal(ministry = null) {
         const sched = ministry.meeting_schedule || '';
         document.getElementById('meeting_schedule').value = sched;
 
-        // Auto parse day and time from schedule string if possible
         if (sched && daySelect && timeInput) {
             const days = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Weekly', 'Monthly'];
             const matchedDay = days.find(d => sched.toLowerCase().includes(d.toLowerCase().slice(0, 3)));
@@ -2395,12 +2331,9 @@ async function deleteMinistry(id) {
     }
 }
 
-// ===================================================
-// MINISTRY ROSTER MANAGEMENT (WORDA DEPARTMENT)
-// ===================================================
 let currentRosterMinistryId = null;
 let currentRosterAssignedMembers = [];
-let rosterCurrentTab = 'all'; // 'all' | 'assigned' | 'unassigned'
+let rosterCurrentTab = 'all';
 let rosterSearchQuery = '';
 let isRelationshipDept = false;
 let selectedRosterAgeGroup = '';
@@ -2422,7 +2355,6 @@ async function openMinistryRosterModal(ministryId) {
         return;
     }
 
-    // Check if this ministry belongs to the Relationship Department
     isRelationshipDept = (ministry.department || '').trim().toLowerCase() === 'relationship';
     selectedRosterAgeGroup = '';
 
@@ -2431,7 +2363,6 @@ async function openMinistryRosterModal(ministryId) {
     if (titleEl) titleEl.innerText = `${ministry.ministry_name} Roster`;
     if (subtitleEl) subtitleEl.innerText = `${ministry.department} Department • Leader: ${ministry.leader_name || 'Unassigned'}`;
 
-    // Configure Relationship Department Age Group Filter visibility
     const ageFilterContainer = document.getElementById('rosterAgeGroupFilterContainer');
     if (ageFilterContainer) {
         ageFilterContainer.style.display = isRelationshipDept ? 'block' : 'none';
@@ -2441,7 +2372,6 @@ async function openMinistryRosterModal(ministryId) {
     const resetAgeBtn = document.getElementById('rosterResetAgeFilterBtn');
     if (resetAgeBtn) resetAgeBtn.style.display = 'none';
 
-    // Reset search query and filter tab
     rosterSearchQuery = '';
     rosterCurrentTab = 'all';
     const searchInput = document.getElementById('rosterMemberSearchInput');
@@ -2454,7 +2384,6 @@ async function openMinistryRosterModal(ministryId) {
         if (btn) btn.classList.toggle('active', tab === 'all');
     });
 
-    // Ensure all church members are fresh in cache
     try {
         const memRes = await api.members.getAll();
         allMembersCache = memRes.data || [];
@@ -2462,16 +2391,13 @@ async function openMinistryRosterModal(ministryId) {
         console.error('Failed to load church members for roster:', e);
     }
 
-    // Display modal
     document.getElementById('ministryRosterModal').classList.add('active');
 
-    // Show initial loading skeleton in list
     const listEl = document.getElementById('rosterActiveMembersList');
     if (listEl) {
         listEl.innerHTML = '<div class="text-center p-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-primary"></i><p class="text-sm">Loading active church members...</p></div>';
     }
 
-    // Load ministry roster assignments
     await loadMinistryRoster(ministryId);
 }
 
@@ -2553,17 +2479,14 @@ function renderRosterMembersList() {
     const listEl = document.getElementById('rosterActiveMembersList');
     if (!listEl) return;
 
-    // Ministry and Leader identification
     const ministry = (allMinistriesCache || []).find(min => min.ministry_id == currentMinistryId);
     const minLeaderId = ministry && ministry.leader_member_id ? Number(ministry.leader_member_id) : null;
 
-    // Assigned members lookup map: member_id -> assignment record
     const assignedMap = new Map();
     (currentRosterAssignedMembers || []).forEach(am => {
         assignedMap.set(Number(am.member_id), am);
     });
 
-    // Helper: checks if a member is currently assigned to this ministry (including the designated ministry leader)
     const isMemberAssigned = (memId) => {
         if (memId == null) return false;
         if (minLeaderId && Number(memId) === minLeaderId) return true;
@@ -2587,7 +2510,6 @@ function renderRosterMembersList() {
     if (elAssigned) elAssigned.innerText = assignedCount;
     if (elUnassigned) elUnassigned.innerText = unassignedCount;
 
-    // Filter by Tab, Relationship Age Group, and Search Query
     const q = (rosterSearchQuery || '').trim().toLowerCase();
 
     let displayMembers = activeMembers.filter(m => {
@@ -2595,7 +2517,6 @@ function renderRosterMembersList() {
         if (rosterCurrentTab === 'assigned' && !isAssigned) return false;
         if (rosterCurrentTab === 'unassigned' && isAssigned) return false;
 
-        // Apply Relationship Department Age Group Filter if active
         if (isRelationshipDept && selectedRosterAgeGroup) {
             if (!matchesAgeGroupFilter(m, selectedRosterAgeGroup)) return false;
         }
@@ -2612,7 +2533,6 @@ function renderRosterMembersList() {
         return fullName.includes(q) || contact.includes(q) || email.includes(q) || churchRole.includes(q) || roleInMin.includes(q) || ageGroup.includes(q);
     });
 
-    // Sort: Ministry Leader first, then assigned members, then unassigned church leaders, then unassigned members
     displayMembers.sort((a, b) => {
         const aIsLeader = minLeaderId && Number(a.member_id) === minLeaderId ? 0 : 1;
         const bIsLeader = minLeaderId && Number(b.member_id) === minLeaderId ? 0 : 1;
@@ -2788,12 +2708,10 @@ async function addMemberToRoster(memberId) {
     let targetMemberId = memberId;
     let role = 'Member';
 
-    // Support caller with memberId
     if (targetMemberId) {
         const roleInput = document.getElementById(`rosterRole_${targetMemberId}`);
         role = roleInput ? roleInput.value.trim() || 'Member' : 'Member';
     } else {
-        // Fallback if ever called without argument
         const select = document.getElementById('rosterAddMemberSelect');
         targetMemberId = select ? select.value : null;
         const roleInput = document.getElementById('rosterAddMemberRole');
@@ -2813,7 +2731,7 @@ async function addMemberToRoster(memberId) {
         delete ministryRosterCache[currentMinistryId];
         showToast(`${memberName} assigned as "${role}"!`);
         await loadMinistryRoster(currentMinistryId);
-        await loadMinistries(); // update member count in main table and WORDA department accordion
+        await loadMinistries();
         if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('ministries', 'assign_member');
     } catch (err) {
         showToast('Error assigning member: ' + err.message);
@@ -2841,10 +2759,6 @@ async function removeMemberFromRoster(mmId, memberName) {
     }
 }
 
-
-// ===================================================
-// DEPARTMENT HEAD MANAGEMENT (WORDA DEPARTMENTS)
-// ===================================================
 async function openManageDeptHeadModal(deptName = null) {
     const targetDept = deptName || selectedWordaDept;
     if (!targetDept) {
@@ -2858,7 +2772,6 @@ async function openManageDeptHeadModal(deptName = null) {
     const selectEl = document.getElementById('deptHeadSelect');
     const currentBox = document.getElementById('deptHeadCurrentBox');
 
-    // Show initial loading state in dropdown and preview
     if (selectEl) {
         selectEl.innerHTML = '<option value="">Loading eligible church leaders...</option>';
         selectEl.disabled = true;
@@ -2875,7 +2788,6 @@ async function openManageDeptHeadModal(deptName = null) {
     document.getElementById('deptHeadModal').classList.add('active');
 
     try {
-        // Ensure fresh, unpaginated active members and up-to-date department heads are loaded
         const [memRes, headsRes] = await Promise.all([
             api.members.getAll({ all: true, status: 'Active' }).catch(() => ({ data: [] })),
             api.ministries.getDepartmentHeads().catch(() => ({ data: [] }))
@@ -2896,18 +2808,15 @@ async function openManageDeptHeadModal(deptName = null) {
             return isEligible && isActive;
         });
 
-        // Sort alphabetically by full name
         eligibleMembers.sort((a, b) => {
             const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
             const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
             return nameA.localeCompare(nameB);
         });
 
-        // Current assigned head
         const currentHead = (departmentHeadsCache || []).find(h => (h.department || '').toLowerCase() === targetDept.toLowerCase());
         const currentHeadId = currentHead ? currentHead.head_member_id : null;
 
-        // Function to render the preview box dynamically
         const renderHeadPreview = (selectedMemberId) => {
             if (!currentBox) return;
             if (!selectedMemberId) {
@@ -2951,7 +2860,6 @@ async function openManageDeptHeadModal(deptName = null) {
             }
         };
 
-        // Populate dropdown with Church Leaders & Church Admins ONLY
         if (selectEl) {
             selectEl.disabled = false;
             let html = '<option value="">-- No Department Head (Unassigned) --</option>';
@@ -2967,13 +2875,11 @@ async function openManageDeptHeadModal(deptName = null) {
             }
             selectEl.innerHTML = html;
 
-            // Ensure selection matches current head precisely
             const initialVal = (currentHeadId && eligibleMembers.some(m => String(m.member_id) === String(currentHeadId)))
                 ? String(currentHeadId)
                 : '';
             selectEl.value = initialVal;
 
-            // Render live preview on selection change
             renderHeadPreview(initialVal);
             selectEl.onchange = () => renderHeadPreview(selectEl.value);
         }
@@ -3008,11 +2914,9 @@ async function saveDepartmentHead() {
         const res = await api.ministries.updateDepartmentHead(department, { head_member_id: headMemberId });
         showToast(res && res.message ? res.message : `${department} Department Head saved successfully!`);
 
-        // Refresh cache and summary counts immediately
         await loadMinistries();
         if (typeof broadcastLocalMutation === 'function') broadcastLocalMutation('ministries', 'update_department_head');
 
-        // Re-render inline view
         if (selectedWordaDept && selectedWordaDept.toLowerCase() === department.toLowerCase()) {
             renderWordaDeptInlineDetails(selectedWordaDept);
         }
@@ -3028,19 +2932,15 @@ async function saveDepartmentHead() {
     }
 }
 
-
-// ============== FINANCE & ANALYTICS ==============
-// financeAnalyticsMode initialized globally ('Income')
 let financeAnalyticsDept = '';
 let financeAnalyticsMinistryId = '';
 let financeCalCurrentDate = new Date();
-let financeCalSelectedDate = null; // 'YYYY-MM-DD'
-let financeChartTimeframe = 'monthly'; // 'weekly' or 'monthly'
-let financeChartRefDate = new Date(); // Reference date for weekly calculation
+let financeCalSelectedDate = null;
+let financeChartTimeframe = 'monthly';
+let financeChartRefDate = new Date();
 let financeInteractiveChartInstance = null;
 let allCategories = [];
 
-// ============== FINANCE ANALYTICS DEPARTMENT & MINISTRY FILTER MODAL ==============
 function openFinanceAnalyticsDeptMinFilterModal() {
     const deptSelect = document.getElementById('financeAnalyticsModalDeptSelect');
     if (deptSelect) {
@@ -3156,10 +3056,8 @@ function updateFinanceAnalyticsFilterButtonUI() {
 }
 
 function populateAllMinistrySelects() {
-    // 1. Finance Analytics Ministry modal
     populateFinanceAnalyticsModalMinistryDropdown(financeAnalyticsDept, financeAnalyticsMinistryId);
 
-    // 2. Finance Records Ministry filter
     const fmSelect = document.getElementById('financeMinistryFilter');
     if (fmSelect) {
         const curVal = fmSelect.value;
@@ -3170,7 +3068,6 @@ function populateAllMinistrySelects() {
         }
     }
 
-    // 3. Finance Modal Ministry Select
     const tmSelect = document.getElementById('transaction_ministry_id');
     if (tmSelect) {
         const curVal = tmSelect.value;
@@ -3181,7 +3078,6 @@ function populateAllMinistrySelects() {
         }
     }
 
-    // 4. Events Filter Ministry
     const emSelect = document.getElementById('eventMinistryFilter');
     if (emSelect) {
         const curVal = emSelect.value;
@@ -3192,7 +3088,6 @@ function populateAllMinistrySelects() {
         }
     }
 
-    // 5. Events Modal Ministry
     const emModalSelect = document.getElementById('ministry_id_event');
     if (emModalSelect) {
         const curVal = emModalSelect.value;
@@ -3207,19 +3102,16 @@ function populateAllMinistrySelects() {
 function selectFinanceAnalyticsMode(mode) {
     financeAnalyticsMode = mode;
 
-    // Highlight card active state
     const cardIncome = document.getElementById('cardIncome');
     const cardExpense = document.getElementById('cardExpense');
     if (cardIncome) cardIncome.classList.toggle('active-mode-income', mode === 'Income');
     if (cardExpense) cardExpense.classList.toggle('active-mode-expense', mode === 'Expense');
 
-    // Update buttons
     const btnInc = document.getElementById('btnModeIncome');
     const btnExp = document.getElementById('btnModeExpense');
     if (btnInc) btnInc.classList.toggle('active', mode === 'Income');
     if (btnExp) btnExp.classList.toggle('active', mode === 'Expense');
 
-    // Update graph and calendar titles
     const graphTitle = document.getElementById('financeGraphTitle');
     const calTitle = document.getElementById('financeCalendarTitle');
 
@@ -3270,7 +3162,7 @@ function toLocalDateStr(dateObj) {
 
 function getWeekRange(refDate) {
     const d = new Date(refDate);
-    const day = d.getDay(); // 0 is Sunday
+    const day = d.getDay();
     const sun = new Date(d);
     sun.setDate(d.getDate() - day);
     sun.setHours(0, 0, 0, 0);
@@ -3448,7 +3340,7 @@ function renderFinanceInteractiveChart() {
     }
 
     const curYear = financeCalCurrentDate.getFullYear();
-    const curMonth = financeCalCurrentDate.getMonth(); // 0-indexed
+    const curMonth = financeCalCurrentDate.getMonth();
     const monthName = financeCalCurrentDate.toLocaleString('default', { month: 'long' });
     const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
 
@@ -3465,15 +3357,11 @@ function renderFinanceInteractiveChart() {
         totalLabel.textContent = (financeChartTimeframe === 'weekly') ? 'Weekly Total' : 'Monthly Total';
     }
 
-    // -------------------------------------------------------------------------
-    // A. WEEKLY VIEW
-    // -------------------------------------------------------------------------
     if (financeChartTimeframe === 'weekly') {
         const { start: weekStart, end: weekEnd } = getWeekRange(financeChartRefDate);
         const weekLabelStr = formatWeekLabel(weekStart, weekEnd);
         if (weekLabelEl) weekLabelEl.textContent = weekLabelStr;
 
-        // Generate 7 days (Sun through Sat)
         const dayDates = [];
         const dayLabels = [];
         const dayDateStrings = [];
@@ -3490,7 +3378,6 @@ function renderFinanceInteractiveChart() {
         const weekStartStr = dayDateStrings[0];
         const weekEndStr = dayDateStrings[6];
 
-        // Filter transactions for this 7-day range
         let txs = allTransactionsCache.filter(t => {
             if (!t.transaction_date) return false;
             const tDate = String(t.transaction_date).split('T')[0];
@@ -3505,7 +3392,6 @@ function renderFinanceInteractiveChart() {
         }
 
         if (financeAnalyticsMode === 'Income') {
-            // --- WEEKLY INCOME (LINE GRAPH) ---
             if (subTitleEl) subTitleEl.textContent = `Weekly trajectory: ${weekLabelStr}`;
             
             const incomeTxs = txs.filter(t => t.transaction_type === 'Income');
@@ -3525,7 +3411,6 @@ function renderFinanceInteractiveChart() {
                 totalEl.textContent = `₱${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             }
 
-            // Highlight selected day on line chart if picked
             let selIdx = -1;
             if (financeCalSelectedDate) {
                 selIdx = dayDateStrings.indexOf(financeCalSelectedDate);
@@ -3583,7 +3468,6 @@ function renderFinanceInteractiveChart() {
             });
 
         } else {
-            // --- WEEKLY EXPENSE (DONUT GRAPH) ---
             if (subTitleEl) subTitleEl.textContent = `Weekly expense breakdown: ${weekLabelStr}`;
 
             let expenseTxs = txs.filter(t => t.transaction_type === 'Expense');
@@ -3651,11 +3535,7 @@ function renderFinanceInteractiveChart() {
             }
         }
 
-    // -------------------------------------------------------------------------
-    // B. MONTHLY VIEW
-    // -------------------------------------------------------------------------
     } else {
-        // Filter transactions for current month
         let txs = allTransactionsCache.filter(t => {
             if (!t.transaction_date) return false;
             const d = new Date(String(t.transaction_date).split('T')[0] + 'T00:00:00');
@@ -3670,7 +3550,6 @@ function renderFinanceInteractiveChart() {
         }
 
         if (financeAnalyticsMode === 'Income') {
-            // --- MONTHLY INCOME (LINE GRAPH) ---
             if (subTitleEl) subTitleEl.textContent = `Monthly trajectory for ${monthName} ${curYear}`;
 
             const incomeTxs = txs.filter(t => t.transaction_type === 'Income');
@@ -3752,7 +3631,6 @@ function renderFinanceInteractiveChart() {
             });
 
         } else {
-            // --- MONTHLY EXPENSE (DONUT GRAPH) ---
             if (subTitleEl) subTitleEl.textContent = `Monthly expense breakdown for ${monthName} ${curYear}`;
 
             let expenseTxs = txs.filter(t => t.transaction_type === 'Expense');
@@ -3837,11 +3715,10 @@ function renderFinanceCalendar() {
         label.textContent = financeCalCurrentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
     }
 
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+    const firstDayIndex = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-    // Active week range for calendar highlight when in weekly mode
     let weekStartStr = '';
     let weekEndStr = '';
     if (financeChartTimeframe === 'weekly') {
@@ -3850,7 +3727,6 @@ function renderFinanceCalendar() {
         weekEndStr = toLocalDateStr(wEnd);
     }
 
-    // Map which dates have income and expenses
     const incomeDates = new Set();
     const expenseDates = new Set();
 
@@ -3874,13 +3750,11 @@ function renderFinanceCalendar() {
     const todayStr = toLocalDateStr(new Date());
     let html = '';
 
-    // Previous month filler days
     for (let i = firstDayIndex - 1; i >= 0; i--) {
         const prevDay = daysInPrevMonth - i;
         html += `<div class="cal-day-cell other-month"><span class="cal-day-num">${prevDay}</span></div>`;
     }
 
-    // Current month days
     for (let day = 1; day <= daysInMonth; day++) {
         const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const hasInc = incomeDates.has(dStr);
@@ -3902,7 +3776,6 @@ function renderFinanceCalendar() {
         `;
     }
 
-    // Next month filler days to complete grid of 35 or 42
     const totalRendered = firstDayIndex + daysInMonth;
     const nextDays = totalRendered <= 35 ? (35 - totalRendered) : (42 - totalRendered);
     for (let j = 1; j <= nextDays; j++) {
@@ -3917,7 +3790,6 @@ async function loadFinanceAnalytics() {
         const res = await api.finance.getAnalytics();
         const data = res.data;
 
-        // Update Summary Cards
         document.getElementById('totalIncome').textContent = `₱${Number(data.summary.total_income || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('totalExpense').textContent = `₱${Number(data.summary.total_expense || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('netBalance').textContent = `₱${Number(data.summary.net_balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -3946,7 +3818,6 @@ async function loadFinanceTransactions() {
         console.error('Error loading finance transactions:', error);
     }
 }
-
 
 async function ensureFinanceCategoriesLoaded() {
     if (!allCategories || allCategories.length === 0) {
@@ -3994,7 +3865,6 @@ function onFinanceTypeFilterChange() {
     applyFinanceFilters();
 }
 
-// ============== FINANCE DEPARTMENT & MINISTRY FILTER MODAL ==============
 let financeFilterDept = '';
 let financeFilterMinistryId = '';
 
@@ -4173,8 +4043,6 @@ function changeFinancePage(direction) {
     }
 }
 
-
-
 function renderFinanceTable(transactions) {
     const tbody = document.getElementById('financeTableBody');
     if (!tbody) return;
@@ -4346,8 +4214,6 @@ async function deleteTransaction(id) {
     }
 }
 
-// ============== EVENTS & SEMINARY ==============
-// ============== EVENTS DEPARTMENT & MINISTRY FILTER MODAL ==============
 let eventFilterDept = '';
 let eventFilterMinistryId = '';
 
@@ -4821,9 +4687,6 @@ async function deleteEvent(id) {
     }
 }
 
-// ==========================================
-// EVENT ENROLLMENTS VIEWER & MANAGEMENT (ADMIN)
-// ==========================================
 let activeEventEnrollmentsList = [];
 let activeEventForEnrollment = null;
 
@@ -4987,8 +4850,6 @@ async function updateEventEnrollmentStatusAdmin(enrollmentId, newStatus, eventId
     }
 }
 
-// ============== ANNOUNCEMENTS ==============
-// ============== ANNOUNCEMENTS DEPARTMENT & MINISTRY FILTER MODAL ==============
 let announcementFilterDept = '';
 let announcementFilterMinistryId = '';
 
@@ -5166,8 +5027,6 @@ function changeAnnouncementsPage(direction) {
         loadAnnouncements(newPage);
     }
 }
-
-
 
 function renderAnnouncementsTable(announcements) {
     const tbody = document.getElementById('announcementsTableBody');
@@ -5503,15 +5362,12 @@ window.triggerEmailBroadcast = triggerEmailBroadcast;
 window.triggerSmsBroadcast = triggerSmsBroadcast;
 window.triggerSms = triggerSmsBroadcast;
 
-// ============== CONTENT (FACEBOOK LIVE STREAM STUDIO & PAST SERMONS) ==============
 let currentLiveStreamConfig = null;
 let allSermonsAdminCache = [];
 
-// Helper: Extract 11-char YouTube Video ID from any URL format or ID string
 function extractYouTubeId(urlOrId) {
     if (!urlOrId) return '';
     const str = String(urlOrId).trim();
-    // Handles watch?v=, youtu.be/, embed/, live/, shorts/, v=
     const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/|shorts\/))([\w-]{11})/i);
     if (match && match[1]) return match[1];
     const clean = str.replace(/^v=/, '');
@@ -5519,14 +5375,6 @@ function extractYouTubeId(urlOrId) {
     if (idMatch) return idMatch[0];
     return clean.slice(0, 50);
 }
-
-// Helper: Extract Facebook Video ID from URL, iframe, RTMP address, or Stream Key
-
-
-// ============================================================================
-// ============================================================================
-// FACEBOOK LIVE STREAM BROADCAST MANAGEMENT
-// ============================================================================
 
 let previewDebounceTimer = null;
 function autoUpdateLiveMonitorPlayer() {
@@ -5628,7 +5476,6 @@ async function loadLiveStreamAdmin() {
             startRealAudioInput().catch(() => {});
         }
 
-        // Synchronously load analytics stats & start real-time sync
         if (api.content && typeof api.content.getLiveStreamAnalytics === 'function') {
             api.content.getLiveStreamAnalytics().then(analyticsRes => {
                 if (analyticsRes && analyticsRes.data && typeof updateLiveAnalyticsUi === 'function') {
@@ -5692,7 +5539,6 @@ function updateLiveStreamUi(config) {
     renderLiveMonitorPlayer();
 }
 
-// Helper: Extract Facebook Video Embed URL for live monitor preview
 function getFacebookEmbedUrlForPreview(urlOrKey) {
     if (!urlOrKey) return '';
     let str = String(urlOrKey).trim();
@@ -5843,7 +5689,6 @@ async function pasteStreamUrl() {
     }
 }
 
-// ============== BROADCAST AUDIO MIXER & HARDWARE INTERCONNECTION ==============
 let audioCtx = null;
 let audioMediaStream = null;
 let audioSourceNode = null;
@@ -5853,7 +5698,6 @@ let audioMeterAnimFrame = null;
 let currentAudioDeviceId = '';
 let mediaAudioActive = true;
 
-// Facebook livestream player & tab capture synchronization state
 let activeFbVideoPlayer = null;
 let isFbLivestreamPlaying = false;
 let isFbLivestreamBuffering = false;
@@ -5874,7 +5718,6 @@ const channelGainNodes = {
     media: null
 };
 
-// Facebook Embedded Video Player API Bridge
 function setupFbPlayerBridge() {
     if (window.FB && window.FB.Event) {
         try {
@@ -5910,7 +5753,6 @@ function setupFbPlayerBridge() {
     }
 }
 
-// Window postMessage listener for embedded Facebook iframe events
 window.addEventListener('message', function(event) {
     try {
         let data = event.data;
@@ -5939,7 +5781,6 @@ window.addEventListener('message', function(event) {
     } catch (err) {}
 });
 
-// Interconnect audio mixer volume and mute directly with the Facebook Player
 function syncFbPlayerAudio() {
     const isMuted = Boolean(audioMixerState.master.muted || audioMixerState.media.muted);
     const masterRatio = Math.max(0, Math.min(1, (audioMixerState.master.volume || 0) / 100));
@@ -5977,7 +5818,6 @@ function syncFbPlayerAudio() {
     updateChannelGains();
 }
 
-// Direct Web Audio Tab/Physical Stream Capture for Livestream Audio
 async function syncLiveStreamAudioCapture() {
     try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
@@ -6101,7 +5941,6 @@ function updateMediaAudioSyncUi(isSynced) {
     }
 }
 
-// Enumerate physical audio input devices
 async function enumerateRealAudioDevices() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
     try {
@@ -6109,7 +5948,6 @@ async function enumerateRealAudioDevices() {
     } catch (err) {}
 }
 
-// Start audio input using Web Audio API interconnecting desktop mic and media stream
 async function startRealAudioInput(deviceId = '') {
     if (!document.getElementById('liveAudioMixer')) return;
     try {
@@ -6169,7 +6007,6 @@ async function startRealAudioInput(deviceId = '') {
     }
 }
 
-// Stop audio input
 function stopRealAudioInput(resetUi = true) {
     if (audioMeterAnimFrame) {
         cancelAnimationFrame(audioMeterAnimFrame);
@@ -6213,7 +6050,6 @@ function updateChannelGains() {
     });
 }
 
-// Real-time animation loop measuring physical microphone audio + Facebook media audio interconnected with Master
 function startRealVuMeterLoop() {
     if (audioMeterAnimFrame) cancelAnimationFrame(audioMeterAnimFrame);
     if (!document.getElementById('liveAudioMixer')) return;
@@ -6221,7 +6057,6 @@ function startRealVuMeterLoop() {
     const micFreqData = new Uint8Array(micAnalyserNode ? micAnalyserNode.frequencyBinCount : 128);
 
     function meterFrame() {
-        // Measure desktop mic
         let micNormalized = 0;
         if (audioMediaStream && micAnalyserNode) {
             micAnalyserNode.getByteFrequencyData(micFreqData);
@@ -6233,13 +6068,11 @@ function startRealVuMeterLoop() {
             micNormalized = Math.min(100, (rawAvg / 128) * 100 * 1.5);
         }
 
-        // Measure live monitor video media audio (FB live stream activity)
         let mediaNormalized = 0;
         const isMediaMuted = audioMixerState.media.muted || audioMixerState.master.muted;
 
         if (!isMediaMuted) {
             if (mediaAudioStream && mediaAnalyserNode) {
-                // 1. Physical Digital Audio Tab Capture
                 const mediaFreqData = new Uint8Array(mediaAnalyserNode.frequencyBinCount);
                 mediaAnalyserNode.getByteFrequencyData(mediaFreqData);
                 let sum = 0;
@@ -6249,13 +6082,11 @@ function startRealVuMeterLoop() {
                 const rawAvg = sum / mediaFreqData.length;
                 mediaNormalized = Math.min(100, (rawAvg / 128) * 100 * 1.6);
             } else if (isFbLivestreamPlaying && !isFbLivestreamBuffering) {
-                // 2. Facebook Player is actively playing
                 mediaWavePhase += 0.07;
                 const naturalVariance = Math.sin(mediaWavePhase) * 12 + Math.sin(mediaWavePhase * 2.1) * 8 + Math.cos(mediaWavePhase * 0.5) * 6;
                 const nominalEnergy = 48 + naturalVariance;
                 mediaNormalized = Math.max(8, Math.min(92, nominalEnergy));
             } else {
-                // 3. Paused, buffering, stopped, or ended
                 mediaNormalized = 0;
             }
         } else {
@@ -6264,7 +6095,6 @@ function startRealVuMeterLoop() {
 
         const masterMultiplier = audioMixerState.master.muted ? 0 : (audioMixerState.master.volume / 100);
 
-        // Pulpit Mic Channel
         const pulpitState = audioMixerState.pulpit;
         const pulpitLevel = pulpitState.muted ? 0 : micNormalized * (pulpitState.volume / 100);
         const barPulpit = document.getElementById('vuBarPulpit');
@@ -6272,7 +6102,6 @@ function startRealVuMeterLoop() {
             barPulpit.style.height = `${Math.max(0, Math.min(98, Math.round(pulpitLevel)))}%`;
         }
 
-        // Media Playback Channel (FB Livestream)
         const mediaState = audioMixerState.media;
         const mediaLevel = mediaState.muted ? 0 : mediaNormalized * (mediaState.volume / 100);
         const barMedia = document.getElementById('vuBarMedia');
@@ -6280,7 +6109,6 @@ function startRealVuMeterLoop() {
             barMedia.style.height = `${Math.max(0, Math.min(98, Math.round(mediaLevel)))}%`;
         }
 
-        // Master Output Channel (Sum of Mic Audio and Media Audio, scaled by Master fader)
         const barMaster = document.getElementById('vuBarMaster');
         if (barMaster) {
             if (audioMixerState.master.muted || masterMultiplier === 0) {
@@ -6438,7 +6266,6 @@ async function toggleLiveBroadcast() {
                             (toggleBtn && (toggleBtn.classList.contains('live') || toggleBtn.classList.contains('btn-end-broadcast')));
 
     if (!isCurrentlyLive) {
-        // Going LIVE
         const title = document.getElementById('live_stream_title')?.value?.trim() || currentLiveStreamConfig?.title || '';
         const preacher = document.getElementById('live_stream_preacher')?.value?.trim() || currentLiveStreamConfig?.preacher || '';
         const stream_url = document.getElementById('live_stream_url')?.value?.trim() || document.getElementById('live_stream_key')?.value?.trim() || currentLiveStreamConfig?.stream_url || currentLiveStreamConfig?.stream_key || '';
@@ -6503,7 +6330,6 @@ async function toggleLiveBroadcast() {
             if (toggleBtn) toggleBtn.disabled = false;
         }
     } else {
-        // Ending broadcast
         let confirmEnd = true;
         if (typeof showDecisionModal === 'function') {
             confirmEnd = await showDecisionModal({
@@ -6543,7 +6369,6 @@ async function toggleLiveBroadcast() {
     }
 }
 
-// ============== LIVESTREAM VIEW ANALYTICS & STATS (REAL-TIME & SYNCHRONOUS) ==============
 let liveAnalyticsData = null;
 let liveAnalyticsTimeframe = 'weekly';
 let liveAnalyticsRefDate = new Date();
@@ -6558,7 +6383,6 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
     liveAnalyticsData = data;
     const s = liveAnalyticsData.summary || {};
 
-    // 1. Update summary metric cards in modal
     const todayViewsEl = document.getElementById('statLiveTodayViews');
     const peakEl = document.getElementById('statLivePeakViewers');
     const activeNowEl = document.getElementById('statLiveActiveNow');
@@ -6571,7 +6395,6 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
     if (monthEl) monthEl.textContent = Number(s.month_views || 0).toLocaleString();
     if (totalEl) totalEl.textContent = Number(s.total_views || 0).toLocaleString();
 
-    // 2. Update mini live stats pill in Facebook Live Broadcast card header
     const cmToday = document.getElementById('cmTodayViews');
     const cmActive = document.getElementById('cmActiveViewers');
     const cmFbActive = document.getElementById('cmFbActiveViewers');
@@ -6579,7 +6402,6 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
     if (cmActive) cmActive.textContent = Number(s.active_viewers || 0).toLocaleString();
     if (cmFbActive) cmFbActive.textContent = Number(s.fb_live_views || s.fb_active_viewers || 0).toLocaleString();
 
-    // Update Connected Facebook Stream card inside analytics modal
     const fbStreamTitle = document.getElementById('analyticsFbStreamTitle');
     const fbLiveStatus = document.getElementById('analyticsFbLiveStatus');
     const fbVideoIdVal = document.getElementById('analyticsFbVideoIdVal');
@@ -6601,13 +6423,10 @@ function updateLiveAnalyticsUi(data, isSilent = false) {
             : '<i class="fa-brands fa-facebook mr-1"></i> Ready for Ingest';
     }
 
-    // 3. Smooth in-place line chart update
     renderLiveViewsChart(isSilent);
 
-    // 4. Update Calendar tracker grid badges
     renderLiveAnalyticsCalendar();
 
-    // 5. Update Selected Date details drawer
     if (liveAnalyticsSelectedDate) {
         syncLiveAnalyticsDrawerDetails(liveAnalyticsSelectedDate);
     }
@@ -6654,7 +6473,6 @@ function syncLiveAnalyticsDrawerDetails(dateStr) {
 }
 
 function startLiveAnalyticsRealtimeSync() {
-    // 1. Establish SSE Connection for instant real-time events
     if (!liveAnalyticsEventSource && typeof EventSource !== 'undefined') {
         try {
             const token = sessionStorage.getItem('church_token') || localStorage.getItem('church_token') || '';
@@ -6680,7 +6498,6 @@ function startLiveAnalyticsRealtimeSync() {
         } catch (e) {}
     }
 
-    // 2. Polling backup (every 5s) to ensure uninterrupted sync
     if (!liveAnalyticsPollTimer) {
         liveAnalyticsPollTimer = setInterval(async () => {
             const modal = document.getElementById('liveAnalyticsModal');
@@ -6725,14 +6542,11 @@ async function openLiveAnalyticsModal() {
         const res = await api.content.getLiveStreamAnalytics();
         liveAnalyticsData = res.data || { daily_views: [], summary: {} };
 
-        // Synchronously update all UI elements
         updateLiveAnalyticsUi(liveAnalyticsData, false);
 
-        // Select today's date initially in details drawer
         const todayStr = typeof toLocalDateStr === 'function' ? toLocalDateStr(new Date()) : new Date().toISOString().split('T')[0];
         onLiveAnalyticsDateClick(todayStr);
 
-        // Start real-time sync immediately
         startLiveAnalyticsRealtimeSync();
     } catch (err) {
         console.error('Error loading livestream analytics:', err);
@@ -7000,7 +6814,6 @@ async function syncFacebookLiveMetricsManual() {
     }
 }
 
-// ============== LIVESTREAM COMMENTS (ADMIN & LEADER) ==============
 async function openLiveCommentsModal() {
     const titleEl = document.getElementById('liveCommentsStreamTitle');
     const statusEl = document.getElementById('liveCommentsStreamStatus');
@@ -7040,7 +6853,6 @@ function closeLiveCommentsModal() {
 function toggleRealAudioInput() {}
 function changeAudioInputDevice() {}
 
-// Global window bindings
 window.toggleLiveBroadcast = toggleLiveBroadcast;
 window.saveLiveStreamDetails = saveLiveStreamDetails;
 window.autoSaveLiveStreamDetails = autoSaveLiveStreamDetails;
@@ -7074,7 +6886,6 @@ window.saveSelectedDateLiveViews = saveSelectedDateLiveViews;
 window.syncFacebookLiveMetricsManual = syncFacebookLiveMetricsManual;
 window.openLiveCommentsModal = openLiveCommentsModal;
 window.closeLiveCommentsModal = closeLiveCommentsModal;
-
 
 window.loadLiveCommentsAdmin = loadLiveCommentsAdmin;
 async function loadLiveCommentsAdmin() {
@@ -7121,7 +6932,6 @@ async function loadLiveCommentsAdmin() {
             `;
         }).join('');
 
-        // Auto-scroll to bottom
         container.scrollTop = container.scrollHeight;
     } catch (err) {
         console.error('Error loading comments:', err);
@@ -7165,7 +6975,6 @@ async function deleteLiveCommentAdmin(commentId) {
     }
 }
 
-// ---- Past Livestream Chat Logs (Archived Comments) ----
 let allLivestreamCommentLogsCache = [];
 
 function openLivestreamCommentLogsModal() {
@@ -7222,9 +7031,8 @@ async function loadCommentLogsAdmin(page = 1) {
 
         const nextBtn = document.getElementById('commentLogsNextBtn');
         if (nextBtn) nextBtn.disabled = currentCommentLogsPage >= totalPages;
-    
 
-    } catch (err) {
+} catch (err) {
         console.error('Error loading comment logs:', err);
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-rose-500">Failed to load comment logs: ${escapeHtml(err.message)}</td></tr>`;
     }
@@ -7282,7 +7090,6 @@ function renderCommentLogsTable(logs) {
     }).join('');
 }
 
-// ---- Past Sermons Archive (YouTube Videos) ----
 currentSermonsPage = 1;
 const SERMON_PAGE_LIMIT = 10;
 
@@ -7391,7 +7198,6 @@ function renderSermonsTable(sermons) {
     }).join('');
 }
 
-// Live YouTube input feedback and embed preview in Add/Edit modal
 function onSermonYoutubeInput(val) {
     const videoId = extractYouTubeId(val);
     const feedback = document.getElementById('sermonYoutubeFeedback');
@@ -7559,7 +7365,6 @@ async function deleteSermon(id) {
     }
 }
 
-// Quick Video Theater Preview Modal
 function previewSermonVideo(youtubeId, title) {
     if (!youtubeId) return showToast('No YouTube video ID available for preview.');
     const modal = document.getElementById('videoPlayerModal');
@@ -7605,8 +7410,6 @@ function closeVideoPlayerModal() {
     if (bodyEl) bodyEl.innerHTML = '';
 }
 
-
-// ============== PHOTO ALBUMS & GALLERY MANAGEMENT ==============
 currentAlbumsPage = 1;
 const ALBUM_PAGE_LIMIT = 10;
 
@@ -7751,7 +7554,6 @@ async function deleteAlbum(id) {
     }
 }
 
-// Manage Photos Modal
 async function openAlbumPhotosModal(albumId) {
     currentAlbumId = albumId;
     const album = allAlbumsCache.find(a => a.album_id == albumId);
@@ -7769,7 +7571,7 @@ async function openAlbumPhotosModal(albumId) {
 
 function closeAlbumPhotosModal() {
     document.getElementById('albumPhotosModal').classList.remove('active');
-    loadAlbumsAdmin(); // Refresh album image counts
+    loadAlbumsAdmin();
 }
 
 async function loadAlbumPhotos(albumId) {
@@ -7856,7 +7658,6 @@ async function deleteAlbumPhoto(imageId) {
     }
 }
 
-// ============== AUDIT TRAIL ==============
 currentAuditPage = 1;
 
 function getAuditFilterParams() {
@@ -7964,7 +7765,6 @@ function changeAuditPage(direction) {
     }
 }
 
-// ============== SYSTEM BACKUP ==============
 async function runBackup() {
     const btn = document.getElementById('backupBtn');
     const originalHtml = btn.innerHTML;
@@ -8003,7 +7803,6 @@ async function runBackup() {
     }
 }
 
-// ============== VIEW DETAILS HELPERS ==============
 function closeViewModal() {
     document.getElementById('viewModal').classList.remove('active');
 }
@@ -8062,7 +7861,6 @@ function viewAnnouncement(id) {
     document.getElementById('viewModal').classList.add('active');
 }
 
-// ============== SMS GATEWAY MANAGEMENT & TEST ==============
 smsSettingsCache = null;
 
 async function loadSmsGatewayStatus() {
@@ -8070,7 +7868,6 @@ async function loadSmsGatewayStatus() {
         const res = await api.system.getSmsSettings();
         smsSettingsCache = res.data;
 
-        // Update Audit view badge (single badge instance, no nested badge spans)
         const badgeEl = document.getElementById('smsGatewayStatusBadge');
         const descEl = document.getElementById('smsGatewayDesc');
         if (badgeEl) {
@@ -8085,7 +7882,6 @@ async function loadSmsGatewayStatus() {
             }
         }
 
-        // Update Announcements view banner
         const bannerEl = document.getElementById('announcementSmsBanner');
         if (bannerEl) {
             if (!smsSettingsCache.configured) {
@@ -8138,23 +7934,19 @@ async function openSmsSettingsModal() {
         const badge = document.getElementById('modalSmsStatusBadge');
         const provText = document.getElementById('modalSmsProviderText');
         
-        // TextBee
         const tbDevice = document.getElementById('sms_textbee_device_id');
         const tbDeviceHint = document.getElementById('sms_textbee_device_hint');
         const tbKey = document.getElementById('sms_textbee_api_key');
         const tbKeyHint = document.getElementById('sms_textbee_key_hint');
 
-        // Semaphore
         const semKey = document.getElementById('sms_semaphore_api_key');
         const keyHint = document.getElementById('sms_semaphore_key_hint');
         const semSender = document.getElementById('sms_semaphore_sender_name');
 
-        // Textbelt
         const textbeltFree = document.getElementById('sms_use_textbelt_free');
         const textbeltKey = document.getElementById('sms_textbelt_api_key');
         const textbeltKeyHint = document.getElementById('sms_textbelt_key_hint');
 
-        // Twilio
         const twilioSid = document.getElementById('sms_twilio_account_sid');
         const twilioPhone = document.getElementById('sms_twilio_phone_number');
 
@@ -8165,7 +7957,6 @@ async function openSmsSettingsModal() {
         }
         if (provText) provText.textContent = smsSettingsCache.provider;
 
-        // Populate TextBee
         if (tbDevice && smsSettingsCache.textbee_device_id_masked) {
             tbDevice.placeholder = smsSettingsCache.textbee_device_id_masked;
             if (tbDeviceHint) tbDeviceHint.textContent = `Configured: ${smsSettingsCache.textbee_device_id_masked}`;
@@ -8175,7 +7966,6 @@ async function openSmsSettingsModal() {
             if (tbKeyHint) tbKeyHint.textContent = `Current key: ${smsSettingsCache.textbee_api_key_masked} (Leave blank to keep)`;
         }
 
-        // Populate Semaphore
         if (keyHint && smsSettingsCache.semaphore_api_key_masked) {
             keyHint.textContent = `Current key: ${smsSettingsCache.semaphore_api_key_masked} (Leave input blank to keep existing key)`;
         } else if (keyHint) {
@@ -8183,14 +7973,12 @@ async function openSmsSettingsModal() {
         }
         if (semSender) semSender.value = smsSettingsCache.semaphore_sender_name || '';
 
-        // Populate Textbelt
         if (textbeltFree) textbeltFree.checked = Boolean(smsSettingsCache.use_textbelt_free);
         if (textbeltKey && smsSettingsCache.textbelt_api_key_masked) {
             textbeltKey.placeholder = smsSettingsCache.textbelt_api_key_masked;
             if (textbeltKeyHint) textbeltKeyHint.textContent = `Current key: ${smsSettingsCache.textbelt_api_key_masked}`;
         }
 
-        // Populate Twilio
         if (twilioSid && smsSettingsCache.twilio_account_sid_masked) twilioSid.placeholder = smsSettingsCache.twilio_account_sid_masked;
         if (twilioPhone) twilioPhone.value = smsSettingsCache.twilio_phone_number || '';
 
@@ -8206,19 +7994,15 @@ function closeSmsSettingsModal() {
 }
 
 async function saveSmsSettings() {
-    // TextBee
     const tbDevice = document.getElementById('sms_textbee_device_id')?.value.trim();
     const tbKey = document.getElementById('sms_textbee_api_key')?.value.trim();
 
-    // Semaphore
     const semKey = document.getElementById('sms_semaphore_api_key')?.value.trim();
     const semSender = document.getElementById('sms_semaphore_sender_name')?.value.trim();
 
-    // Textbelt
     const textbeltFree = document.getElementById('sms_use_textbelt_free')?.checked;
     const textbeltKey = document.getElementById('sms_textbelt_api_key')?.value.trim();
 
-    // Twilio
     const twilioSid = document.getElementById('sms_twilio_account_sid')?.value.trim();
     const twilioToken = document.getElementById('sms_twilio_auth_token')?.value.trim();
     const twilioPhone = document.getElementById('sms_twilio_phone_number')?.value.trim();
@@ -8248,7 +8032,6 @@ function openTestSmsModal() {
     const resultBox = document.getElementById('testSmsResultBox');
     if (resultBox) resultBox.style.display = 'none';
 
-    // Auto-fill with current user's contact number if available
     const user = JSON.parse(sessionStorage.getItem('church_user') || '{}');
     const recipientInput = document.getElementById('test_sms_recipient');
     if (recipientInput && user.contact_number) {
@@ -8337,10 +8120,6 @@ window.openTestSmsModal = openTestSmsModal;
 window.closeTestSmsModal = closeTestSmsModal;
 window.dispatchTestSms = dispatchTestSms;
 
-
-// ==========================================
-// C2S CELL GROUP MODULE
-// ==========================================
 let c2sGroupsData = [];
 let activeRosterGroupId = null;
 
@@ -8357,7 +8136,6 @@ function formatTime(timeStr) {
     hours = hours ? hours : 12;
     return `${hours}:${minutes} ${ampm}`;
 }
-
 
 function updateC2SStats(groups) {
     if (!groups) return;
@@ -8382,7 +8160,6 @@ async function loadC2SGroups() {
         const res = await api.c2s.getAll();
         c2sGroupsData = res.data || [];
 
-        // Update stats
         updateC2SStats(c2sGroupsData);
 
         await loadC2STable(1);
@@ -8412,7 +8189,6 @@ async function loadC2STable(page = 1) {
         const list = res.data || [];
         renderC2SGroupsTable(list);
 
-        // Ensure stats are updated if c2sGroupsData hasn't been populated yet
         if (!c2sGroupsData || c2sGroupsData.length === 0) {
             c2sGroupsData = list;
             updateC2SStats(list);
@@ -8657,7 +8433,6 @@ async function deleteC2SGroup(groupId, groupName) {
     }
 }
 
-// Roster Management
 async function openC2SRosterModal(groupId) {
     activeRosterGroupId = groupId;
     const modal = document.getElementById('c2sRosterModal');
@@ -8686,7 +8461,6 @@ async function loadC2SRosterDetails() {
         const group = res.data;
         if (!group) throw new Error('Group not found');
 
-        // Update modal title and info
         document.getElementById('c2sRosterModalTitle').innerHTML = `<i class="fa-solid fa-people-roof" style="color: var(--gold); margin-right: 0.5rem;"></i> ${escapeHtml(group.group_name)} Roster`;
         document.getElementById('rosterPrimaryMentorName').textContent = group.leader_name || 'Unassigned';
         
@@ -8697,13 +8471,11 @@ async function loadC2SRosterDetails() {
         ].filter(Boolean).join(' • ');
         document.getElementById('rosterMeetingInfo').textContent = schedStr || 'Schedule details not set';
 
-        // Update 4 hierarchy stats
         document.getElementById('rosterCountPrimaryMentor').textContent = '1';
         document.getElementById('rosterCountMentees').textContent = group.mentees_count || '0';
         document.getElementById('rosterCountSecMentors').textContent = group.secondary_mentors_count || '0';
         document.getElementById('rosterCountTotal').textContent = group.total_size || '1';
 
-        // Reset selected mentee selection
         clearSelectedMentee();
 
         renderC2SRosterTable(group);
@@ -8722,7 +8494,6 @@ function renderC2SRosterTable(group) {
 
     let rowsHtml = '';
 
-    // 1. Leader (Primary Mentor) Row
     rowsHtml += `
         <tr style="background: #fffbeb;" class="border-b border-amber-200">
             <td class="p-3">
@@ -8757,7 +8528,6 @@ function renderC2SRosterTable(group) {
         </tr>
     `;
 
-    // 2. Member Rows (Mentees and Secondary Mentors)
     const members = group.members || [];
     if (members.length === 0) {
         rowsHtml += `
@@ -8866,10 +8636,6 @@ async function removeMemberFromC2SGroup(memberId, memberName) {
     }
 }
 
-
-// ==========================================
-// 1. SELECT MENTOR LOGIC (RELATIONSHIP DEPT LEADERS & MEMBERS ONLY)
-// ==========================================
 let mentorSelectionCache = [];
 
 async function openSelectMentorModal() {
@@ -9039,10 +8805,6 @@ function clearSelectedMentor() {
     if (clearBtn) clearBtn.style.display = 'none';
 }
 
-
-// ==========================================
-// 2. SELECT MENTEES LOGIC (RELATIONSHIP DEPT LEADERS & MEMBERS ONLY)
-// ==========================================
 let menteesSelectionCache = [];
 
 async function openSelectMenteesModal() {
@@ -9229,10 +8991,6 @@ function clearSelectedMentee() {
     if (clearBtn) clearBtn.style.display = 'none';
 }
 
-
-// ==========================================
-// 3. SELECT LEADERS LOGIC (CHURCH LEADERS ONLY)
-// ==========================================
 let leaderSelectionCache = [];
 
 async function openSelectLeaderModal() {
@@ -9253,7 +9011,6 @@ async function openSelectLeaderModal() {
             allMembersCache = res.data || [];
         }
 
-        // Filter church leaders only!
         leaderSelectionCache = (allMembersCache || []).filter(m => {
             const churchRole = (m.church_role || '').toLowerCase();
             const systemRole = (m.system_role || '').toLowerCase();
@@ -9381,10 +9138,6 @@ function clearSelectedLeader() {
     if (clearBtn) clearBtn.style.display = 'none';
 }
 
-/* ============================================================
-   WEBSITE CONTENT MANAGEMENT (ADMIN CMS) CONTROLLER
-   ============================================================ */
-
 window._cmsData = {
     homepage: null,
     about_us: null,
@@ -9396,7 +9149,6 @@ window._cmsData = {
 window._currentCmsSection = 'homepage';
 window._cmsSelectedVideoFile = null;
 
-// --- Sub-Mode Switching: Media Content vs Website Content ---
 function switchContentSubMode(mode) {
     const btnMedia = document.getElementById('btnModeMediaContent');
     const btnWebsite = document.getElementById('btnModeWebsiteContent');
@@ -9421,7 +9173,6 @@ function switchContentSubMode(mode) {
 }
 window.switchContentSubMode = switchContentSubMode;
 
-// --- Tab Switching inside Website Content Management ---
 function switchCmsTab(section) {
     window._currentCmsSection = section;
 
@@ -9453,7 +9204,6 @@ function switchCmsTab(section) {
 }
 window.switchCmsTab = switchCmsTab;
 
-// --- Load All Website Content from Backend ---
 async function loadCmsWebsiteContent() {
     try {
         const res = await api.content.getWebsiteContent('all');
@@ -9468,14 +9218,11 @@ async function loadCmsWebsiteContent() {
 }
 window.loadCmsWebsiteContent = loadCmsWebsiteContent;
 
-// --- Populate UI from State ---
 function populateCmsAllPanels() {
     const data = window._cmsData;
     if (!data) return;
 
-    // 1. Homepage
     const hp = data.homepage || {};
-    // Logo
     const logoImg = document.getElementById('topLogoPreviewImg');
     if (logoImg) {
         logoImg.onerror = function() {
@@ -9492,7 +9239,6 @@ function populateCmsAllPanels() {
         };
         sidebarLogo.src = hp.logo_icon || '/images/logo.png';
     }
-    // Hero
     if (hp.hero) {
         setInputValue('cms_hero_badge', hp.hero.badge || '');
         let l1 = hp.hero.heading_line1 || '';
@@ -9523,7 +9269,6 @@ function populateCmsAllPanels() {
         setInputValue('cms_hero_btn2_text', hp.hero.secondary_btn_text || '');
         setInputValue('cms_hero_btn2_url', hp.hero.secondary_btn_url || '');
     }
-    // Video
     if (hp.background_video) {
         const videoSrc = document.getElementById('cmsHeroVideoSource');
         const videoEl = document.getElementById('cmsHeroVideoPreview');
@@ -9536,9 +9281,7 @@ function populateCmsAllPanels() {
         }
         if (videoLabel) videoLabel.textContent = 'Source: ' + vUrl;
     }
-    // Schedule
     renderCmsScheduleTable(hp.schedule || []);
-    // Welcome
     if (hp.welcome) {
         const subtitleText = hp.welcome.subtitle || hp.welcome.badge || 'Heartfelt Greeting & Community';
         setInputValue('cms_welcome_subtitle', subtitleText);
@@ -9554,16 +9297,13 @@ function populateCmsAllPanels() {
         const wImg = document.getElementById('cmsWelcomeImagePreview');
         if (wImg && hp.welcome.image_url) wImg.src = hp.welcome.image_url;
     }
-    // WORDA Pillars
     renderCmsWordaPillars(hp.worda || []);
-    // Scripture
     if (hp.scripture) {
         setInputValue('cms_scripture_text', hp.scripture.text || '');
         setInputValue('cms_scripture_ref', hp.scripture.reference || '');
         setInputValue('cms_scripture_desc', hp.scripture.description || '');
     }
 
-    // 2. About Us
     const ab = data.about_us || {};
     if (ab.history) {
         setInputValue('cms_history_heading', ab.history.heading || '');
@@ -9580,7 +9320,6 @@ function populateCmsAllPanels() {
         setInputValue('cms_vision_body', ab.vision.body || '');
     }
 
-    // 3. Contact Us
     const ct = data.contact_us || {};
     setInputValue('cms_contact_church_name', ct.church_name || 'COG Imus');
     setInputValue('cms_contact_email', ct.email || '');
@@ -9588,8 +9327,8 @@ function populateCmsAllPanels() {
     setInputValue('cms_contact_mobile', ct.mobile || '');
     setInputValue('cms_contact_address', ct.address || '');
     setInputValue('cms_contact_hours', ct.office_hours || '');
+    populateCmsPaymentFields(ct.payment_info);
 
-    // 4. Footer
     const ft = data.footer || {};
     if (ft.social_links) {
         setInputValue('cms_social_fb_url', ft.social_links.facebook?.url || '');
@@ -9605,7 +9344,6 @@ function populateCmsAllPanels() {
     setInputValue('cms_footer_copyright', ft.copyright_text || '');
     setInputValue('cms_footer_tagline', ft.tagline || '');
 
-    // 5. Auth / Login Page
     const auth = data.auth_page || {};
     const insp = auth.inspiration || {};
     setInputValue('cms_auth_kicker', insp.kicker || 'Church of God World Missions');
@@ -9647,7 +9385,6 @@ function setCheckboxValue(id, val) {
     if (el) el.checked = !!val;
 }
 
-// --- Render Schedule Table in CMS ---
 function renderCmsScheduleTable(items) {
     const tbody = document.getElementById('cmsScheduleTableBody');
     if (!tbody) return;
@@ -9812,7 +9549,6 @@ function moveScheduleItem(index, dir) {
 }
 window.moveScheduleItem = moveScheduleItem;
 
-// --- Render WORDA Pillars in CMS ---
 function renderCmsWordaPillars(pillars) {
     const container = document.getElementById('cmsWordaPillarsContainer');
     if (!container) return;
@@ -9857,7 +9593,6 @@ function renderCmsWordaPillars(pillars) {
     `;
 }
 
-// --- Logo Selection and Upload ---
 async function handleLogoFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -9918,7 +9653,6 @@ async function resetToDefaultLogo() {
 }
 window.resetToDefaultLogo = resetToDefaultLogo;
 
-// --- Background Video Handling (STRICT 100 MB Limit) ---
 function handleHeroVideoSelect(e) {
     const file = e.target.files[0];
     const uploadBtn = document.getElementById('btnUploadHeroVideo');
@@ -9933,7 +9667,6 @@ function handleHeroVideoSelect(e) {
         return;
     }
 
-    // STRICT 100 MB LIMIT CHECK
     const maxBytes = 100 * 1024 * 1024;
     const fileMb = (file.size / (1024 * 1024)).toFixed(1);
 
@@ -9946,7 +9679,6 @@ function handleHeroVideoSelect(e) {
         return;
     }
 
-    // MIME and Extension Check
     const validFormats = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
     const validExts = /\.(mp4|webm|ogv|mov)$/i;
     if (!validFormats.includes(file.type) && !validExts.test(file.name)) {
@@ -9960,13 +9692,11 @@ function handleHeroVideoSelect(e) {
 
     window._cmsSelectedVideoFile = file;
 
-    // Show selected info
     if (nameLabel) nameLabel.textContent = file.name;
     if (sizeLabel) sizeLabel.textContent = fileMb + ' MB';
     if (infoWrap) infoWrap.style.display = 'block';
     if (uploadBtn) uploadBtn.disabled = false;
 
-    // Instant local preview in player
     const preview = document.getElementById('cmsHeroVideoPreview');
     if (preview) {
         preview.src = URL.createObjectURL(file);
@@ -10062,7 +9792,6 @@ async function resetToDefaultVideo() {
 }
 window.resetToDefaultVideo = resetToDefaultVideo;
 
-// --- Welcome and History Image Uploads ---
 async function handleWelcomeImageSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -10117,7 +9846,6 @@ async function handleHistoryImageSelect(e) {
 }
 window.handleHistoryImageSelect = handleHistoryImageSelect;
 
-// --- Save Current Section Changes ---
 async function saveCurrentCmsSection() {
     const section = window._currentCmsSection || 'homepage';
     const saveBtn = document.getElementById('btnSaveCmsSection');
@@ -10126,7 +9854,6 @@ async function saveCurrentCmsSection() {
 
     if (section === 'homepage') {
         const hp = window._cmsData.homepage || {};
-        // Hero
         const line1 = (document.getElementById('cms_hero_heading_line1')?.value || '').trim();
         const line2 = (document.getElementById('cms_hero_heading_line2')?.value || '').trim();
         let fullHeading = '';
@@ -10153,7 +9880,6 @@ async function saveCurrentCmsSection() {
             return;
         }
 
-        // Welcome
         const featsRaw = document.getElementById('cms_welcome_features')?.value || '';
         const subtitleText = (document.getElementById('cms_welcome_subtitle')?.value || document.getElementById('cms_welcome_badge')?.value || '').trim();
         hp.welcome = {
@@ -10168,7 +9894,6 @@ async function saveCurrentCmsSection() {
             features: featsRaw.split('\n').map(s => s.trim()).filter(Boolean)
         };
 
-        // WORDA Pillars
         const worda = [];
         const defaultIcons = ['fa-hands-holding-child', 'fa-globe', 'fa-people-group', 'fa-seedling', 'fa-hand-holding-heart'];
         for (let i = 0; i < 5; i++) {
@@ -10182,7 +9907,6 @@ async function saveCurrentCmsSection() {
         }
         hp.worda = worda;
 
-        // Scripture Spotlight
         hp.scripture = {
             text: (document.getElementById('cms_scripture_text')?.value || '').trim(),
             reference: (document.getElementById('cms_scripture_ref')?.value || '').trim(),
@@ -10227,13 +9951,19 @@ async function saveCurrentCmsSection() {
             return;
         }
 
+        const collectedPaymentInfo = collectCmsPaymentPayload();
+        if (!collectedPaymentInfo) {
+            return;
+        }
+
         payload = {
             church_name: churchName,
             email,
             phone,
             mobile,
             address,
-            office_hours: hours
+            office_hours: hours,
+            payment_info: collectedPaymentInfo
         };
 
     } else if (section === 'footer') {
@@ -10313,7 +10043,6 @@ async function saveCurrentCmsSection() {
             window._cmsData[section] = res.data.data || payload;
             showToast(`${section.replace('_', ' ').toUpperCase()} changes saved and published!`, 'success');
 
-            // Notify open public pages locally to sync immediately
             if (typeof broadcastLocalMutation === 'function') {
                 broadcastLocalMutation('website_content', 'update');
             }
@@ -10357,3 +10086,231 @@ function previewCurrentCmsPage() {
     window.open(url, '_blank');
 }
 window.previewCurrentCmsPage = previewCurrentCmsPage;
+
+const CMS_PAYMENT_PROVIDER_DEFAULTS = {
+    gcash: {
+        provider: 'gcash',
+        label: 'GCash',
+        hasBranch: false,
+        defaultAccountName: 'Sample Church Account Name',
+        defaultAccountNumber: '09XX-XXX-XXXX (Sample)',
+        defaultBranch: '',
+        defaultInstructions: 'Sample instruction: Scan this placeholder QR or update with official church GCash details via Admin CMS.'
+    },
+    bpi: {
+        provider: 'bpi',
+        label: 'BPI',
+        hasBranch: true,
+        defaultAccountName: 'Sample Church Account Name',
+        defaultAccountNumber: 'XXXX-XXXX-XX (Sample)',
+        defaultBranch: 'Sample Imus Branch',
+        defaultInstructions: 'Sample instruction: Enter official BPI account details and branch in Admin CMS before accepting live transfers.'
+    },
+    bdo: {
+        provider: 'bdo',
+        label: 'BDO',
+        hasBranch: true,
+        defaultAccountName: 'Sample Church Account Name',
+        defaultAccountNumber: 'XXXX-XXXX-XXXX (Sample)',
+        defaultBranch: 'Sample Imus Branch',
+        defaultInstructions: 'Sample instruction: Enter official BDO account details and branch in Admin CMS before accepting live transfers.'
+    }
+};
+
+window._cmsPaymentDraft = {
+    gcash: { qr_image_url: '/images/sample-qr-placeholder.svg' },
+    bpi: { qr_image_url: '/images/sample-qr-placeholder.svg' },
+    bdo: { qr_image_url: '/images/sample-qr-placeholder.svg' }
+};
+
+function renderAdminPaymentQrPreview(provider, qrUrl) {
+    const imgEl = document.getElementById(`cms_payment_${provider}_qr_preview`);
+    const emptyEl = document.getElementById(`cms_payment_${provider}_qr_empty`);
+    const removeBtn = document.getElementById(`cms_payment_${provider}_qr_remove_btn`);
+    const cleanUrl = (qrUrl || '').trim();
+
+    if (imgEl && emptyEl) {
+        if (cleanUrl) {
+            imgEl.src = cleanUrl;
+            imgEl.style.display = 'block';
+            emptyEl.style.display = 'none';
+        } else {
+            imgEl.removeAttribute('src');
+            imgEl.style.display = 'none';
+            emptyEl.style.display = 'block';
+        }
+    }
+    if (removeBtn) {
+        removeBtn.disabled = !cleanUrl;
+        removeBtn.style.opacity = cleanUrl ? '1' : '0.45';
+    }
+}
+
+function syncPaymentSampleBadge(provider) {
+    const sampleChk = document.getElementById(`cms_payment_${provider}_is_sample`);
+    const badgeEl = document.getElementById(`cms_payment_${provider}_badge`);
+    if (!sampleChk || !badgeEl) return;
+    const isSample = sampleChk.checked;
+    badgeEl.className = `cms-payment-badge ${isSample ? 'is-sample' : 'is-verified'}`;
+    badgeEl.textContent = isSample ? 'Sample Placeholder' : 'Official Account';
+}
+
+function markPaymentProviderEdited(provider) {
+    const sampleChk = document.getElementById(`cms_payment_${provider}_is_sample`);
+    if (sampleChk && sampleChk.checked) {
+        sampleChk.checked = false;
+        syncPaymentSampleBadge(provider);
+    }
+}
+
+function populateCmsPaymentFields(paymentInfo) {
+    const info = (paymentInfo && typeof paymentInfo === 'object') ? paymentInfo : {};
+    for (const key of Object.keys(CMS_PAYMENT_PROVIDER_DEFAULTS)) {
+        const def = CMS_PAYMENT_PROVIDER_DEFAULTS[key];
+        const entry = (info[key] && typeof info[key] === 'object') ? info[key] : {};
+
+        const enabledEl = document.getElementById(`cms_payment_${key}_enabled`);
+        if (enabledEl) enabledEl.checked = entry.enabled !== false;
+
+        const isSampleEl = document.getElementById(`cms_payment_${key}_is_sample`);
+        if (isSampleEl) isSampleEl.checked = entry.is_sample === true;
+        syncPaymentSampleBadge(key);
+
+        setInputValue(`cms_payment_${key}_account_name`, entry.account_name !== undefined ? entry.account_name : def.defaultAccountName);
+        setInputValue(`cms_payment_${key}_account_number`, entry.account_number !== undefined ? entry.account_number : def.defaultAccountNumber);
+        if (def.hasBranch) {
+            setInputValue(`cms_payment_${key}_branch`, entry.branch !== undefined ? entry.branch : def.defaultBranch);
+        }
+        setInputValue(`cms_payment_${key}_instructions`, entry.instructions !== undefined ? entry.instructions : def.defaultInstructions);
+
+        const qrUrl = ('qr_image_url' in entry) ? String(entry.qr_image_url || '').trim() : '/images/sample-qr-placeholder.svg';
+        window._cmsPaymentDraft[key] = { qr_image_url: qrUrl };
+        renderAdminPaymentQrPreview(key, qrUrl);
+
+        const statusEl = document.getElementById(`cms_payment_${key}_upload_status`);
+        if (statusEl) statusEl.textContent = '';
+        const fileEl = document.getElementById(`cms_payment_${key}_qr_file`);
+        if (fileEl) fileEl.value = '';
+    }
+}
+
+function collectCmsPaymentPayload() {
+    const output = {};
+    for (const key of Object.keys(CMS_PAYMENT_PROVIDER_DEFAULTS)) {
+        const def = CMS_PAYMENT_PROVIDER_DEFAULTS[key];
+        const enabled = document.getElementById(`cms_payment_${key}_enabled`)?.checked !== false;
+        const isSample = document.getElementById(`cms_payment_${key}_is_sample`)?.checked === true;
+        const accNameEl = document.getElementById(`cms_payment_${key}_account_name`);
+        const accNumEl = document.getElementById(`cms_payment_${key}_account_number`);
+        const accountName = (accNameEl?.value || '').trim();
+        const accountNumber = (accNumEl?.value || '').trim();
+        const branch = def.hasBranch ? (document.getElementById(`cms_payment_${key}_branch`)?.value || '').trim() : '';
+        const instructions = (document.getElementById(`cms_payment_${key}_instructions`)?.value || '').trim();
+
+        if (enabled && (!accountName || !accountNumber)) {
+            showToast(`Validation Error: ${def.label} requires both Account Name and Account/Mobile Number while enabled.`, 'error');
+            if (!accountName) accNameEl?.focus();
+            else accNumEl?.focus();
+            return null;
+        }
+
+        output[key] = {
+            provider: key,
+            label: def.label,
+            enabled,
+            account_name: accountName,
+            account_number: accountNumber,
+            branch,
+            instructions,
+            qr_image_url: (window._cmsPaymentDraft[key] && window._cmsPaymentDraft[key].qr_image_url) || '',
+            is_sample: isSample,
+            updated_at: new Date().toISOString()
+        };
+    }
+    return output;
+}
+
+async function handlePaymentQrUpload(provider, inputEl) {
+    const def = CMS_PAYMENT_PROVIDER_DEFAULTS[provider];
+    if (!def || !inputEl || !inputEl.files || !inputEl.files[0]) return;
+
+    const file = inputEl.files[0];
+    const statusEl = document.getElementById(`cms_payment_${provider}_upload_status`);
+    const previousUrl = (window._cmsPaymentDraft[provider] && window._cmsPaymentDraft[provider].qr_image_url) || '';
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+
+    if (!allowedMimes.includes((file.type || '').toLowerCase())) {
+        inputEl.value = '';
+        if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626;">Invalid format. Use PNG, JPG, WEBP, or GIF.</span>';
+        showToast(`Invalid file format for ${def.label} QR. Please select a PNG, JPG, WEBP, or GIF image.`, 'error');
+        renderAdminPaymentQrPreview(provider, previousUrl);
+        return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        inputEl.value = '';
+        if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626;">File exceeds 10MB limit.</span>';
+        showToast(`${def.label} QR image exceeds the 10MB limit.`, 'error');
+        renderAdminPaymentQrPreview(provider, previousUrl);
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    inputEl.disabled = true;
+    if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading QR...';
+
+    try {
+        const res = await api.content.uploadWebsiteImage(formData, 'payment_qr');
+        if (!res || !res.data || !res.data.url) {
+            throw new Error('Server did not return an uploaded image URL.');
+        }
+        window._cmsPaymentDraft[provider].qr_image_url = res.data.url;
+        renderAdminPaymentQrPreview(provider, res.data.url);
+        markPaymentProviderEdited(provider);
+        if (statusEl) statusEl.innerHTML = '<span style="color:#16a34a;"><i class="fa-solid fa-check"></i> QR uploaded. Save Changes to publish.</span>';
+        showToast(`${def.label} QR uploaded successfully. Click Save Changes to publish.`, 'success');
+    } catch (err) {
+        window._cmsPaymentDraft[provider].qr_image_url = previousUrl;
+        renderAdminPaymentQrPreview(provider, previousUrl);
+        if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626;">${escapeHtml(err.message || 'Upload failed — previous QR kept')}</span>`;
+        showToast(`${def.label} QR upload failed: ${err.message || 'Invalid image'}. Existing QR preserved.`, 'error');
+    } finally {
+        inputEl.disabled = false;
+        inputEl.value = '';
+    }
+}
+
+async function removePaymentQrImage(provider) {
+    const def = CMS_PAYMENT_PROVIDER_DEFAULTS[provider];
+    const currentUrl = window._cmsPaymentDraft[provider]?.qr_image_url || '';
+    if (!def || !currentUrl) return;
+
+    const confirmed = await showDecisionModal({
+        title: `Remove ${def.label} QR Image`,
+        message: `Are you sure you want to remove the uploaded QR image for ${def.label}? Visitors will only see account details unless you upload a new QR before saving.`,
+        confirmText: 'Remove QR Image',
+        cancelText: 'Keep QR Image',
+        type: 'danger',
+        icon: 'fa-trash-can'
+    });
+    if (!confirmed) return;
+
+    window._cmsPaymentDraft[provider].qr_image_url = '';
+    renderAdminPaymentQrPreview(provider, '');
+    markPaymentProviderEdited(provider);
+    const statusEl = document.getElementById(`cms_payment_${provider}_upload_status`);
+    if (statusEl) statusEl.innerHTML = '<span style="color:#d97706;">QR removed. Click Save Changes to update website.</span>';
+    showToast(`${def.label} QR image cleared. Click Save Changes to publish.`, 'info');
+}
+
+function previewPaymentInfoPage() {
+    window.open('/views/contact.html?preview=cms#payment-info', '_blank');
+}
+
+window.syncPaymentSampleBadge = syncPaymentSampleBadge;
+window.markPaymentProviderEdited = markPaymentProviderEdited;
+window.handlePaymentQrUpload = handlePaymentQrUpload;
+window.removePaymentQrImage = removePaymentQrImage;
+window.previewPaymentInfoPage = previewPaymentInfoPage;

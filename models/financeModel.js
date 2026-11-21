@@ -115,7 +115,6 @@ const FinanceModel = {
         return rows;
     },
 
-    // --- Analytics Queries ---
     async getSummary() {
         const [rows] = await pool.execute(
             `SELECT 

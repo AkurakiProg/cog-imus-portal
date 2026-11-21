@@ -1113,6 +1113,16 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+    #memberWeeklyViewContainer,
+    #leaderWeeklyViewContainer {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.35rem;
+    }
 }
 
 .cal-weekday-row {
@@ -1225,11 +1235,177 @@
 /* Weekly View Grid */
 .cal-weekly-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.75rem;
     flex: 1;
-    min-height: 480px;
+    min-height: 360px;
+    align-items: stretch;
     padding-bottom: 0.25rem;
+}
+
+.weekly-day-col {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-height: 100%;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    overflow: hidden;
+}
+
+.weekly-day-col:hover {
+    border-color: var(--gold);
+    box-shadow: 0 6px 16px rgba(14, 42, 79, 0.08);
+}
+
+.weekly-day-col.is-today {
+    border: 2px solid var(--gold);
+    background: #fffdf7;
+}
+
+.weekly-day-col.is-selected {
+    border: 2px solid #2563eb;
+    background: #f5f9ff;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+}
+
+.weekly-day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.weekly-day-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #64748b;
+}
+
+.weekly-day-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--navy);
+}
+
+.weekly-day-num.today-pill {
+    background: var(--navy);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(14, 42, 79, 0.25);
+}
+
+.weekly-items-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.weekly-items-wrap::-webkit-scrollbar {
+    width: 4px;
+}
+
+.weekly-items-wrap::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.weekly-item-card {
+    border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid #e2e8f0;
+    border-left: 3.5px solid #94a3b8;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.weekly-item-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+}
+
+.weekly-item-card.service-badge {
+    background: #eff6ff;
+    border-color: #dbeafe;
+    border-left-color: #2563eb;
+    color: #1e40af;
+}
+
+.weekly-item-card.midweek-badge {
+    background: #fffbeb;
+    border-color: #fef3c7;
+    border-left-color: #d97706;
+    color: #92400e;
+}
+
+.weekly-item-card.duty-badge {
+    background: #ecfdf5;
+    border-color: #d1fae5;
+    border-left-color: #059669;
+    color: #065f46;
+}
+
+.weekly-item-card.seminary-badge {
+    background: #fefce8;
+    border-color: #fef08a;
+    border-left-color: #ca8a04;
+    color: #854d0e;
+}
+
+.weekly-item-card.event-badge {
+    background: #f5f3ff;
+    border-color: #ede9fe;
+    border-left-color: #7c3aed;
+    color: #5b21b6;
+}
+
+.weekly-item-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.32;
+    word-break: break-word;
+}
+
+.weekly-item-time {
+    font-size: 0.7rem;
+    font-weight: 500;
+    opacity: 0.85;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.weekly-empty-slot {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.25rem 0.5rem;
+    color: #94a3b8;
+    font-size: 0.76rem;
+    font-style: italic;
 }
 
 .cal-week-card {
@@ -1310,6 +1486,13 @@
     }
 }
 
+@media (max-width: 1024px) {
+    .cal-weekly-grid {
+        grid-template-columns: repeat(7, minmax(150px, 1fr));
+        min-width: 1060px;
+    }
+}
+
 @media (max-width: 768px) {
     #memberWorkCalendarModal .modal-work-calendar,
     #leaderWorkCalendarModal .modal-work-calendar {
@@ -1339,8 +1522,9 @@
         padding: 1.5px 4px;
     }
     .cal-weekly-grid {
-        grid-template-columns: repeat(7, minmax(130px, 1fr));
-        overflow-x: auto;
+        grid-template-columns: repeat(7, minmax(145px, 1fr));
+        min-width: 1020px;
+        min-height: 290px;
     }
 }
 

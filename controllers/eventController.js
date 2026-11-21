@@ -125,7 +125,6 @@ exports.updateEvent = async (req, res) => {
         const rawData = { ...req.body };
         if (req.file) rawData.banner_image = '/uploads/banners/' + req.file.filename;
 
-        // Allow explicit clearing of optional foreign keys and fields
         if (rawData.ministry_id === '' || rawData.ministry_id === 'null' || rawData.ministry_id === '0') {
             rawData.ministry_id = null;
         }
@@ -202,7 +201,6 @@ exports.deleteEvent = async (req, res) => {
     }
 };
 
-// --- Enrollments ---
 exports.getEventEnrollments = async (req, res) => {
     try {
         const enrollments = await eventModel.getEnrollments(req.params.id);
@@ -231,7 +229,6 @@ exports.enrollMember = async (req, res) => {
     try {
         const eventId = req.params.id;
         
-        // Find the member_id associated with the logged-in user
         const [memberRows] = await pool.execute(
             'SELECT member_id FROM members WHERE user_id = ?', [req.user.id]
         );
@@ -242,7 +239,6 @@ exports.enrollMember = async (req, res) => {
         
         const memberId = memberRows[0].member_id;
 
-        // Check if already enrolled
         const existing = await eventModel.checkEnrollment(eventId, memberId);
         if (existing) {
             return errorResponse(res, 'You are already enrolled in this event.', 400);

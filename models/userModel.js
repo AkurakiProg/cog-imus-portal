@@ -49,9 +49,7 @@ const UserModel = {
         );
     },
 
-    // --- MFA (Multi-Factor Authentication) Methods ---
-
-    async updateMfaTempSecret(userId, encryptedTempSecret) {
+async updateMfaTempSecret(userId, encryptedTempSecret) {
         await pool.execute(
             `UPDATE users SET mfa_temp_secret = ? WHERE user_id = ?`,
             [encryptedTempSecret, userId]
@@ -96,7 +94,6 @@ const UserModel = {
     },
 
     async saveRecoveryCodes(userId, hashedCodes) {
-        // Invalidate any previous codes
         await pool.execute(
             `DELETE FROM user_mfa_recovery_codes WHERE user_id = ?`,
             [userId]
@@ -104,7 +101,6 @@ const UserModel = {
 
         if (!hashedCodes || hashedCodes.length === 0) return;
 
-        // Bulk insert new recovery codes
         const values = [];
         const placeholders = hashedCodes.map(hash => {
             values.push(userId, hash);
@@ -147,10 +143,7 @@ const UserModel = {
         return true;
     },
 
-    // --- MFA Login Challenge Methods ---
-
-    async createLoginChallenge(challengeId, userId, expiresAt, maxAttempts = 5) {
-        // Clean up expired challenges periodically
+async createLoginChallenge(challengeId, userId, expiresAt, maxAttempts = 5) {
         pool.execute(`DELETE FROM mfa_login_challenges WHERE expires_at < NOW()`).catch(() => {});
 
         await pool.execute(

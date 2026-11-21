@@ -1,4 +1,3 @@
-// Helper: HTML Escaping
 function escapeHtml(str) {
     if (!str && str !== 0) return '';
     return String(str)
@@ -29,7 +28,6 @@ function getEventStatusBadge(status) {
     return `<span class="badge badge-dept-general">${escapeHtml(status || 'Upcoming')}</span>`;
 }
 
-// Global Caches & State
 let currentUser = null;
 let allMemberEventsCache = [];
 let myEnrollmentIds = new Set();
@@ -38,22 +36,16 @@ let myMinistryCache = null;
 let allC2SGroupsCache = [];
 let myC2SGroupCache = null;
 
-// Calendar State
 let memberCalDate = new Date();
 let memberCalMode = 'monthly';
 let memberSelectedDate = new Date();
 
-// Mini Calendar State
 let miniCalDate = new Date();
 let miniCalSelectedDate = new Date();
 
-// Events & Announcements Filter State
 let currentEventFilterType = 'All';
 let currentAnnCategoryFilter = '';
 
-// ==========================================
-// AUDIO SYNTHESIZER FOR MEMBER PORTAL NOTIFICATIONS
-// ==========================================
 function playPortalNotificationSound(type = 'announcement') {
     try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -67,7 +59,6 @@ function playPortalNotificationSound(type = 'announcement') {
         const now = ctx.currentTime;
 
         if (type === 'comment') {
-            // Elegant double bell chime: D5 (587.33Hz) -> A5 (880.00Hz)
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
@@ -90,7 +81,6 @@ function playPortalNotificationSound(type = 'announcement') {
             osc2.start(now + 0.12);
             osc2.stop(now + 0.6);
         } else if (type === 'announcement') {
-            // Vibrant 3-note ascending arpeggio: C5 (523.25Hz) -> E5 (659.25Hz) -> G5 (783.99Hz)
             [
                 { freq: 523.25, time: 0, dur: 0.25 },
                 { freq: 659.25, time: 0.1, dur: 0.25 },
@@ -113,14 +103,13 @@ function playPortalNotificationSound(type = 'announcement') {
     }
 }
 
-// Universal Decision / Confirmation Pop-up Window
 let activeDecisionCleanup = null;
 function showDecisionModal({
     title = 'Confirm Action',
     message = 'Are you sure you want to proceed?',
     confirmText = 'Yes, Proceed',
     cancelText = 'Cancel',
-    type = 'danger', // 'danger' | 'warning' | 'primary' | 'info' | 'success'
+    type = 'danger',
     icon = ''
 } = {}) {
     return new Promise((resolve) => {
@@ -221,7 +210,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const token = sessionStorage.getItem('church_token');
 
-    // Purge any lingering legacy session tokens in localStorage
     localStorage.removeItem('church_token');
     localStorage.removeItem('church_user');
 
@@ -278,17 +266,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSafeAvatar(document.getElementById('topbarAvatar'), currentUser.profile_image, currentUser.full_name, 'M');
         if (typeof updateDropdownUserInfo === 'function') updateDropdownUserInfo();
         
-        // Initial dashboard data load
         await loadDashboardMetrics();
         await loadDashboardMinistry();
         await loadMemberCalendarData();
 
-        // Setup modal backdrop close handlers
         setupModalBackdrops();
 
         api.startSessionWatchdog();
 
-        // Start real-time announcements notifier with chime & indicator dot
         initMemberAnnouncementsNotifier();
 
         initMemberRealtimeSync();
@@ -304,7 +289,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// ============== REALTIME SYNCHRONIZATION ==============
 const churchBroadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('church_realtime_channel') : null;
 
 function broadcastLocalMutation(type, action = 'update') {
@@ -342,7 +326,6 @@ function handleRealtimeMemberUpdate(payload) {
 
     const activeView = document.querySelector('.view.active')?.id?.replace('view-', '') || 'dashboard';
 
-    // Refresh member overview metrics
     if (typeof loadDashboardMetrics === 'function') {
         loadDashboardMetrics();
     }
@@ -436,7 +419,6 @@ function initMemberRealtimeSync() {
     }
 }
 
-// --- Routing & UI Helpers ---
 function toggleSidebar() {
     const sb = document.getElementById('sidebar');
     let overlay = document.getElementById('sidebarOverlay');
@@ -507,7 +489,6 @@ function showToast(msg, duration = 3000) {
         toast.appendChild(progressBar);
     }
 
-    // Reset progress line animation and restart with current duration
     progressBar.style.animation = 'none';
     void progressBar.offsetWidth;
     progressBar.style.animation = `toastProgress ${duration}ms linear forwards`;
@@ -582,9 +563,6 @@ function navigateTo(viewName, event) {
     }
 }
 
-// ============================================================
-// DASHBOARD OVERVIEW & METRICS
-// ============================================================
 async function loadDashboardMetrics() {
     try {
         const [eventsRes, annRes, c2sRes] = await Promise.all([
@@ -603,11 +581,9 @@ async function loadDashboardMetrics() {
         const dashAnnCount = document.getElementById('dashAnnouncementsCount');
         if (dashAnnCount) dashAnnCount.innerText = announcements.length;
 
-        // Resolve current member's C2S group
         allC2SGroupsCache = c2sRes.data || [];
         await resolveMyC2SGroup(allC2SGroupsCache);
 
-        // Update C2S Stat Card
         const dashC2SName = document.getElementById('dashC2SGroupName');
         const dashC2SRole = document.getElementById('dashC2SRole');
         if (dashC2SName) {
@@ -622,13 +598,10 @@ async function loadDashboardMetrics() {
             }
         }
 
-        // Render top 2 recent announcements in dashboard mini-feed
         renderDashboardAnnouncements(announcements);
 
-        // Render top 2 upcoming events in dashboard spotlight
         renderDashboardEventsSpotlight(allMemberEventsCache);
 
-        // Render Mini Calendar
         renderMiniCalendar();
     } catch (err) {
         console.error('Error loading dashboard metrics:', err);
@@ -758,9 +731,6 @@ function getCategoryClass(cat) {
     return 'cat-general';
 }
 
-// ============================================================
-// MINI CALENDAR (INSPECTION WIDGET ABOVE SERVICE TIMES)
-// ============================================================
 function prevMiniCal() {
     miniCalDate.setMonth(miniCalDate.getMonth() - 1);
     renderMiniCalendar();
@@ -797,13 +767,11 @@ function renderMiniCalendar() {
 
     let cellsHtml = '';
 
-    // Prev month trailing days
     for (let i = firstDayIndex - 1; i >= 0; i--) {
         const d = daysInPrevMonth - i;
         cellsHtml += `<div class="mini-cal-cell other-month">${d}</div>`;
     }
 
-    // Current month days
     for (let day = 1; day <= daysInMonth; day++) {
         const dateObj = new Date(year, month, day);
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -814,7 +782,6 @@ function renderMiniCalendar() {
         const duties = getDayDuties(dayOfWeek);
         const events = getDayEvents(year, month, day);
 
-        // Dot indicators
         let dotsHtml = '';
         const hasService = duties.some(d => d.type === 'service' || d.type === 'midweek');
         const hasDuty = duties.some(d => d.type === 'duty');
@@ -836,7 +803,6 @@ function renderMiniCalendar() {
         `;
     }
 
-    // Next month leading days to complete row
     const totalRendered = firstDayIndex + daysInMonth;
     const remainder = totalRendered % 7;
     if (remainder !== 0) {
@@ -877,9 +843,6 @@ function updateMiniCalPeek(dateObj) {
     }
 }
 
-// ============================================================
-// WORK & MINISTRY CALENDAR MODAL
-// ============================================================
 function openMemberWorkCalendarModal() {
     const modal = document.getElementById('memberWorkCalendarModal');
     if (modal) {
@@ -986,7 +949,6 @@ function formatEventTime(dtStr) {
     }
 }
 
-// Helper: Parse schedule day-of-week indexes (0 = Sun, 1 = Mon, ..., 6 = Sat) from natural text
 function parseScheduleDays(str) {
     if (!str) return [];
     const s = String(str).toLowerCase();
@@ -1021,7 +983,6 @@ function getDayDuties(dayOfWeek) {
         duties.push({ type: 'service', label: 'Youth Alive Gathering (4PM)' });
     }
 
-    // Interconnect assigned ministry meeting schedules to the Work Calendar
     const ministries = Array.isArray(myMinistriesList) && myMinistriesList.length > 0 
         ? myMinistriesList 
         : (myMinistryCache ? [myMinistryCache] : []);
@@ -1038,7 +999,6 @@ function getDayDuties(dayOfWeek) {
         }
     });
 
-    // Include member's C2S Group weekly fellowship meeting
     if (myC2SGroupCache && myC2SGroupCache.meeting_day) {
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const currentDayName = dayNames[dayOfWeek];
@@ -1077,7 +1037,6 @@ function renderMemberCalendar() {
 
         let cellsHtml = '';
 
-        // Previous month trailing days
         for (let i = firstDayIndex - 1; i >= 0; i--) {
             const d = daysInPrevMonth - i;
             cellsHtml += `
@@ -1088,7 +1047,6 @@ function renderMemberCalendar() {
             `;
         }
 
-        // Current month days
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(year, month, day);
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -1127,7 +1085,6 @@ function renderMemberCalendar() {
             `;
         }
 
-        // Next month leading days to complete row
         const totalRendered = firstDayIndex + daysInMonth;
         const remainder = totalRendered % 7;
         if (remainder !== 0) {
@@ -1144,7 +1101,6 @@ function renderMemberCalendar() {
 
         grid.innerHTML = cellsHtml;
     } else {
-        // WEEKLY VIEW
         const current = new Date(memberCalDate);
         const dayOfWeek = current.getDay();
         const startOfWeek = new Date(current);
@@ -1281,14 +1237,10 @@ function renderMemberSelectedDayDetails(dateObj) {
     `;
 }
 
-// ============================================================
-// C2S GROUP MODULE (CELL-TO-SMALL GROUP DISCIPLESHIP)
-// ============================================================
 async function resolveMyC2SGroup(groups) {
     if (!currentUser || !currentUser.member_id) return null;
     const memId = currentUser.member_id;
 
-    // 1. Check if user is a primary mentor
     const asMentor = groups.find(g => g.leader_id === memId);
     if (asMentor) {
         try {
@@ -1304,7 +1256,6 @@ async function resolveMyC2SGroup(groups) {
         }
     }
 
-    // 2. Check if user is in any group's roster
     for (const g of groups) {
         try {
             const detailRes = await api.c2s.getById(g.group_id);
@@ -1320,7 +1271,6 @@ async function resolveMyC2SGroup(groups) {
                 }
             }
         } catch (e) {
-            // continue checking other groups
         }
     }
 
@@ -1335,10 +1285,8 @@ async function loadMemberC2S() {
 
         await resolveMyC2SGroup(allC2SGroupsCache);
 
-        // Update Stat Cards outside main card
         updateC2SSummaryCards();
 
-        // Render Active Tab Content
         renderMyC2STab();
         renderMemberC2SDirectory(allC2SGroupsCache);
     } catch (err) {
@@ -1791,9 +1739,6 @@ function formatTime(timeStr) {
     }
 }
 
-// ============================================================
-// EVENTS & SEMINARY MODULE
-// ============================================================
 async function populateMemberEventMinistryFilter() {
     const select = document.getElementById('memberEventMinistryFilter');
     if (!select) return;
@@ -1854,7 +1799,6 @@ async function loadEvents() {
         myEnrollmentIds = new Set((enrollRes.data || []).map(en => en.event_id));
         allMemberEventsCache = eventsRes.data || [];
 
-        // Update Stat Counters
         const totalEl = document.getElementById('eventsStatTotal');
         const semEl = document.getElementById('eventsStatSeminary');
         const enrEl = document.getElementById('eventsStatEnrolled');
@@ -1927,7 +1871,6 @@ function applyMemberEventFilters() {
 
     let filtered = [...allMemberEventsCache];
 
-    // Pill Filter
     if (currentEventFilterType === 'Seminary') {
         filtered = filtered.filter(e => (e.event_type || '').toLowerCase() === 'seminary');
     } else if (currentEventFilterType === 'Worship') {
@@ -1936,22 +1879,18 @@ function applyMemberEventFilters() {
         filtered = filtered.filter(e => myEnrollmentIds.has(e.event_id));
     }
 
-    // Department Filter
     if (dept) {
         filtered = filtered.filter(e => e.department && e.department.toLowerCase() === dept.toLowerCase());
     }
 
-    // Ministry Filter
     if (ministry) {
         filtered = filtered.filter(e => e.ministry_name && e.ministry_name.toLowerCase() === ministry.toLowerCase());
     }
 
-    // Status Filter
     if (status) {
         filtered = filtered.filter(e => (e.status || 'Upcoming').toLowerCase() === status.toLowerCase());
     }
 
-    // Text Search
     if (q) {
         filtered = filtered.filter(e => 
             (e.title && e.title.toLowerCase().includes(q)) ||
@@ -2212,9 +2151,6 @@ async function cancelEventEnrollment(id) {
     }
 }
 
-// ============================================================
-// ANNOUNCEMENTS MODULE
-// ============================================================
 let memberLastSeenAnnouncementId = 0;
 let memberAnnouncementsPollTimer = null;
 
@@ -2239,18 +2175,14 @@ async function checkMemberAnnouncementsNotifications() {
             const newAnns = announcements.filter(a => Number(a.announcement_id) > memberLastSeenAnnouncementId);
             memberLastSeenAnnouncementId = maxId;
 
-            // Show notification dot on member sidebar
             const dot = document.getElementById('memberAnnounceNavDot');
             if (dot) dot.style.display = 'block';
 
-            // Play announcement chime sound
             playPortalNotificationSound('announcement');
 
-            // Display toast
             const latest = newAnns[0];
             showToast(`📢 New Church Announcement: "${escapeHtml(latest.title || '')}"`);
 
-            // If announcements view is active, refresh view
             const currentView = document.querySelector('.view.active')?.id;
             if (currentView === 'view-announcements') {
                 allMemberAnnouncementsCache = announcements;
@@ -2258,7 +2190,6 @@ async function checkMemberAnnouncementsNotifications() {
             }
         }
     } catch (err) {
-        // silent background poll
     }
 }
 
@@ -2273,7 +2204,6 @@ async function loadAnnouncements() {
         const res = await api.announcements.getAll();
         allMemberAnnouncementsCache = res.data || [];
 
-        // Check for urgent announcement spotlight
         const urgent = allMemberAnnouncementsCache.find(a => (a.category || '').toLowerCase().includes('urgent'));
         const spotlightEl = document.getElementById('urgentAnnouncementSpotlight');
         if (spotlightEl) {
@@ -2429,9 +2359,6 @@ function closeMemberAnnouncementReaderModal() {
     }
 }
 
-// ============================================================
-// MY MINISTRY MODULE (INTERCONNECTED WITH WORDA MINISTRY)
-// ============================================================
 let myMinistriesList = [];
 let activeMemberMinistryId = null;
 let activeMemberMinistryTeamCache = [];
@@ -2474,11 +2401,9 @@ async function loadMyMinistry() {
             return;
         }
 
-        // Handle both single object and list of ministries
         myMinistriesList = res.data.ministries || [res.data];
         myMinistryCache = res.data;
 
-        // Manage multi-ministry switcher
         if (myMinistriesList.length > 1) {
             if (switcher) switcher.style.display = 'block';
             const pillsContainer = document.getElementById('memberMinistryPills');
@@ -2494,7 +2419,6 @@ async function loadMyMinistry() {
             if (switcher) switcher.style.display = 'none';
         }
 
-        // Active ministry ID
         if (!activeMemberMinistryId || !myMinistriesList.some(m => m.ministry_id == activeMemberMinistryId)) {
             activeMemberMinistryId = myMinistriesList[0].ministry_id;
         }
@@ -2811,9 +2735,6 @@ function resetMemberAnnFilters() {
     filterMemberAnnouncements();
 }
 
-// ============================================================
-// MODAL BACKDROP CLICK-TO-CLOSE & ESCAPE KEY HANDLER
-// ============================================================
 const memberModalCloseMap = {
     'memberWorkCalendarModal': () => typeof closeMemberWorkCalendarModal === 'function' && closeMemberWorkCalendarModal(),
     'memberEventDetailModal': () => typeof closeMemberEventDetailModal === 'function' && closeMemberEventDetailModal(),
@@ -2887,10 +2808,7 @@ function initMemberModalBackdropClose() {
 }
 initMemberModalBackdropClose();
 
-
-// ============================================================
 // DATA PRIVACY NOTICE & RA 10173 COMPLIANCE
-// ============================================================
 function checkAndPromptPrivacyNotice(user) {
     if (!user) return;
     const userId = user.user_id || user.id || 'user';

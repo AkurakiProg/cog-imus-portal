@@ -4,6 +4,19 @@ const contentController = require('../controllers/contentController');
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const upload = require('../middleware/uploadMiddleware');
+const { errorResponse } = require('../utils/responseFormatter');
+
+const handleWebsiteImageUpload = (req, res, next) => {
+    upload.websiteImage.single('image')(req, res, (err) => {
+        if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return errorResponse(res, 'Image file size exceeds the 10MB maximum limit.', 400);
+            }
+            return errorResponse(res, err.message || 'Invalid image upload.', 400);
+        }
+        next();
+    });
+};
 
 router.use(authMiddleware, roleMiddleware('Admin', 'Church Leader'));
 
@@ -42,10 +55,9 @@ router.route('/livestream/comments')
 router.delete('/livestream/comments/:id', contentController.deleteLiveStreamComment);
 router.get('/livestream/comment-logs', contentController.getLiveStreamCommentLogs);
 
-// --- Website Content Management (Admin Only) ---
 router.get('/website/:section', contentController.getWebsiteSection);
 router.put('/website/:section', roleMiddleware('Admin'), contentController.saveWebsiteSection);
 router.post('/upload-video', roleMiddleware('Admin'), upload.video.single('video'), contentController.uploadWebsiteVideo);
-router.post('/upload-image', roleMiddleware('Admin'), upload.websiteImage.single('image'), contentController.uploadWebsiteImage);
+router.post('/upload-image', roleMiddleware('Admin'), handleWebsiteImageUpload, contentController.uploadWebsiteImage);
 
 module.exports = router;

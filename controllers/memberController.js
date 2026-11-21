@@ -128,12 +128,10 @@ exports.createMember = async (req, res) => {
             }
         }
 
-        // Validate username uniqueness if provided
         if (username) {
             await generateUniqueUsername(pool, req.body.first_name, req.body.last_name, username);
         }
 
-        // Validate email uniqueness if provided
         if (email) {
             await validateEmailUniqueness(pool, email);
         }
@@ -143,14 +141,12 @@ exports.createMember = async (req, res) => {
 
         let targetUserId = newMember.user_id;
 
-        // Role mapping
         let role_id = 3;
         if (newMember.church_role === 'Admin') role_id = 1;
         else if (newMember.church_role === 'Leader') role_id = 2;
 
         const fullName = [newMember.first_name, newMember.middle_name, newMember.last_name, newMember.suffix].filter(Boolean).join(' ');
 
-        // Check if an existing unlinked user has this email
         if (!targetUserId && email) {
             const [userRows] = await pool.execute('SELECT user_id FROM users WHERE email = ? LIMIT 1', [email]);
             if (userRows.length > 0) {
@@ -160,7 +156,6 @@ exports.createMember = async (req, res) => {
         }
 
         if (targetUserId) {
-            // Update existing user credentials/details
             let updates = ['full_name = ?', 'first_name = ?', 'middle_name = ?', 'last_name = ?', 'suffix = ?', 'role_id = ?'];
             let params = [fullName, newMember.first_name, newMember.middle_name || null, newMember.last_name, newMember.suffix || null, role_id];
 
@@ -181,7 +176,6 @@ exports.createMember = async (req, res) => {
             params.push(targetUserId);
             await pool.execute(`UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`, params);
         } else {
-            // Create user credentials for this member
             const finalUsername = await generateUniqueUsername(pool, newMember.first_name, newMember.last_name, username);
             const finalEmail = email || `${finalUsername}@portal.cogimus.local`;
             const passToHash = password || 'Member123!';
@@ -237,12 +231,10 @@ exports.updateMember = async (req, res) => {
             }
         }
 
-        // Validate username uniqueness if changing
         if (username) {
             await generateUniqueUsername(pool, req.body.first_name || oldMember.first_name, req.body.last_name || oldMember.last_name, username, oldMember.user_id);
         }
 
-        // Validate email uniqueness if changing
         if (email) {
             await validateEmailUniqueness(pool, email, oldMember.user_id);
         }
@@ -330,7 +322,6 @@ exports.updateMember = async (req, res) => {
             params.push(targetUserId);
             await pool.execute(`UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`, params);
         } else {
-            // Check if unlinked user exists with this email or username
             let existingUserId = null;
             if (email || username) {
                 const [existing] = await pool.execute(
@@ -365,7 +356,6 @@ exports.updateMember = async (req, res) => {
                 params.push(targetUserId);
                 await pool.execute(`UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`, params);
             } else {
-                // Create brand new user account for this member
                 const finalUsername = await generateUniqueUsername(pool, updatedMember.first_name, updatedMember.last_name, username);
                 const finalEmail = email || `${finalUsername}@portal.cogimus.local`;
                 const passToHash = password || 'Member123!';

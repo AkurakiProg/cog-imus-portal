@@ -54,11 +54,9 @@ const EventModel = {
             params.push(String(filters.date).trim());
         }
 
-        // Archive status filter: default to only active (non-archived) events
         if (filters.archived === 1 || filters.archived === '1' || filters.is_archived === 1 || filters.is_archived === '1') {
             conditions.push(`e.is_archived = 1`);
         } else if (filters.archived === 'all' || filters.is_archived === 'all') {
-            // Include both active and archived
         } else {
             conditions.push(`(e.is_archived = 0 OR e.is_archived IS NULL)`);
         }
@@ -146,7 +144,6 @@ const EventModel = {
         await pool.execute(`DELETE FROM events WHERE event_id = ?`, [id]);
     },
 
-    // --- Enrollments ---
     async getEnrollments(eventId) {
         const [rows] = await pool.execute(
             `SELECT ee.enrollment_id, ee.status, ee.enrollment_date, 

@@ -9,20 +9,17 @@ router.get('/stream', (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no');
     if (res.flushHeaders) res.flushHeaders();
 
-    // Initial connection acknowledgment
     res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: Date.now() })}\n\n`);
 
     const onEvent = (payload) => {
         try {
             res.write(`data: ${JSON.stringify(payload)}\n\n`);
         } catch (e) {
-            // Client socket closed
         }
     };
 
     realtimeBus.on('realtime_event', onEvent);
 
-    // Keepalive ping every 25s
     const heartbeat = setInterval(() => {
         try {
             res.write(': keepalive\n\n');

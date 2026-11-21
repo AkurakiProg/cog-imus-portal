@@ -21,7 +21,6 @@ exports.submitPublic = async (req, res) => {
 
         const id = await contactModel.create({ name, email, contact_number, subject, message });
 
-        // Dispatch live notification email if configured
         const { sendContactPrayerEmail } = require('../utils/emailService');
         const emailResult = await sendContactPrayerEmail({ name, email, contact_number, subject, message });
 
