@@ -149,10 +149,9 @@ function pruneMapIfNeeded() {
 }
 
 /**
- * Determines whether logging in as `user` from this request matches an existing active
- * session for the SAME user in the SAME browser context (so multiple tabs of the same
- * account stay synchronized without logging each other out), and invalidates any
- * DIFFERENT previous account in the same browser context.
+ * Enforces single-active-session isolation across both same-account and different-account logins:
+ * any fresh login issues a new unique sessionToken and invalidates both prior different-account
+ * sessions and prior tabs/devices of the same account.
  */
 async function resolveAndActivateSession({ req, res, user, pool }) {
     const userId = Number(user.user_id);
@@ -183,27 +182,22 @@ async function resolveAndActivateSession({ req, res, user, pool }) {
     invalidatedBySwitchUsers.delete(userId);
     explicitlyLoggedOutUsers.delete(userId);
 
-    // 2. Check authoritative DB current_session_token: if SAME user is already active in this
-    let sessionToken = null;
+    // Check whether the same user already holds an active session in DB / browser context before rotating
     let dbCurrentToken = user.current_session_token || null;
     if (!dbCurrentToken) {
         const [tokRows] = await pool.execute('SELECT current_session_token FROM users WHERE user_id = ? LIMIT 1', [userId]);
         dbCurrentToken = tokRows[0]?.current_session_token || null;
     }
 
-    if (dbCurrentToken) {
-        const sameCtxMatch = mapEntry && Number(mapEntry.userId) === userId && mapEntry.sessionToken === dbCurrentToken;
-        const sameCookieMatch = cookieSession && Number(cookieSession.userId) === userId && cookieSession.sessionToken === dbCurrentToken;
-        const samePrevTokenMatch = prevTokenPayload && Number(prevTokenPayload.userId) === userId && prevTokenPayload.sessionToken === dbCurrentToken;
-        if (sameCtxMatch || sameCookieMatch || samePrevTokenMatch) {
-            sessionToken = dbCurrentToken;
-        }
-    }
+    const hadSameUserSession = Boolean(
+        dbCurrentToken ||
+        (mapEntry && Number(mapEntry.userId) === userId) ||
+        (cookieSession && Number(cookieSession.userId) === userId) ||
+        (prevTokenPayload && Number(prevTokenPayload.userId) === userId)
+    );
 
-    if (!sessionToken) {
-        sessionToken = uuidv4();
-        await pool.execute('UPDATE users SET current_session_token = ? WHERE user_id = ?', [sessionToken, userId]);
-    }
+    const sessionToken = uuidv4();
+    await pool.execute('UPDATE users SET current_session_token = ? WHERE user_id = ?', [sessionToken, userId]);
 
     const effectiveBrowserCtx = providedCtx || uuidv4();
     pruneMapIfNeeded();
@@ -217,7 +211,8 @@ async function resolveAndActivateSession({ req, res, user, pool }) {
     return {
         sessionToken,
         browserCtx: effectiveBrowserCtx,
-        supersededUserIds: Array.from(supersededUserIds)
+        supersededUserIds: Array.from(supersededUserIds),
+        supersededSameUser: hadSameUserSession
     };
 }
 

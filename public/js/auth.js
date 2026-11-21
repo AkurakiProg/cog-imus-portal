@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showAlert('<span class="alert-badge badge-info"><i class="fa-solid fa-right-from-bracket"></i> Signed Out</span> You were logged out from another tab in this browser.', 'info');
     } else if (logoutReason === 'concurrent_login') {
         sessionStorage.removeItem('auth_logout_reason');
-        showAlert('<span class="alert-badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Security Notice</span> You were logged out because your account logged in on another device or browser.', 'error');
+        showAlert('<span class="alert-badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Security Notice</span> You were logged out because your account was logged in on another tab, browser, or device.', 'error');
     } else if (logoutReason === 'server_offline') {
         sessionStorage.removeItem('auth_logout_reason');
         showAlert('<span class="alert-badge badge-warning"><i class="fa-solid fa-power-off"></i> Notice</span> You were automatically logged out because the server was turned off or disconnected.', 'warning');

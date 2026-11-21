@@ -579,6 +579,12 @@ function handleRealtimeLeaderUpdate(payload) {
         }
         const data = payload.data || payload;
         const targetUserId = data.user_id || payload.user_id;
+        const currentTabSyncId = (window.authSessionSync && typeof window.authSessionSync.getTabSessionSyncId === 'function')
+            ? window.authSessionSync.getTabSessionSyncId()
+            : null;
+        if (data.new_session_sync_id && currentTabSyncId && String(data.new_session_sync_id) === String(currentTabSyncId)) {
+            return;
+        }
         let currentUserId = null;
         try {
             const u = JSON.parse(sessionStorage.getItem('church_user') || '{}');

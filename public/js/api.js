@@ -41,10 +41,12 @@ const SHARED_SESSION_STORAGE_KEY = 'church_shared_browser_session';
 const AUTH_SYNC_EVENT_KEY = 'church_auth_sync_event';
 const AUTH_SYNC_CHANNEL_NAME = 'church_auth_sync_channel';
 const TAB_USER_ID_KEY = 'church_tab_user_id';
+const TAB_SESSION_SYNC_ID_KEY = 'church_tab_session_sync_id';
 const ACCOUNT_SWITCHED_MESSAGE = 'Your session has ended because a different account was logged in using another tab in this browser. Please log in again to continue.';
 
 let _authSyncChannel = null;
 let _tabBoundUserId = null;
+let _tabSessionSyncId = null;
 
 function generateClientUuid() {
     try {
@@ -108,6 +110,18 @@ function getBoundTabUserId() {
     return null;
 }
 
+function getTabSessionSyncId() {
+    if (_tabSessionSyncId) return _tabSessionSyncId;
+    try {
+        const stored = sessionStorage.getItem(TAB_SESSION_SYNC_ID_KEY);
+        if (stored) {
+            _tabSessionSyncId = stored;
+            return _tabSessionSyncId;
+        }
+    } catch (e) {}
+    return null;
+}
+
 function bindTabUser(user) {
     if (!user) return;
     const uid = user.user_id || user.id;
@@ -117,11 +131,19 @@ function bindTabUser(user) {
         sessionStorage.setItem(TAB_USER_ID_KEY, String(_tabBoundUserId));
         const token = sessionStorage.getItem('church_token');
         const meta = parseActiveSessionMeta();
+        let syncId = getTabSessionSyncId();
+        if (!syncId) {
+            syncId = (meta && String(meta.userId) === String(_tabBoundUserId) && meta.sessionSyncId)
+                ? meta.sessionSyncId
+                : generateClientUuid();
+            _tabSessionSyncId = syncId;
+            sessionStorage.setItem(TAB_SESSION_SYNC_ID_KEY, syncId);
+        }
         if (token && (!meta || String(meta.userId) === String(_tabBoundUserId))) {
             localStorage.setItem(ACTIVE_SESSION_META_KEY, JSON.stringify({
                 userId: _tabBoundUserId,
                 roleName: user.role_name || null,
-                sessionSyncId: (meta && meta.sessionSyncId) || generateClientUuid(),
+                sessionSyncId: syncId,
                 updatedAt: Date.now()
             }));
             localStorage.setItem(SHARED_SESSION_STORAGE_KEY, JSON.stringify({
@@ -145,6 +167,7 @@ function hydrateTabSessionIfNeeded() {
             sessionStorage.removeItem('church_token');
             sessionStorage.removeItem('church_user');
             sessionStorage.removeItem(TAB_USER_ID_KEY);
+            sessionStorage.removeItem(TAB_SESSION_SYNC_ID_KEY);
             sessionStorage.setItem('auth_logout_reason', 'account_switched');
             return { switchedAway: true };
         }
@@ -157,6 +180,10 @@ function hydrateTabSessionIfNeeded() {
                 if (sharedUid) {
                     _tabBoundUserId = Number(sharedUid) || sharedUid;
                     sessionStorage.setItem(TAB_USER_ID_KEY, String(_tabBoundUserId));
+                }
+                if (meta && meta.sessionSyncId) {
+                    _tabSessionSyncId = meta.sessionSyncId;
+                    sessionStorage.setItem(TAB_SESSION_SYNC_ID_KEY, meta.sessionSyncId);
                 }
                 return { hydrated: true, user: shared.user };
             }
@@ -185,6 +212,7 @@ function recordBrowserLogin(token, user, sessionSyncId = null) {
 
     getBrowserContextId();
     _tabBoundUserId = numericUid;
+    _tabSessionSyncId = syncId;
 
     try {
         sessionStorage.setItem('church_token', token);
@@ -192,6 +220,7 @@ function recordBrowserLogin(token, user, sessionSyncId = null) {
         if (numericUid) {
             sessionStorage.setItem(TAB_USER_ID_KEY, String(numericUid));
         }
+        sessionStorage.setItem(TAB_SESSION_SYNC_ID_KEY, syncId);
 
         // Purge legacy un-scoped localStorage keys
         localStorage.removeItem('church_token');
@@ -228,9 +257,11 @@ function recordBrowserLogin(token, user, sessionSyncId = null) {
 function broadcastLogout(explicitUserId = null) {
     const uid = explicitUserId || getBoundTabUserId();
     try {
+        _tabSessionSyncId = null;
         sessionStorage.removeItem('church_token');
         sessionStorage.removeItem('church_user');
         sessionStorage.removeItem(TAB_USER_ID_KEY);
+        sessionStorage.removeItem(TAB_SESSION_SYNC_ID_KEY);
         localStorage.removeItem('church_token');
         localStorage.removeItem('church_user');
         localStorage.removeItem(SHARED_SESSION_STORAGE_KEY);
@@ -262,6 +293,11 @@ function checkForAccountSwitchConflict() {
         triggerConcurrentLogout('account_switched');
         return true;
     }
+    const tabSyncId = getTabSessionSyncId();
+    if (meta && meta.userId && String(meta.userId) === String(boundUid) && meta.sessionSyncId && tabSyncId && String(meta.sessionSyncId) !== String(tabSyncId)) {
+        triggerConcurrentLogout('concurrent_login');
+        return true;
+    }
     return false;
 }
 
@@ -280,13 +316,10 @@ function handleCrossTabAuthSyncEvent(payload) {
             // Different account logged in using another tab in this browser -> immediately log out THIS tab
             triggerConcurrentLogout('account_switched');
         } else if (incomingUid && String(incomingUid) === String(boundUid)) {
-            // Same account refreshed/logged in on another tab -> sync token/user cleanly without logging out
-            const shared = getSharedBrowserSession();
-            if (shared && shared.token && shared.user) {
-                try {
-                    sessionStorage.setItem('church_token', shared.token);
-                    sessionStorage.setItem('church_user', JSON.stringify(shared.user));
-                } catch (e) {}
+            const tabSyncId = getTabSessionSyncId();
+            if (payload.sessionSyncId && (!tabSyncId || String(payload.sessionSyncId) !== String(tabSyncId))) {
+                // Same account logged in from another tab -> immediately log out THIS previous tab
+                triggerConcurrentLogout('concurrent_login');
             }
         }
     } else if (payload.type === 'SESSION_LOGOUT') {
@@ -353,6 +386,7 @@ const authSessionSync = {
     broadcastLogout,
     beginVoluntaryLogout,
     performLogout,
+    getTabSessionSyncId,
     isVoluntaryLogout: () => _isVoluntarySelfLogout,
     checkForAccountSwitchConflict,
     handleCrossTabAuthSyncEvent
@@ -387,6 +421,7 @@ async function triggerConcurrentLogout(reason = 'concurrent_login') {
         sessionStorage.removeItem('church_token');
         sessionStorage.removeItem('church_user');
         sessionStorage.removeItem(TAB_USER_ID_KEY);
+        sessionStorage.removeItem(TAB_SESSION_SYNC_ID_KEY);
         localStorage.removeItem('church_token');
         localStorage.removeItem('church_user');
         return;
@@ -395,6 +430,7 @@ async function triggerConcurrentLogout(reason = 'concurrent_login') {
     sessionStorage.removeItem('church_token');
     sessionStorage.removeItem('church_user');
     sessionStorage.removeItem(TAB_USER_ID_KEY);
+    sessionStorage.removeItem(TAB_SESSION_SYNC_ID_KEY);
     localStorage.removeItem('church_token');
     localStorage.removeItem('church_user');
 
@@ -413,7 +449,7 @@ async function triggerConcurrentLogout(reason = 'concurrent_login') {
     const isDark = detectThemeIsDark();
 
     let title = 'Session Terminated';
-    let message = 'You have logged in from another browser or device. For your security, this session has been automatically logged out.';
+    let message = 'You have logged in from another tab, browser, or device. For your security, this session has been automatically logged out.';
     let icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
     let iconClass = 'session-icon-danger';
     let iconBg = isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2';
@@ -649,6 +685,11 @@ function startSessionWatchdog() {
         if (type === 'force_logout') {
             const targetUserId = data.user_id || payload.user_id;
             const currentUserId = getBoundTabUserId();
+            const currentTabSyncId = getTabSessionSyncId();
+            const incomingSyncId = data.new_session_sync_id || payload.new_session_sync_id;
+            if (incomingSyncId && currentTabSyncId && String(incomingSyncId) === String(currentTabSyncId)) {
+                return;
+            }
             if (currentUserId && targetUserId && String(currentUserId) === String(targetUserId)) {
                 const reason = data.reason || 'role_changed';
                 triggerConcurrentLogout(reason === 'explicit_logout' ? 'tab_logout' : reason);
@@ -790,7 +831,7 @@ const api = {
             return data;
         } catch (error) {
             console.error(`[API Error] ${method} ${endpoint}:`, error.message);
-            if (response && response.status === 401) {
+            if (response && response.status === 401 && !_isVoluntarySelfLogout) {
                 const termHeader = response.headers ? (response.headers.get('X-Session-Terminated') || '') : '';
                 if (termHeader === 'account_switched' || (error.message && error.message.toLowerCase().includes('different account was logged in'))) {
                     triggerConcurrentLogout('account_switched');

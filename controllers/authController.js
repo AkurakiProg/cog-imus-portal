@@ -153,9 +153,18 @@ async function completeUserLogin(user, req, res, auditAction = 'LOGIN', auditDet
             realtimeBus.broadcast('force_logout', {
                 user_id: prevUid,
                 reason: 'account_switched',
-                new_user_id: user.user_id
+                new_user_id: user.user_id,
+                new_session_sync_id: sessionToken
             });
         }
+    }
+    if (sessionState.supersededSameUser) {
+        realtimeBus.broadcast('force_logout', {
+            user_id: user.user_id,
+            reason: 'concurrent_login',
+            new_user_id: user.user_id,
+            new_session_sync_id: sessionToken
+        });
     }
 
     await userModel.logAudit(

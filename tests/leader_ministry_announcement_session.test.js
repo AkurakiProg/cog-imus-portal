@@ -541,7 +541,7 @@ test('5.C Cross-Tab Session Sync: Scenario 1, 2, 5 — Account B login in same b
     assert.equal(checkMember.status, 200);
 });
 
-test('5.C Cross-Tab Session Sync: Scenario 3 & 4 — Same account stays valid across tabs and logout invalidates all tabs', async () => {
+test('5.C Cross-Tab Session Sync: Scenario 3 & 4 — Re-logging same account on another tab invalidates prior tab & logout invalidates active session', async () => {
     const userA = await createTestUser({ roleId: 2, churchRole: 'Leader', prefix: 'same_acct_tabs' });
     const browserCtx = `browser_same_${Date.now()}`;
 
@@ -554,7 +554,7 @@ test('5.C Cross-Tab Session Sync: Scenario 3 & 4 — Same account stays valid ac
     assert.equal(login1.status, 200);
     const tokenTab1 = (await login1.json()).data.token;
 
-    // Tab 2 logs in again with SAME account & SAME browser context -> both Tab 1 & Tab 2 stay valid!
+    // Tab 2 logs in again with SAME account in another browser tab -> Tab 1 MUST be invalidated (401), Tab 2 active (200)!
     const login2 = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Browser-Context': browserCtx },
@@ -569,10 +569,10 @@ test('5.C Cross-Tab Session Sync: Scenario 3 & 4 — Same account stays valid ac
     const check2 = await fetch(`${baseUrl}/api/auth/check-session`, {
         headers: { Authorization: `Bearer ${tokenTab2}`, 'X-Browser-Context': browserCtx }
     });
-    assert.equal(check1.status, 200, 'Tab 1 of same account must stay valid');
-    assert.equal(check2.status, 200, 'Tab 2 of same account must stay valid');
+    assert.equal(check1.status, 401, 'Previous Tab 1 of same account must be logged out automatically after new tab login');
+    assert.equal(check2.status, 200, 'Newly logged-in Tab 2 must remain active');
 
-    // Separate independent device WITHOUT same browserCtx logging in DOES invalidate prior device (preserves remote single-session security)
+    // Separate independent device WITHOUT same browserCtx logging in DOES invalidate Tab 2
     const remoteLogin = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -581,10 +581,10 @@ test('5.C Cross-Tab Session Sync: Scenario 3 & 4 — Same account stays valid ac
     assert.equal(remoteLogin.status, 200);
     const tokenRemote = (await remoteLogin.json()).data.token;
 
-    const checkTab1AfterRemote = await fetch(`${baseUrl}/api/auth/check-session`, {
-        headers: { Authorization: `Bearer ${tokenTab1}` }
+    const checkTab2AfterRemote = await fetch(`${baseUrl}/api/auth/check-session`, {
+        headers: { Authorization: `Bearer ${tokenTab2}` }
     });
-    assert.equal(checkTab1AfterRemote.status, 401, 'Remote login from another browser/device invalidates old session');
+    assert.equal(checkTab2AfterRemote.status, 401, 'Remote login from another browser/device invalidates old session');
 
     // Scenario 4: Explicit logout clears session and rejects subsequent requests
     const logoutRes = await fetch(`${baseUrl}/api/auth/logout`, {
@@ -659,11 +659,20 @@ test('5.C Frontend Client Sync Simulation: api.js authSessionSync synchronizes t
     tab1.window.authSessionSync.recordBrowserLogin('jwt-secret-token-A', adminUser, 'sync-A');
     tab1.window.authSessionSync.bindTabUser(adminUser);
 
-    // Tab 2 opens same dashboard without logging in again -> hydrates User 10 seamlessly
+    // Tab 2 opens same dashboard directly without logging in -> hydrates User 10 seamlessly
     const tab2 = createBrowserTabSandbox('/views/admin-dashboard.html');
     const hyd = tab2.window.authSessionSync.hydrateTabSessionIfNeeded();
     assert.equal(hyd.hydrated, true);
     assert.equal(tab2.sessionStorage.getItem('church_token'), 'jwt-secret-token-A');
+
+    // Tab 4 logs in freshly to the SAME Admin account (User 10) from another tab -> MUST log out Tab 1!
+    const tab4 = createBrowserTabSandbox('/views/login.html');
+    tab4.window.authSessionSync.recordBrowserLogin('jwt-secret-token-A2', adminUser, 'sync-A2');
+    const sameAccountSwitchMsg = postedMessages[postedMessages.length - 1].msg;
+    tab1.window.authSessionSync.handleCrossTabAuthSyncEvent(sameAccountSwitchMsg);
+    assert.equal(tab1.sessionStorage.getItem('church_token'), null, 'Previous Tab 1 of same account must clear token immediately on new tab login');
+    assert.equal(tab1.sessionStorage.getItem('auth_logout_reason'), 'concurrent_login');
+    assert.equal(tab4.window.authSessionSync.checkForAccountSwitchConflict(), false, 'Newly logged-in Tab 4 must stay active');
 
     // Tab 3 logs in as DIFFERENT account (Leader User 20)
     const tab3 = createBrowserTabSandbox('/views/login.html');
@@ -679,12 +688,12 @@ test('5.C Frontend Client Sync Simulation: api.js authSessionSync synchronizes t
         assert.equal(json.includes('password'), false, 'BroadcastChannel must NOT leak password');
     }
 
-    // Deliver switch broadcast event to Tab 1 -> Tab 1 immediately clears session & stores exact message
+    // Deliver switch broadcast event to Tab 2 (still holding User 10) -> Tab 2 immediately clears session & stores exact message
     const lastSwitchMsg = postedMessages[postedMessages.length - 1].msg;
-    tab1.window.authSessionSync.handleCrossTabAuthSyncEvent(lastSwitchMsg);
-    assert.equal(tab1.sessionStorage.getItem('church_token'), null, 'Tab 1 must clear previous account token immediately');
-    assert.equal(tab1.sessionStorage.getItem('auth_logout_reason'), 'account_switched');
-    assert.equal(tab1.sessionStorage.getItem('session_terminated_message'), ACCOUNT_SWITCHED_MESSAGE);
+    tab2.window.authSessionSync.handleCrossTabAuthSyncEvent(lastSwitchMsg);
+    assert.equal(tab2.sessionStorage.getItem('church_token'), null, 'Tab 2 must clear previous account token immediately');
+    assert.equal(tab2.sessionStorage.getItem('auth_logout_reason'), 'account_switched');
+    assert.equal(tab2.sessionStorage.getItem('session_terminated_message'), ACCOUNT_SWITCHED_MESSAGE);
 });
 
 test('5.D Voluntary Button Logout sets self_logout (not tab_logout) while notifying sibling tabs', async () => {
